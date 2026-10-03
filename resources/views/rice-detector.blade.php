@@ -767,13 +767,43 @@
               <span id="resultSpeakBtnText">Read</span>
             </button>
             <button type="button" class="symptoms-action-btn translate-btn" id="resultTranslateBtn" onclick="toggleResultSymptomsTranslation()" title="Translate Result Symptoms">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
               <span id="resultTranslateBtnText">Translate to Tagalog</span>
             </button>
           </div>
         </div>
 
-        <div class="action-buttons">
+        <!-- ═══════════ RECOMMENDED TREATMENT & WHAT TO APPLY CARD ═══════════ -->
+        <div class="result-treatment-card" id="resultTreatmentCard" style="margin-top: 16px; background: var(--surface, #ffffff); border: 1px solid var(--neutral-200, #e5e7eb); border-radius: 14px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(22, 101, 52, 0.1); color: #166534;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22v-9"/><path d="M12 13C8 13 4 9 4 4c5 0 9 4 9 9z"/><path d="M12 8c2-3 5-4 8-4 0 5-4 9-8 9"/></svg>
+              </span>
+              <h4 id="resultTreatmentCardHeading" style="font-size: 15px; font-weight: 700; color: var(--neutral-900, #111827); margin: 0;">Recommended Treatment & Care</h4>
+            </div>
+            <button type="button" onclick="showScreen('treatment'); loadCurrentTreatment();" style="display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              <span id="resultTreatmentGuideLinkText">Full Guide & Dosage</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+
+          <!-- Official Staff / Agronomist Advisory Callout (If Available) -->
+          <div id="resultStaffAdvisoryBox" style="display: none; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #1e40af; margin-bottom: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span id="resultStaffAdvisoryHeader">Opisyal na Payo mula sa Agriculturist / Staff</span>
+            </div>
+            <p id="resultStaffAdvisoryText" style="font-size: 13px; color: #1e3a8a; line-height: 1.5; margin: 0; font-weight: 500;"></p>
+          </div>
+
+          <!-- Dynamic List of Suggestions to Apply -->
+          <div id="resultTreatmentItemsList" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- JS populated with chemical & organic items with tags and dosages -->
+          </div>
+        </div>
+
+        <div class="action-buttons" style="margin-top: 16px;">
           <button class="btn-treatment" id="resultBtnTreatment" onclick="showScreen('treatment'); loadCurrentTreatment();">View Treatment Guide</button>
           <button class="btn-ai-consult" id="resultBtnAiConsult" onclick="consultAboutCurrentDisease()">Ask AI Assistant</button>
           <button class="btn-newscan" id="resultBtnNewScan" onclick="showScreen('scan')">New Scan</button>

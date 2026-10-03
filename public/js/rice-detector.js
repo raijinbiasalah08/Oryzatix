@@ -2519,6 +2519,569 @@ function renderResultLanguage() {
     const isSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
     speakBtnText.textContent = isSpeaking ? 'Stop' : 'Read';
   }
+
+  // Render prominent treatment suggestions & staff advisory on the result card
+  renderResultTreatments(scan, lang);
+}
+
+function renderResultTreatments(scan, lang) {
+  const container = document.getElementById('resultTreatmentItemsList');
+  const cardHeading = document.getElementById('resultTreatmentCardHeading');
+  const guideLink = document.getElementById('resultTreatmentGuideLinkText');
+  const advisoryBox = document.getElementById('resultStaffAdvisoryBox');
+  const advisoryText = document.getElementById('resultStaffAdvisoryText');
+  const advisoryHeader = document.getElementById('resultStaffAdvisoryHeader');
+
+  if (cardHeading) {
+    cardHeading.textContent = lang === 'tagalog' ? 'Mga Mungkahing Gamot at Hakbang na Ilalagay' : 'Recommended Treatments & What to Apply';
+  }
+  if (guideLink) {
+    guideLink.textContent = lang === 'tagalog' ? 'Buong Gabay at Dosis' : 'Full Guide & Dosage';
+  }
+  if (advisoryHeader) {
+    advisoryHeader.textContent = lang === 'tagalog' ? 'Opisyal na Payo mula sa Agriculturist / Staff' : 'Official Agronomist Advisory';
+  }
+
+  // Handle Staff Advisory
+  const staffNotes = scan ? (scan.notes || scan.advisory || scan.staff_notes || '') : '';
+  if (advisoryBox && advisoryText) {
+    if (staffNotes && staffNotes.trim()) {
+      advisoryBox.style.display = 'block';
+      advisoryText.textContent = staffNotes.trim();
+    } else {
+      advisoryBox.style.display = 'none';
+      advisoryText.textContent = '';
+    }
+  }
+
+  if (!container) return;
+
+  const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
+  if (isHealthy) {
+    container.innerHTML = `
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px; display:flex; align-items:flex-start; gap:12px;">
+        <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#22c55e; color:#fff; flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <h5 style="margin:0 0 4px; font-size:14px; font-weight:700; color:#15803d;">
+            ${lang === 'tagalog' ? 'Malusog ang Tanim at Walang Sakit' : 'Optimal Vegetative Crop Health'}
+          </h5>
+          <p style="margin:0; font-size:13px; color:#166534; line-height:1.5;">
+            ${lang === 'tagalog' ? 'Ipagpatuloy ang Good Agricultural Practices (GAP): balanseng pataba (NPK), tamang patubig (AWD), at regular na pagmamasid sa bukid.' : 'Continue standard Good Agricultural Practices (GAP): balanced NPK fertilization, Alternate Wetting and Drying (AWD) irrigation, and routine field scouting.'}
+          </p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const key = scan.disease_key || 'blast';
+  const severity = scan.severity || 'moderate';
+  const data = getLocalizedTreatmentsData(key, severity, lang);
+
+  let html = '';
+
+  // Chemical Treatments / Recommended Sprays
+  if (data.chemical && data.chemical.length) {
+    html += `
+      <div style="margin-bottom:4px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; background:#fee2e2; color:#b91c1c;">
+            ${lang === 'tagalog' ? 'Mungkahing Gamot / Kemikal na I-spray' : 'Recommended Chemical Spray & Dosage'}
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${data.chemical.map(item => `
+            <div style="background:#fff; border:1px solid #fecaca; border-radius:10px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <h5 style="margin:0; font-size:13.5px; font-weight:700; color:#991b1b;">${escapeHtml(item.name)}</h5>
+                ${item.dosage ? `<span style="font-size:11.5px; font-weight:700; color:#1e3a8a; background:#dbeafe; padding:2px 8px; border-radius:12px;">${escapeHtml(item.dosage)}</span>` : ''}
+              </div>
+              <p style="margin:0; font-size:12.5px; color:#4b5563; line-height:1.5;">${escapeHtml(item.desc)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Organic & Cultural Management
+  if (data.organic && data.organic.length) {
+    html += `
+      <div style="margin-top:6px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; background:#dcfce7; color:#15803d;">
+            ${lang === 'tagalog' ? 'Organiko at Wastong Pamamahala sa Bukid' : 'Organic & Cultural Farm Practices'}
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${data.organic.map(item => `
+            <div style="background:#fff; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <h5 style="margin:0; font-size:13.5px; font-weight:700; color:#166534;">${escapeHtml(item.name)}</h5>
+                <span style="font-size:11px; font-weight:600; color:#15803d; background:#f0fdf4; border:1px solid #86efac; padding:2px 8px; border-radius:12px;">${escapeHtml(item.tag || 'Action')}</span>
+              </div>
+              <p style="margin:0; font-size:12.5px; color:#4b5563; line-height:1.5;">${escapeHtml(item.desc)}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function getLocalizedTreatmentsData(key, severity = 'moderate', lang = 'english') {
+  const isTagalog = lang === 'tagalog';
+
+  if (key === 'blast') {
+    if (severity === 'mild') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Tricyclazole 75% WP (Beam / Blast-Off)' : 'Tricyclazole 75% WP (Beam / Blast-Off)',
+            dosage: isTagalog ? 'Dosis: 0.6–1.0 g / Litro ng tubig' : 'Dosage: 0.6–1.0 g / L water',
+            desc: isTagalog ? 'I-spray bilang maagang proteksyon sa dahon. Pinipigilan nito ang pagdami ng spore ng amag ayon sa DA-PhilRice standard.' : 'Apply 0.6–1.0 g/L (300–400 g/ha) as early preventive foliar spray. DA-PhilRice standard systemic protective fungicide.'
+          },
+          {
+            name: isTagalog ? 'Kasugamycin 2% SL (Kasumin)' : 'Kasugamycin 2% SL (Kasumin)',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 ml / Litro ng tubig' : 'Dosage: 1.5–2.0 ml / L water',
+            desc: isTagalog ? 'Bio-fungicide na mabilis sumuot sa dahon upang mapigilan ang impeksyon bago kumalat.' : 'Apply 1.5–2.0 ml/L. Systemic protective agricultural bio-fungicide preventing fungal spore penetration.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Bawasan ang Sobrang Urea (Sundin ang Leaf Color Chart)' : 'Balanced Nitrogen (Follow Leaf Color Chart - LCC)',
+            tag: isTagalog ? 'Abono' : 'Fertilization',
+            desc: isTagalog ? 'Hatiin sa 3–4 na yugto ang paglalagay ng abono upang hindi maging malambot ang dahon na pabor sa sakit.' : 'Avoid excess urea application during vegetative stage. Split nitrogen fertilizer into 3–4 applications based on LCC reading.'
+          },
+          {
+            name: isTagalog ? 'Panatilihing may Tubig (3–5 cm)' : 'Maintain Continuous Shallow Water (3–5 cm)',
+            tag: isTagalog ? 'Patubig' : 'Water Management',
+            desc: isTagalog ? 'Huwag hayaang matuyo ang pinitak habang nagsusuwi dahil mas mabilis kumalat ang blast kapag tagtuyot ang lupa.' : 'Do not allow the paddy field to dry out during tillering. Water-stressed paddies significantly heighten blast vulnerability.'
+          }
+        ]
+      };
+    } else if (severity === 'severe') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Therapeutic Tricyclazole + Propiconazole Tank Mix' : 'Therapeutic Tricyclazole + Propiconazole / Mancozeb Tank Mix',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 g / Litro ng tubig' : 'Dosage: 1.5–2.0 g / L water',
+            desc: isTagalog ? 'Agarang emergency tank spray sa itaas na dahon at punong-uhay upang iligtas ang natitirang suwi at maiwasan ang neck blast.' : 'Emergency therapeutic tank spray (1.5–2.0 g/L) directed at upper leaves and panicle boot to save productive tillers.'
+          },
+          {
+            name: isTagalog ? 'Carbendazim 50% WP + Epoxiconazole' : 'Carbendazim 50% WP + Epoxiconazole',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 g / Litro ng tubig' : 'Dosage: 1.5–2.0 g / L water',
+            desc: isTagalog ? 'Pamatay sa kumakalat na amag sa katawan at watawat na dahon ng palay.' : 'Apply 1.5–2.0 g/L for rapid curative eradication of active sporulating mycelial masses.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Ihiwalay at Sunugin ang Grabeng Apektadong Tanim' : 'Sanitation & Removal of Blasted Residues',
+            tag: isTagalog ? 'Kalinisan' : 'Sanitation',
+            desc: isTagalog ? 'Alisin at sunugin ang mga natuyong dahon at dayami malayo sa palayan upang mapatay ang mga naiwang spores.' : 'Carefully collect and burn heavily blasted crop stubbles away from paddies to eradicate spore reserves.'
+          },
+          {
+            name: isTagalog ? 'Magtanim ng Resistant Varieties (NSIC Rc222, Rc160)' : 'Plant Blast-Resistant Varieties Next Season',
+            tag: isTagalog ? 'Binhi' : 'Varietal Selection',
+            desc: isTagalog ? 'Sa susunod na taniman, gumamit ng sertipikadong binhi na subok na panlaban sa blast tulad ng NSIC Rc222, Rc160, o Tubigan series.' : 'Shift strictly next cropping season to certified resistant varieties such as NSIC Rc222, NSIC Rc160, or Tubigan series.'
+          }
+        ]
+      };
+    } else {
+      // Moderate
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Isoprothiolane 40% EC (Fuji-One)' : 'Isoprothiolane 40% EC (Fuji-One)',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 ml / Litro ng tubig' : 'Dosage: 1.5–2.0 ml / L water',
+            desc: isTagalog ? 'Systemic fungicide na mabilis kumalat sa buong halaman para pigilan ang paglaki ng sugat sa dahon.' : 'Apply 1.5–2.0 ml/L (750–1000 ml/ha) foliar spray. Systemic fungicide that arrests active lesion expansion.'
+          },
+          {
+            name: isTagalog ? 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)' : 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'Mabisang panggamot at pampatigil sa pamumulaklak ng amag sa mga dahon.' : 'Apply 1.0 ml/L spray. Dual systemic active ingredients providing curative and anti-sporulant action.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Itigil Muna ang Paglalagay ng Urea' : 'Complete Nitrogen (Urea) Suspension',
+            tag: isTagalog ? 'Abono' : 'Fertilizer Control',
+            desc: isTagalog ? 'Agad na ihinto ang paglalagay ng Urea hanggang sa ganap na matuyo ang mga sugat ng blast sa palay.' : 'Immediately halt all topdressing of nitrogenous fertilizers until blast spots dry up.'
+          },
+          {
+            name: isTagalog ? 'Mag-abono ng Potash (0-0-60 @ 30–40 kg/ha)' : 'Potassium Boost (Muriate of Potash - 0-0-60)',
+            tag: isTagalog ? 'Sustansya' : 'Nutrition',
+            desc: isTagalog ? 'Maglagay ng Potassium upang mapakapal at mapatibay ang mga selula ng dahon laban sa fungus.' : 'Apply 30–40 kg/ha K₂O to strengthen cell walls and enhance physiological resistance against fungal enzymes.'
+          }
+        ]
+      };
+    }
+  }
+
+  if (key === 'blb') {
+    if (severity === 'mild') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Copper Hydroxide 77% WP' : 'Copper Hydroxide 77% WP',
+            dosage: isTagalog ? 'Dosis: 2.0 g / Litro ng tubig' : 'Dosage: 2.0 g / L water',
+            desc: isTagalog ? 'Pamatay-bakterya sa ibabaw ng dahon upang mapigilan ang pagpasok ng Xanthomonas bacteria sa mga ugat ng dahon.' : 'Apply 2.0 g/L as preventive contact foliar spray to sanitize leaf surfaces and inhibit bacterial entry.'
+          },
+          {
+            name: isTagalog ? 'Copper Oxychloride 50% WP' : 'Copper Oxychloride 50% WP',
+            dosage: isTagalog ? 'Dosis: 2.5–3.0 g / Litro ng tubig' : 'Dosage: 2.5–3.0 g / L water',
+            desc: isTagalog ? 'Nagsisilbing panangga laban sa pagdami ng bacterial leaf blight.' : 'Use 2.5–3.0 g/L spray during early vegetative stage as protective barrier against Xanthomonas.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Patuyuin ang Pinitak nang 2–3 Araw' : 'Field Drainage & Humidity Control',
+            tag: isTagalog ? 'Patubig' : 'Water Management',
+            desc: isTagalog ? 'Alisin ang tubig sa bukid para bumaba ang humidity na paboritong tirahan ng bakterya.' : 'Drain standing water from the paddy for 2–3 days to reduce canopy relative humidity.'
+          },
+          {
+            name: isTagalog ? 'Maglagay ng Potash at Sunog na Ipa (CRH)' : 'Potassium & Silica Fertilization',
+            tag: isTagalog ? 'Lupa' : 'Soil Amendment',
+            desc: isTagalog ? 'Patibayin ang kutikula ng dahon gamit ang Muriate of Potash at silica mula sa sunog na ipa.' : 'Apply Muriate of Potash (30–40 kg/ha) and silica/rice hull ash to strengthen leaf epidermal walls.'
+          }
+        ]
+      };
+    } else if (severity === 'severe') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Streptomycin-Tetracycline (200 ppm) Therapeutic Spray' : 'Therapeutic Streptomycin-Tetracycline (200 ppm)',
+            dosage: isTagalog ? 'Dosis: 2.0–2.5 g / Litro ng tubig' : 'Dosage: 2.0–2.5 g / L water',
+            desc: isTagalog ? 'Emergency pamatay-bakterya na nakatutok sa itaas na dahon upang maisalba ang mga suwi.' : 'Emergency therapeutic application (2.0–2.5 g/L) directed at upper foliage and flag leaves.'
+          },
+          {
+            name: isTagalog ? 'Zinc Thiazole 20% SC + Copper Hydroxide' : 'Zinc Thiazole 20% SC + Copper Hydroxide Tank Mix',
+            dosage: isTagalog ? 'Dosis: 1.5 ml + 2.0 g / Litro ng tubig' : 'Dosage: 1.5 ml + 2.0 g / L water',
+            desc: isTagalog ? 'Pinagsamang systemic at contact bactericide para pigilan ang bacterial ooze.' : 'Dual-action systemic + contact application to rapidly arrest active bacterial streaming.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Patuyuin ang Lupa Hanggang Magbitak' : 'Deep Field Aeration & Sun Drying',
+            tag: isTagalog ? 'Aksyong Bukid' : 'Field Action',
+            desc: isTagalog ? 'Ganap na alisin ang tubig upang maaarawan ang lupa at mamatay ang bakterya.' : 'Completely drain water from the field and allow the soil surface to crack and sun-dry.'
+          },
+          {
+            name: isTagalog ? 'Magtanim ng BLB-Resistant Varieties (Xa4/Xa7 Genes)' : 'Switch to Resistant Varieties Next Season',
+            tag: isTagalog ? 'Binhi' : 'Varietal Selection',
+            desc: isTagalog ? 'Magtanim ng NSIC Rc152, PSB Rc82, o IRBB varieties sa susunod na cropping.' : 'Plant certified varieties with proven multi-gene resistance (NSIC Rc152, PSB Rc82, or IRBB varieties).'
+          }
+        ]
+      };
+    } else {
+      // Moderate
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Streptomycin Sulfate + Oxytetracycline (Plantomycin)' : 'Streptomycin Sulfate + Oxytetracycline (Plantomycin)',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 g / Litro ng tubig' : 'Dosage: 1.5–2.0 g / L water',
+            desc: isTagalog ? 'Systemic agricultural antibiotic na sumusuot sa ugat ng dahon upang mapatay ang bakterya. Ulitin makalipas ang 7–10 araw.' : 'Apply 1.5–2.0 g/L foliar spray. Systemic antibiotic that penetrates vascular bundles to arrest replication.'
+          },
+          {
+            name: isTagalog ? 'Zinc Thiazole / Bismerthiazol 20% SC' : 'Zinc Thiazole / Bismerthiazol 20% SC',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 ml / Litro ng tubig' : 'Dosage: 1.5–2.0 ml / L water',
+            desc: isTagalog ? 'Bactericide na direktang pumupuksa sa Xanthomonas bacteria.' : 'Apply 1.5–2.0 ml/L. Highly effective systemic bactericide specifically targeting Xanthomonas.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Iwasang Maglakad sa Bukid Habang may Hamog' : 'Avoid Field Operations During Morning Dew',
+            tag: isTagalog ? 'Pag-iingat' : 'Precaution',
+            desc: isTagalog ? 'Huwag hawakan o damuhan ang palay sa umaga dahil kumakapit ang bakterya sa tubig ng hamog at lumilipat sa ibang tanim.' : 'Do not walk through or weed the crop while morning dew is on the leaves to prevent bacterial transmission.'
+          },
+          {
+            name: isTagalog ? 'Ihiwalay ang Daloy ng Tubig-Patubig' : 'Irrigation Water Isolation',
+            tag: isTagalog ? 'Patubig' : 'Water Control',
+            desc: isTagalog ? 'Huwag hayaang dumaloy ang tubig galing sa may sakit na pinitak papunta sa malulusog na katabing palayan.' : 'Ensure irrigation water does not flow from infected fields into healthy neighboring rice plots.'
+          }
+        ]
+      };
+    }
+  }
+
+  if (key === 'brown_spot') {
+    if (severity === 'mild') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Mancozeb 80% WP (Dithane M-45)' : 'Mancozeb 80% WP (Dithane M-45)',
+            dosage: isTagalog ? 'Dosis: 2.0–2.5 g / Litro ng tubig' : 'Dosage: 2.0–2.5 g / L water',
+            desc: isTagalog ? 'Proteksiyon sa dahon upang mapigilan ang pagtubo ng mga batik at fungal spores.' : 'Apply 2.0–2.5 g/L protective contact foliar spray to halt spore germination and shield young leaves.'
+          },
+          {
+            name: isTagalog ? 'Propiconazole 25% EC (Tilt)' : 'Propiconazole 25% EC (Tilt)',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'Systemic protection laban sa Bipolaris oryzae fungus.' : 'Apply 1.0 ml/L spray at first emergence of pinpoint brown specks.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Mag-abono ng Potash (0-0-60 @ 30–40 kg/ha) at Zinc' : 'Potassium & Zinc Soil Amendment',
+            tag: isTagalog ? 'Abono' : 'Fertilization',
+            desc: isTagalog ? 'Kulang sa sustansya ang lupa kaya madalas magka-brown spot; agad maglagay ng Muriate of Potash at Zinc Sulfate.' : 'Apply Muriate of Potash (30–40 kg/ha) and Zinc Sulfate (25 kg/ha) to rectify nutrient deficiencies.'
+          },
+          {
+            name: isTagalog ? 'Maglagay ng Organikong Compost' : 'Well-Decomposed Organic Compost',
+            tag: isTagalog ? 'Lupa' : 'Soil Health',
+            desc: isTagalog ? 'Maghalo ng 2–3 toneladang compost sa bawat ektarya upang mapaganda ang biological health ng lupa.' : 'Incorporate 2–3 tons/ha compost or decomposed rice straw to enrich soil biological activity.'
+          }
+        ]
+      };
+    } else if (severity === 'severe') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Propiconazole 25% EC + Mancozeb Tank Mix' : 'Propiconazole 25% EC + Mancozeb 80% WP Tank Mix',
+            dosage: isTagalog ? 'Dosis: 1.0 ml + 2.0 g / Litro ng tubig' : 'Dosage: 1.0 ml + 2.0 g / L water',
+            desc: isTagalog ? 'Emergency tank spray para pigilan ang pagkasunog ng dahon at impeksyon sa butil (pecky rice).' : 'Therapeutic emergency spray (1.0 ml + 2.0 g/L). Combines systemic curative eradication with protective contact.'
+          },
+          {
+            name: isTagalog ? 'Carbendazim 50% WP + Tebuconazole 250 EC' : 'Carbendazim 50% WP + Tebuconazole 250 EC',
+            dosage: isTagalog ? 'Dosis: 1.0–1.5 g / Litro ng tubig' : 'Dosage: 1.0–1.5 g / L water',
+            desc: isTagalog ? 'Pang-spray sa watawat na dahon at lumalabas na uhay upang iligtas ang kalidad ng butil ng palay.' : 'Apply 1.0–1.5 g/L spray targeted at flag leaves and emerging panicles to protect grain quality.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Ibabad ang Binhi sa Maligamgam na Tubig (52–54°C)' : 'Hot Water Seed Disinfection',
+            tag: isTagalog ? 'Binhi' : 'Seed Care',
+            desc: isTagalog ? 'Ibabad ang binhi nang 15 minuto sa 52–54°C bago ikulob para mapatay ang amag na nakakapit sa butil.' : 'Soak seeds in 52–54°C warm water for 15 minutes before pre-germination.'
+          },
+          {
+            name: isTagalog ? 'Malalim na Pag-aararo at Pagbabaon ng Dayami' : 'Deep Plowing & Crop Residue Incorporation',
+            tag: isTagalog ? 'Kalinisan' : 'Sanitation',
+            desc: isTagalog ? 'Ibaon nang malalim ang mga dayami at pinag-anihan upang mabulok at mamatay ang natitirang amag.' : 'Plow down and decompose all infected stubbles immediately after harvest.'
+          }
+        ]
+      };
+    } else {
+      // Moderate
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Tebuconazole 250 EC (Folicur)' : 'Tebuconazole 250 EC (Folicur)',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'Systemic triazole fungicide na pumipigil sa paglaki ng mga bilog na kayumangging mantsa.' : 'Apply 1.0 ml/L foliar spray. Strong systemic triazole fungicide that halts mycelial elongation.'
+          },
+          {
+            name: isTagalog ? 'Azoxystrobin + Difenoconazole (Amistar Top)' : 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'Mabisang gamot na nagbibigay ng matagalang proteksyon sa gitna at itaas na dahon.' : 'Apply 1.0 ml/L spray. Dual systemic strobilurin + triazole with powerful curative action.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Hatiin ang Paglalagay ng Potash (Basal + Panicle)' : 'Split Potassium Topdressing (MOP 0-0-60)',
+            tag: isTagalog ? 'Abono' : 'Fertilization',
+            desc: isTagalog ? 'Maglagay ng kalahating dosis ng Potash sa simula at kalahati bago magbuntis ang palay para lumakas ang resistensya.' : 'Apply 50% potash at basal and 50% at panicle initiation stage (15–20 kg/ha K₂O).'
+          },
+          {
+            name: isTagalog ? 'AWD Patubig (Alternate Wetting & Drying)' : 'Alternate Wetting and Drying (AWD)',
+            tag: isTagalog ? 'Patubig' : 'Water Control',
+            desc: isTagalog ? 'Pasingawin ang lupa tuwing 3–5 araw para makahinga ang ugat at makasipsip ng micronutrients.' : 'Practice controlled AWD irrigation to improve soil aeration and enhance root vigor.'
+          }
+        ]
+      };
+    }
+  }
+
+  if (key === 'tungro') {
+    if (severity === 'mild') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Imidacloprid 17.8% SL' : 'Imidacloprid 17.8% SL',
+            dosage: isTagalog ? 'Dosis: 0.5–0.75 ml / Litro ng tubig' : 'Dosage: 0.5–0.75 ml / L water',
+            desc: isTagalog ? 'Mabilisang pamatay sa Green Leafhopper (ngusong damo) bago makapaglipat ng virus sa palay.' : 'Apply 0.5–0.75 ml/L foliar spray. Rapid knockdown of Green Leafhopper (GLH) vectors.'
+          },
+          {
+            name: isTagalog ? 'Thiamethoxam 25% WG' : 'Thiamethoxam 25% WG',
+            dosage: isTagalog ? 'Dosis: 0.2–0.3 g / Litro ng tubig' : 'Dosage: 0.2–0.3 g / L water',
+            desc: isTagalog ? 'Systemic protective barrier sa paligid ng pilapil at taniman.' : 'Apply 0.2–0.3 g/L as systemic protective vector barrier across field borders.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Sabayang Pagtatanim sa Komunidad (Synchronous Planting)' : 'Synchronous Community Planting',
+            tag: isTagalog ? 'Pamamahala' : 'Cultural',
+            desc: isTagalog ? 'Magtanim sa loob ng 2 linggong sabayang iskedyul ng mga katabing magsasaka upang maputol ang pamumugad ng ngusong damo.' : 'Coordinate community planting within a 2-week window to break continuous insect vector breeding.'
+          },
+          {
+            name: isTagalog ? 'Magkabit ng Yellow Sticky Traps (20–25 bawat ektarya)' : 'Yellow Sticky Vector Traps',
+            tag: isTagalog ? 'Bitag' : 'Trapping',
+            desc: isTagalog ? 'Mabisang humuhuli at sumusubaybay sa dami ng berdeng ngusong damo.' : 'Install 20–25 yellow sticky insect traps per hectare to monitor and trap green leafhoppers.'
+          }
+        ]
+      };
+    } else if (severity === 'severe') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Etofenprox 10% EC' : 'Etofenprox 10% EC',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 ml / Litro ng tubig' : 'Dosage: 1.5–2.0 ml / L water',
+            desc: isTagalog ? 'Emergency pamatay-insekto para sa makakapal na populasyon ng ngusong damo.' : 'Apply 1.5–2.0 ml/L pyrethroid ether for rapid emergency knockdown of high-density leafhopper populations.'
+          },
+          {
+            name: isTagalog ? 'Fipronil 5% SC / Clothianidin 50% WDG' : 'Fipronil 5% SC / Clothianidin 50% WDG',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'I-spray sa puno at dahon ng palay upang maputol ang transmisyon ng virus.' : 'Emergency vector eradication directed at the base and foliage of the crop.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Bunutin at Sunugin ang mga Bansot na Tanim (Rogueing)' : 'Systemic Rogueing & Field Sanitation',
+            tag: isTagalog ? 'Aksyon' : 'Field Action',
+            desc: isTagalog ? 'Agad bunutin at sunugin ang mga grabeng nanilaw at bansot na tumpok upang hindi mahawa ang buong bukid.' : 'Pull out completely stunted, unheading hills and burn away from the field.'
+          },
+          {
+            name: isTagalog ? 'Magtanim ng Matatag/Tungro-Resistant Varieties (NSIC Rc160)' : 'Switch to Resistant Varieties Next Season',
+            tag: isTagalog ? 'Binhi' : 'Varietal Selection',
+            desc: isTagalog ? 'Magtanim ng NSIC Rc160, NSIC Rc120, o Matatag lines sa susunod na taniman.' : 'Plant certified Tungro-resistant rice varieties (NSIC Rc160, NSIC Rc120, or Matatag lines).'
+          }
+        ]
+      };
+    } else {
+      // Moderate
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Dinotefuran 20% SG' : 'Dinotefuran 20% SG',
+            dosage: isTagalog ? 'Dosis: 0.5–1.0 g / Litro ng tubig' : 'Dosage: 0.5–1.0 g / L water',
+            desc: isTagalog ? 'Mabilis na pamatay sa parehong bata at matandang ngusong damo.' : 'Apply 0.5–1.0 g/L. Fast-acting neonicotinoid with systemic activity against leafhoppers.'
+          },
+          {
+            name: isTagalog ? 'Clothianidin + Pymetrozine' : 'Clothianidin + Pymetrozine',
+            dosage: isTagalog ? 'Dosis: 1.0 g / Litro ng tubig' : 'Dosage: 1.0 g / L water',
+            desc: isTagalog ? 'Pinaparalisa ang bibig ng insekto upang agad itong huminto sa pagsipsip ng katas ng dahon.' : 'Apply 1.0 g/L. Paralyzes insect feeding mouthparts and arrests vector transmission.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Pumili at Magbunot ng mga Apektadong Tanim' : 'Selective Rogueing',
+            tag: isTagalog ? 'Kalinisan' : 'Sanitation',
+            desc: isTagalog ? 'Bunutin at ibaon sa lupa ang mga kapansin-pansing naninilaw na puno upang mabawasan ang source ng virus.' : 'Uproot and bury individual severely yellowed hills displaying distinct stunting.'
+          },
+          {
+            name: isTagalog ? 'Spray ng Neem Extract (NSKE 5%)' : 'Neem Seed Kernel Extract (NSKE 5%)',
+            tag: isTagalog ? 'Organiko' : 'Botanical',
+            desc: isTagalog ? 'Likas na panaboy sa mga insektong sumisipsip ng dahon.' : 'Spray 5% neem extract to act as natural antifeedant and repellent against vectors.'
+          }
+        ]
+      };
+    }
+  }
+
+  if (key === 'sheath_blight') {
+    if (severity === 'mild') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Validamycin 3% L (Sheathmar / Validacin)' : 'Validamycin 3% L (Sheathmar / Validacin)',
+            dosage: isTagalog ? 'Dosis: 2.0–2.5 ml / Litro ng tubig' : 'Dosage: 2.0–2.5 ml / L water',
+            desc: isTagalog ? 'I-spray sa ibabang bahagi ng puno ng palay malapit sa tubig. Mabisang pampatigil sa paghaba ng amag.' : 'Apply 2.0–2.5 ml/L foliar spray targeted at the lower canopy/culm base. Halts Rhizoctonia hyphal elongation.'
+          },
+          {
+            name: isTagalog ? 'Hexaconazole 5% SC (Contaf)' : 'Hexaconazole 5% SC (Contaf)',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 ml / Litro ng tubig' : 'Dosage: 1.5–2.0 ml / L water',
+            desc: isTagalog ? 'Panggamot sa mga basang sugat sa saha ng palay.' : 'Apply 1.5–2.0 ml/L spray to arrest mycelial growth on lower leaf sheaths.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Panatilihin ang 20x20 cm na Distansya ng Tanim' : 'Canopy Aeration & Proper Spacing',
+            tag: isTagalog ? 'Taniman' : 'Spacing',
+            desc: isTagalog ? 'Wastong agwat upang makapasok ang sikat ng araw at sariwang hangin sa ibaba ng puno.' : 'Maintain 20x20 cm plant spacing to improve sunlight penetration and air circulation.'
+          },
+          {
+            name: isTagalog ? 'Mag-spray ng Trichoderma harzianum' : 'Trichoderma viride / harzianum',
+            tag: isTagalog ? 'Biolohikal' : 'Bio-Control',
+            desc: isTagalog ? 'Mag-spray ng 5–10 g/L Trichoderma sa puno ng palay upang likas na labanan ang Rhizoctonia amag.' : 'Apply antagonistic bio-agent foliar/soil drench at 5–10 g/L to biologically suppress sclerotia.'
+          }
+        ]
+      };
+    } else if (severity === 'severe') {
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Therapeutic Thifluzamide + Tebuconazole Tank Mix' : 'Therapeutic Thifluzamide + Tebuconazole Tank Mix',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 g / Litro ng tubig' : 'Dosage: 1.5–2.0 g / L water',
+            desc: isTagalog ? 'Emergency spray upang iligtas ang watawat na dahon at booting panicle mula sa paghiga (lodging) at pagkabulok.' : 'Emergency therapeutic spray (1.5–2.0 g/L) to salvage flag leaves and booting panicles.'
+          },
+          {
+            name: isTagalog ? 'Carbendazim 50% WP + Difenoconazole' : 'Carbendazim 50% WP + Difenoconazole',
+            dosage: isTagalog ? 'Dosis: 1.5–2.0 g / Litro ng tubig' : 'Dosage: 1.5–2.0 g / L water',
+            desc: isTagalog ? 'Mabilisang pamatay sa amag na umaakyat sa itaas ng puno ng palay.' : 'Apply 1.5–2.0 g/L for rapid curative eradication of active ascending fungal colonies.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'Salain ang mga Lutang na Amag (Sclerotia) sa Tubig' : 'Destroy Stricken Stubbles & Floating Sclerotia',
+            tag: isTagalog ? 'Kalinisan' : 'Sanitation',
+            desc: isTagalog ? 'Salain ang mga lumulutang na itim/kayumangging butil ng amag kapag nagpapatag ng bukid at sunugin ang mga tuyong dayami.' : 'Skim floating sclerotia during final land leveling and burn severely infected residues.'
+          },
+          {
+            name: isTagalog ? 'Magtanim ng Tolerant Varieties (NSIC Rc222, Rc216)' : 'Plant Tolerant Varieties Next Cropping',
+            tag: isTagalog ? 'Binhi' : 'Varietal Selection',
+            desc: isTagalog ? 'Gumamit ng binhi na may tuwid na dahon at matibay na puno laban sa paghiga sa susunod na taniman.' : 'Shift to certified erect-leaf, moderate-tillering tolerant varieties (NSIC Rc222, NSIC Rc216).'
+          }
+        ]
+      };
+    } else {
+      // Moderate
+      return {
+        chemical: [
+          {
+            name: isTagalog ? 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)' : 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)',
+            dosage: isTagalog ? 'Dosis: 1.0 ml / Litro ng tubig' : 'Dosage: 1.0 ml / L water',
+            desc: isTagalog ? 'I-spray sa gitnang bahagi ng puno. Mabisang pumipigil sa pag-akyat ng sakit sa itaas na dahon.' : 'Apply 1.0 ml/L spray directed at mid-canopy. Dual systemic translaminar curative action.'
+          },
+          {
+            name: isTagalog ? 'Thifluzamide 24% SC (Pulsor)' : 'Thifluzamide 24% SC (Pulsor)',
+            dosage: isTagalog ? 'Dosis: 0.75–1.0 ml / Litro ng tubig' : 'Dosage: 0.75–1.0 ml / L water',
+            desc: isTagalog ? 'Espesyal na gamot laban sa Rhizoctonia sheath blight sa palay.' : 'Apply 0.75–1.0 ml/L. Highly potent fungicide specifically active against Rhizoctonia sheath blight.'
+          }
+        ],
+        organic: [
+          {
+            name: isTagalog ? 'AWD Patubig (Patuyuin ang Bukid nang 2–3 Araw)' : 'Alternate Wetting and Drying (AWD)',
+            tag: isTagalog ? 'Patubig' : 'Water Control',
+            desc: isTagalog ? 'Patuyuin ang tubig upang bumaba ang halumigmig at hindi umakyat ang amag sa saha.' : 'Drain field water intermittently for 2–3 days to reduce relative humidity inside crop canopy.'
+          },
+          {
+            name: isTagalog ? 'Ganap na Itigil ang Pag-aabono ng Urea' : 'Complete Urea Suspension',
+            tag: isTagalog ? 'Abono' : 'Fertilizer Control',
+            desc: isTagalog ? 'Itigil muna ang nitrogenous fertilizer para hindi maging malambot ang saha ng palay.' : 'Halt all topdress nitrogen applications immediately to prevent succulent tissue expansion.'
+          }
+        ]
+      };
+    }
+  }
+
+  return {
+    chemical: [
+      {
+        name: isTagalog ? 'Protektibong Spray' : 'Preventive Mild Fungicide',
+        dosage: isTagalog ? 'Dosis: 1.0–2.0 g/L' : 'Dosage: 1.0–2.0 g/L',
+        desc: isTagalog ? 'Mag-spray lamang kung tag-ulan o may senyales ng pagkalat ng sakit.' : 'Apply mild protective spray only during prolonged wet periods.'
+      }
+    ],
+    organic: [
+      {
+        name: isTagalog ? 'Good Agricultural Practices (GAP)' : 'Good Agricultural Practices',
+        tag: isTagalog ? 'Alaga' : 'Cultural',
+        desc: isTagalog ? 'Panatilihin ang 20x20 cm na distansya, balanseng NPK, at malinis na patubig.' : 'Maintain 20x20 cm plant spacing, balanced NPK fertilization, and clean irrigation.'
+      }
+    ]
+  };
 }
 
 function speakResultSymptoms(btn) {
