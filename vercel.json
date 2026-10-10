@@ -5,7 +5,7 @@
   "functions": {
     "api/index.php": {
       "runtime": "vercel-php@0.7.1",
-      "includeFiles": "storage/app/datasets/**"
+      "includeFiles": "{storage/app/datasets/**,database/certs/**,storage/certs/**}"
     }
   },
   "routes": [
