@@ -1,0 +1,21 @@
+.git
+.github
+.vscode
+.idea
+node_modules
+vendor
+.env
+.env.*
+!.env.example
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+Bacterial Leaf Blight
+Brown Spot
+Healthy Rice Leaf
+Sheath Blight
+Tungro
+temp_docx_extract
+public/downloads/*
+*.log

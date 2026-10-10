@@ -8,6 +8,26 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\StaffDashboardController;
 
+Route::get('/', function () {
+    return response()->json([
+        'success' => true,
+        'app' => 'ORYZATIX — Rice Disease Detection System',
+        'version' => '1.0.0',
+        'api' => 'v1',
+        'status' => 'operational',
+        'message' => 'Oryzatix REST API v1 is running and accessible.',
+        'endpoints' => [
+            'health' => url('/api/v1/health'),
+            'treatment_guides' => url('/api/v1/treatment-guides'),
+            'public_stats' => url('/api/v1/dashboard/public-stats'),
+            'auth_login' => url('/api/v1/auth/login'),
+            'auth_register' => url('/api/v1/auth/register'),
+            'rice_detector_upload' => url('/api/v1/rice-detector/upload'),
+        ],
+        'web_app_url' => url('/'),
+    ]);
+});
+
 Route::get('/health', function () {
     return response()->json([
         'success' => true,
@@ -89,7 +109,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/translate', [ConsultationController::class, 'translate'])->name('consultation.translate');
         Route::delete('/clear', [ConsultationController::class, 'clear'])->name('consultation.clear');
     });
+
+    Route::get('/dashboard/stats', [RiceScanController::class, 'dashboardStats'])->name('dashboard.stats');
 });
+
+// Public endpoints accessible across all devices
+Route::get('/treatment-guides', [RiceScanController::class, 'treatmentGuides'])->name('treatment-guides.index');
+Route::get('/dashboard/public-stats', [RiceScanController::class, 'dashboardStats'])->name('dashboard.public-stats');
 
 // Scan upload with optional user attachment (accessible for seamless scanning across all auth modes)
 Route::post('/rice-detector/upload', [RiceScanController::class, 'upload'])->name('rice-detector.upload');
+

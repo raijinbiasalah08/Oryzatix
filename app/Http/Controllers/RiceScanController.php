@@ -2052,4 +2052,86 @@ class RiceScanController extends Controller
 
         return 'mild';
     }
+
+    public function treatmentGuides(): JsonResponse
+    {
+        $dbDiseases = \App\Models\Disease::where('status', 'active')->get()->keyBy('code');
+        $result = [];
+
+        foreach ($this->diseases as $key => $diseaseData) {
+            $dbItem = $dbDiseases->get($key);
+            $result[] = [
+                'key' => $key,
+                'name' => $dbItem?->name ?: $diseaseData['name'],
+                'scientific_name' => $dbItem?->scientific_name ?: $diseaseData['scientific'],
+                'description' => $dbItem?->description ?: ($diseaseData['name'] . ' affecting rice cultivation.'),
+                'symptoms' => $dbItem?->symptoms ?: null,
+                'causes' => $dbItem?->causes ?: null,
+                'prevention' => $dbItem?->prevention ?: null,
+                'recommended_treatment' => $dbItem?->recommended_treatment ?: null,
+                'image_url' => $dbItem?->image_path ? asset('storage/' . $dbItem->image_path) : null,
+                'severity_class' => $diseaseData['severity_class'] ?? 'blast-bg',
+                'severity_levels' => $diseaseData['severity_levels'] ?? null,
+                'treatments' => $diseaseData['treatments'] ?? [
+                    'chemical' => $dbItem?->chemical_treatments ?: [],
+                    'organic' => $dbItem?->organic_treatments ?: [],
+                ],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+        ]);
+    }
+
+    public function dashboardStats(Request $request): JsonResponse
+    {
+        $userId = auth('sanctum')->id() ?: auth()->id();
+        $query = RiceScan::query();
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $totalScans = (clone $query)->count();
+        $healthyCount = (clone $query)->where('severity', 'healthy')->count();
+        $mildCount = (clone $query)->where('severity', 'mild')->count();
+        $moderateCount = (clone $query)->where('severity', 'moderate')->count();
+        $severeCount = (clone $query)->where('severity', 'severe')->count();
+
+        $recentScans = (clone $query)->latest()->take(5)->get()->map(function ($scan) {
+            $imageUrl = null;
+            if ($scan->image_path) {
+                if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
+                    $imageUrl = $scan->image_path;
+                } else {
+                    $imageUrl = asset('storage/' . $scan->image_path);
+                }
+            }
+            return [
+                'id' => $scan->id,
+                'disease' => $scan->disease_name,
+                'scientific' => $scan->scientific_name,
+                'confidence' => number_format((float) $scan->confidence, 1),
+                'severity' => $scan->severity,
+                'time' => $scan->created_at->format('g:i A'),
+                'date' => $scan->created_at->format('M j, Y'),
+                'image_url' => $imageUrl,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'total_scans' => $totalScans,
+                'healthy_count' => $healthyCount,
+                'mild_count' => $mildCount,
+                'moderate_count' => $moderateCount,
+                'severe_count' => $severeCount,
+                'health_index' => $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 100.0,
+            ],
+            'recent_scans' => $recentScans,
+        ]);
+    }
 }
+

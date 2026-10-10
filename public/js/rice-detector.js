@@ -131,7 +131,7 @@ function setAuthToken(token) {
         window.sessionStorage.removeItem('oryzatix_auth_token');
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function authHeaders(extra = {}) {
@@ -198,26 +198,26 @@ function setUILanguage(lang) {
 }
 
 const SCREEN_TITLES = {
-  home:               { en: 'Dashboard',                   tl: 'Dashboard' },
-  'admin-dashboard':  { en: 'Admin Executive Dashboard',   tl: 'Admin Dashboard' },
-  'staff-dashboard':  { en: 'Staff Extension Dashboard',   tl: 'Staff Dashboard' },
-  scan:               { en: 'Leaf Disease Scanner',        tl: 'Scanner ng Dahon' },
-  loading:            { en: 'Analyzing Leaf Image',        tl: 'Sinusuri ang Larawan' },
-  results:            { en: 'Detection Results',           tl: 'Resulta ng Pagsusuri' },
-  treatment:          { en: 'Treatment & Care Guide',      tl: 'Gabay sa Gamutan' },
-  history:            { en: 'Scan History & Records',      tl: 'Kasaysayan ng mga Scan' },
-  consultation:       { en: 'AI Agricultural Consult',     tl: 'AI Konsulta' },
-  'admin-users':      { en: 'User Management',             tl: 'Pamamahala ng mga Account' },
-  'admin-diseases':   { en: 'Disease Management',          tl: 'Pamamahala ng Impormasyon ng Sakit' },
-  'admin-scans-logs': { en: 'Detection Records & Logs',    tl: 'Mga Tala ng Diagnosis Scan' },
-  'admin-reports':    { en: 'Reports & Analytics',         tl: 'Mga Ulat at Pagsusuri' },
-  'admin-chatbot':    { en: 'Chatbot & FAQ Management',    tl: 'Pamamahala ng Chatbot at FAQ' },
-  'admin-settings':   { en: 'Account & App Settings',      tl: 'Mga Setting ng Account at App' },
-  profile:            { en: 'Account & App Settings',      tl: 'Mga Setting ng Account at App' },
-  login:              { en: 'Sign In',                     tl: 'Mag-Log In' },
-  register:           { en: 'Create Account',              tl: 'Gumawa ng Account' },
-  'forgot-password':  { en: 'Forgot Password',             tl: 'Nakalimutan ang Password' },
-  splash:             { en: 'ORYZATIX',                    tl: 'ORYZATIX' },
+  home: { en: 'Dashboard', tl: 'Dashboard' },
+  'admin-dashboard': { en: 'Admin Executive Dashboard', tl: 'Admin Dashboard' },
+  'staff-dashboard': { en: 'Staff Extension Dashboard', tl: 'Staff Dashboard' },
+  scan: { en: 'Leaf Disease Scanner', tl: 'Scanner ng Dahon' },
+  loading: { en: 'Analyzing Leaf Image', tl: 'Sinusuri ang Larawan' },
+  results: { en: 'Detection Results', tl: 'Resulta ng Pagsusuri' },
+  treatment: { en: 'Treatment & Care Guide', tl: 'Gabay sa Gamutan' },
+  history: { en: 'Scan History & Records', tl: 'Kasaysayan ng mga Scan' },
+  consultation: { en: 'AI Agricultural Consult', tl: 'AI Konsulta' },
+  'admin-users': { en: 'User Management', tl: 'Pamamahala ng mga Account' },
+  'admin-diseases': { en: 'Disease Management', tl: 'Pamamahala ng Impormasyon ng Sakit' },
+  'admin-scans-logs': { en: 'Detection Records & Logs', tl: 'Mga Tala ng Diagnosis Scan' },
+  'admin-reports': { en: 'Reports & Analytics', tl: 'Mga Ulat at Pagsusuri' },
+  'admin-chatbot': { en: 'Chatbot & FAQ Management', tl: 'Pamamahala ng Chatbot at FAQ' },
+  'admin-settings': { en: 'Account & App Settings', tl: 'Mga Setting ng Account at App' },
+  profile: { en: 'Account & App Settings', tl: 'Mga Setting ng Account at App' },
+  login: { en: 'Sign In', tl: 'Mag-Log In' },
+  register: { en: 'Create Account', tl: 'Gumawa ng Account' },
+  'forgot-password': { en: 'Forgot Password', tl: 'Nakalimutan ang Password' },
+  splash: { en: 'ORYZATIX', tl: 'ORYZATIX' },
 };
 
 function setActiveSidebar(screenId) {
@@ -273,12 +273,12 @@ function showScreen(id) {
     try {
       sessionStorage.setItem('oryzatix_active_screen', id);
       sessionStorage.removeItem('oryzatix_active_auth_screen');
-    } catch (e) {}
+    } catch (e) { }
   } else {
     try {
       sessionStorage.removeItem('oryzatix_active_screen');
       sessionStorage.setItem('oryzatix_active_auth_screen', id);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Sync Mobile Bottom Nav Buttons
@@ -336,7 +336,7 @@ function showScreen(id) {
         if (savedScan) {
           applyScanResult(JSON.parse(savedScan));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   } else if (id === 'login') {
     resetAuthForms();
@@ -414,7 +414,7 @@ function handleProfilePhotoSelected(event) {
   removeProfilePhotoFlag = false;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     const previewImg = document.getElementById('editProfilePhotoImg');
     const initialsSpan = document.getElementById('editProfilePhotoInitials');
     const removeBtn = document.getElementById('btnRemoveProfilePhoto');
@@ -457,6 +457,9 @@ function openModal(modalId) {
   const m = document.getElementById(modalId);
   if (m) {
     m.classList.add('show');
+    if (modalId === 'modalMobileConnect') {
+      renderMobileConnectQr();
+    }
     if (modalId === 'modalEditProfile' && currentUser) {
       selectedProfilePhotoFile = null;
       removeProfilePhotoFlag = false;
@@ -560,7 +563,7 @@ function closeTopbarUserDropdown() {
 }
 
 // Close modals when clicking backdrop, or close topbar dropdown on outside click
-window.addEventListener('click', function(e) {
+window.addEventListener('click', function (e) {
   if (e.target.classList && e.target.classList.contains('modal-backdrop')) {
     e.target.classList.remove('show');
   }
@@ -571,7 +574,7 @@ window.addEventListener('click', function(e) {
 });
 
 // Close modals and dropdowns on Escape key
-window.addEventListener('keydown', function(e) {
+window.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-backdrop.show').forEach(m => m.classList.remove('show'));
     closeTopbarUserDropdown();
@@ -606,11 +609,11 @@ async function checkAuthAndProceed() {
     setAuthToken(paramToken);
     try {
       sessionStorage.setItem('oryzatix_is_logged_in', 'true');
-    } catch (e) {}
+    } catch (e) { }
     // Clean URL query string without page reload
     try {
       window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const isSessionLoggedIn = (typeof sessionStorage !== 'undefined') && sessionStorage.getItem('oryzatix_is_logged_in') === 'true';
@@ -622,7 +625,7 @@ async function checkAuthAndProceed() {
   if (window.INITIAL_AUTH && window.INITIAL_AUTH.user) {
     try {
       sessionStorage.setItem('oryzatix_is_logged_in', 'true');
-    } catch (e) {}
+    } catch (e) { }
     currentUser = window.INITIAL_AUTH.user;
     if (window.INITIAL_AUTH.token) {
       setAuthToken(window.INITIAL_AUTH.token);
@@ -652,7 +655,7 @@ async function checkAuthAndProceed() {
       if (res.ok && data && data.success && data.user) {
         try {
           sessionStorage.setItem('oryzatix_is_logged_in', 'true');
-        } catch (e) {}
+        } catch (e) { }
         currentUser = data.user;
         applyUserToUI();
         if (savedScreen && !AUTH_SCREENS.includes(savedScreen) && document.getElementById(savedScreen)) {
@@ -701,7 +704,7 @@ function applyUserToUI() {
   const psub = document.getElementById('profileSubtitle');
   if (psub) psub.textContent = roleObj.en + loc;
 
-  const initials = (u.name || 'MJ').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  const initials = (u.name || 'MJ').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const avatar = document.getElementById('profileAvatar');
   if (avatar) {
     if (u.avatar_url) {
@@ -955,7 +958,7 @@ async function openGoogleAuthModal(mode = 'login') {
       }
 
       google.accounts.id.prompt();
-    } catch (e) {}
+    } catch (e) { }
   }
 
   openModal('modalGoogleAuth');
@@ -1420,7 +1423,7 @@ async function handleLogin(e) {
       if (data.token) setAuthToken(data.token);
       try {
         sessionStorage.setItem('oryzatix_is_logged_in', 'true');
-      } catch (e) {}
+      } catch (e) { }
       applyUserToUI();
       if (okBanner) {
         okBanner.textContent = data.message || 'Login successful!';
@@ -1944,7 +1947,7 @@ async function uploadAndAnalyze(file) {
   showScreen('loading');
   const localFileUrl = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(file) : '';
 
-  ['step1','step2','step3','step4'].forEach(id => {
+  ['step1', 'step2', 'step3', 'step4'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.remove('done');
@@ -2250,7 +2253,7 @@ function applyScanResult(scan) {
     if (typeof sessionStorage !== 'undefined' && scan) {
       sessionStorage.setItem('oryzatix_last_scan_result', JSON.stringify(scan));
     }
-  } catch (e) {}
+  } catch (e) { }
 
   const imgCard = document.getElementById('resultImageCard');
   if (imgCard) {
@@ -3286,7 +3289,7 @@ async function loadHistory() {
 
       filterHistoryList();
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 function renderHistoryList(scans) {
@@ -3341,30 +3344,30 @@ function renderHistoryList(scans) {
 
     html += '<tr>' +
       '<td>' +
-        '<div class="ht-thumb ' + escapeHtml(scan.severity_class || '') + '" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' +
-          thumb +
-        '</div>' +
+      '<div class="ht-thumb ' + escapeHtml(scan.severity_class || '') + '" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' +
+      thumb +
+      '</div>' +
       '</td>' +
       '<td>' +
-        '<div class="ht-disease-name" style="cursor:pointer;" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' + escapeHtml(scan.disease) + '</div>' +
-        '<div class="ht-scientific-name">' + sciname + '</div>' +
+      '<div class="ht-disease-name" style="cursor:pointer;" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' + escapeHtml(scan.disease) + '</div>' +
+      '<div class="ht-scientific-name">' + sciname + '</div>' +
       '</td>' +
       '<td>' +
-        '<span class="' + badgeCls + '">' + badgeText + '</span>' +
+      '<span class="' + badgeCls + '">' + badgeText + '</span>' +
       '</td>' +
       '<td>' +
-        '<div class="ht-date">' + escapeHtml(scan.date || scan.dateLabel || 'Today') + '</div>' +
-        '<div class="ht-time">' + escapeHtml(scan.time || '') + '</div>' +
+      '<div class="ht-date">' + escapeHtml(scan.date || scan.dateLabel || 'Today') + '</div>' +
+      '<div class="ht-time">' + escapeHtml(scan.time || '') + '</div>' +
       '</td>' +
       '<td>' +
-        '<div class="ht-actions">' +
-          '<button type="button" class="ht-view-btn" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')" title="View Details">View</button>' +
-          (scan.id ? '<button type="button" class="ht-delete-btn" onclick="deleteScan(' + scan.id + '); event.stopPropagation();" title="Delete">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
-          '</button>' : '') +
-        '</div>' +
+      '<div class="ht-actions">' +
+      '<button type="button" class="ht-view-btn" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')" title="View Details">View</button>' +
+      (scan.id ? '<button type="button" class="ht-delete-btn" onclick="deleteScan(' + scan.id + '); event.stopPropagation();" title="Delete">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+        '</button>' : '') +
+      '</div>' +
       '</td>' +
-    '</tr>';
+      '</tr>';
   });
 
   tbody.innerHTML = html;
@@ -3515,7 +3518,7 @@ async function loadHomeRecentScans() {
         if (s.severity === 'healthy') sevCls = 'healthy';
         else if (s.severity === 'mild') sevCls = 'mild';
         else if (s.severity === 'moderate') sevCls = 'moderate';
-        
+
         let sevLabel = 'Severe (>60%)';
         if (s.severity === 'healthy') sevLabel = 'Healthy';
         else if (s.severity === 'mild') sevLabel = 'Mild (≤25%)';
@@ -3843,14 +3846,14 @@ function appendAIBubble(content, language, container) {
   aiBubble.innerHTML =
     '<div class="chat-text-content">' + formatAiMessage(content) + '</div>' +
     '<div class="chat-bubble-footer">' +
-      '<button type="button" class="translate-bubble-btn" onclick="translateAiBubble(this)" title="Translate message">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>' +
-        '<span>' + targetLabel + '</span>' +
-      '</button>' +
-      '<button type="button" class="audio-speaker-btn" onclick="toggleSpeechBubble(this)" title="Read aloud / Stop">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>' +
-        '<span>Read</span>' +
-      '</button>' +
+    '<button type="button" class="translate-bubble-btn" onclick="translateAiBubble(this)" title="Translate message">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>' +
+    '<span>' + targetLabel + '</span>' +
+    '</button>' +
+    '<button type="button" class="audio-speaker-btn" onclick="toggleSpeechBubble(this)" title="Read aloud / Stop">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>' +
+    '<span>Read</span>' +
+    '</button>' +
     '</div>';
   container.appendChild(aiBubble);
   container.scrollTop = container.scrollHeight;
@@ -3951,7 +3954,7 @@ async function loadChatMessages() {
       });
       container.scrollTop = container.scrollHeight;
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 function toggleVoiceRecognition() {
@@ -3996,10 +3999,10 @@ function toggleVoiceRecognition() {
       if (ci) ci.placeholder = 'Ask about rice diseases...';
     };
 
-    try { speechRecognition.start(); } catch (e) {}
+    try { speechRecognition.start(); } catch (e) { }
   } else {
     if (speechRecognition) {
-      try { speechRecognition.stop(); } catch(e) {}
+      try { speechRecognition.stop(); } catch (e) { }
     }
     isRecording = false;
     btn.classList.remove('recording');
@@ -4195,7 +4198,7 @@ function renderAdminStaffRoster(staff) {
   }
 
   tbody.innerHTML = staff.map(st => {
-    const initials = (st.name || 'S').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const initials = (st.name || 'S').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     return `
       <tr>
         <td>
@@ -4617,7 +4620,7 @@ async function loadAdminDiseases() {
     .then(data => {
       if (data && data.success && data.data) {
         adminDiseasesList = data.data.diseases || [];
-        
+
         const countAll = document.getElementById('adminDiseasesCountAll');
         if (countAll) countAll.textContent = adminDiseasesList.length;
 
@@ -4894,7 +4897,7 @@ function openAdminEditDiseaseModalById(id) {
   document.getElementById('adminEditDiseaseCauses').value = d.causes || '';
   document.getElementById('adminEditDiseasePrevention').value = d.prevention || '';
   document.getElementById('adminEditDiseaseTreatment').value = d.recommended_treatment || d.treatment || '';
-  
+
   const isActive = d.status === 'active' || d.is_active;
   document.getElementById('adminEditDiseaseStatus').value = isActive ? '1' : '0';
 
@@ -5033,7 +5036,7 @@ async function toggleAdminDiseaseStatus(id) {
         loadAdminDiseases();
       }
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 /* ═══════════ ADMIN DETECTION RECORDS / LOGS ═══════════ */
@@ -5260,7 +5263,7 @@ async function loadAdminReports(period = 'daily') {
         renderAdminReportTimelineChart(d.timeline || []);
       }
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 function switchAdminReportPeriod(period) {
@@ -5311,15 +5314,15 @@ function renderAdminReportTimelineChart(timeline) {
   container.innerHTML = `
     <div style="display:flex; align-items:flex-end; gap:12px; height:180px; padding:10px 0; border-bottom:1px solid var(--neutral-200);">
       ${timeline.map(t => {
-        const heightPct = Math.max(8, Math.round(((t.total || 0) / maxVal) * 100));
-        return `
+    const heightPct = Math.max(8, Math.round(((t.total || 0) / maxVal) * 100));
+    return `
           <div style="flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;">
             <div style="font-size:11px; font-weight:700; color:var(--neutral-700); margin-bottom:4px;">${t.total || 0}</div>
             <div style="width:100%; max-width:32px; height:${heightPct}%; background:var(--blue-600); border-radius:4px 4px 0 0; transition:height 0.4s ease;"></div>
             <div style="font-size:10.5px; color:var(--neutral-500); margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:48px;">${escapeHtml(t.label || '')}</div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 }
@@ -5641,7 +5644,7 @@ async function toggleAdminFaqStatus(id) {
         loadAdminFaqKnowledge();
       }
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 /* ═══════════ STAFF EXTENSION WORKER DASHBOARD ═══════════ */
@@ -5953,7 +5956,7 @@ function initLiveClock() {
 
   function updateClock() {
     const now = new Date();
-    
+
     // Format Date: e.g. "Thu, Oct 1, 2026"
     const dateOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     const dateStr = now.toLocaleDateString('en-US', dateOptions);
@@ -6170,9 +6173,156 @@ async function saveAdminSecuritySettings() {
   }
 }
 
+/* ═══════════ PWA & MOBILE ADAPTATION SYSTEM ═══════════ */
+let deferredPwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+
+  const topbarBtn = document.getElementById('btnInstallAppTopbar');
+  if (topbarBtn) topbarBtn.style.display = 'inline-flex';
+
+  const drawerBtn = document.getElementById('drawerInstallBtn');
+  if (drawerBtn) drawerBtn.style.display = 'flex';
+
+  const dropdownItem = document.getElementById('dropdownInstallItem');
+  if (dropdownItem) dropdownItem.style.display = 'flex';
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const dismissed = sessionStorage.getItem('oryzatix_pwa_dismissed');
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner && !dismissed && !isStandalone) {
+    setTimeout(() => {
+      banner.style.display = 'block';
+    }, 2500);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPwaPrompt = null;
+  hideAllInstallPrompts();
+  console.log('ORYZATIX Web App installed successfully!');
+});
+
+function hideAllInstallPrompts() {
+  const topbarBtn = document.getElementById('btnInstallAppTopbar');
+  if (topbarBtn) topbarBtn.style.display = 'none';
+  const drawerBtn = document.getElementById('drawerInstallBtn');
+  if (drawerBtn) drawerBtn.style.display = 'none';
+  const dropdownItem = document.getElementById('dropdownInstallItem');
+  if (dropdownItem) dropdownItem.style.display = 'none';
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function dismissPwaBanner() {
+  sessionStorage.setItem('oryzatix_pwa_dismissed', '1');
+  const banner = document.getElementById('pwaInstallBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+async function triggerPwaInstall() {
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+    const choice = await deferredPwaPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      hideAllInstallPrompts();
+    }
+    deferredPwaPrompt = null;
+  } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    openModal('modalIosInstall');
+  } else {
+    openModal('modalMobileConnect');
+  }
+}
+
+function initNetworkStatusMonitoring() {
+  const banner = document.getElementById('offlineIndicatorBanner');
+  function updateStatus() {
+    if (!navigator.onLine) {
+      if (banner) banner.style.display = 'block';
+    } else {
+      if (banner) banner.style.display = 'none';
+    }
+  }
+  window.addEventListener('online', updateStatus);
+  window.addEventListener('offline', updateStatus);
+  updateStatus();
+}
+
+function getBestLanUrl() {
+  const port = window.location.port;
+  const path = window.location.pathname;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (port === '8000') {
+      return 'http://192.168.1.34:8000';
+    }
+    const publicIndex = path.indexOf('/public');
+    if (publicIndex !== -1) {
+      return 'http://192.168.1.34' + path.substring(0, publicIndex + 7);
+    }
+    if (path.toLowerCase().includes('oryzatix')) {
+      return 'http://192.168.1.34/Oryzatix/public';
+    }
+    return 'http://192.168.1.34:8000';
+  }
+  return window.location.origin + window.location.pathname;
+}
+
+function renderMobileConnectQr() {
+  const url = getBestLanUrl();
+  const input = document.getElementById('mobileLanUrlInput');
+  if (input) input.value = url;
+
+  const wrap = document.getElementById('mobileConnectQrCanvasWrap');
+  if (wrap && typeof QRCode !== 'undefined') {
+    wrap.innerHTML = '';
+    try {
+      new QRCode(wrap, {
+        text: url,
+        width: 190,
+        height: 190,
+        colorDark: '#0f2d12',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+    } catch (e) {
+      console.warn('QR Code generation notice:', e);
+    }
+  }
+}
+
+function copyMobileLanUrl() {
+  const input = document.getElementById('mobileLanUrlInput');
+  if (!input) return;
+  const label = document.getElementById('copyUrlLabel');
+  const text = input.value;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      if (label) {
+        label.textContent = 'Copied!';
+        setTimeout(() => { label.textContent = 'Copy Link'; }, 2000);
+      }
+    }).catch(() => fallbackCopy(input, label));
+  } else {
+    fallbackCopy(input, label);
+  }
+}
+
+function fallbackCopy(input, label) {
+  input.select();
+  document.execCommand('copy');
+  if (label) {
+    label.textContent = 'Copied!';
+    setTimeout(() => { label.textContent = 'Copy Link'; }, 2000);
+  }
+}
+
 /* ═══════════ INITIALIZATION ═══════════ */
 document.addEventListener('DOMContentLoaded', function () {
   initLiveClock();
+  initNetworkStatusMonitoring();
 
   const savedLang = window.localStorage ? window.localStorage.getItem('oryzatix_ui_lang') : null;
   if (savedLang) setUILanguage(savedLang);

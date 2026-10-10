@@ -216,6 +216,16 @@
         <span data-en="Treatment Guide" data-tl="Gabay sa Gamutan">Treatment Guide</span>
       </button>
 
+      <button class="sidebar-nav-btn" onclick="openModal('modalMobileConnect'); closeMobileDrawer();">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Connect Mobile / Wi-Fi</span>
+      </button>
+
+      <button class="sidebar-nav-btn" id="drawerInstallBtn" onclick="triggerPwaInstall(); closeMobileDrawer();" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Install App</span>
+      </button>
+
       <!-- ADMIN ONLY SECTION -->
       <div id="drawerAdminGroup" style="display: none; display: contents;">
         <button class="sidebar-nav-btn" data-screen="admin-users" onclick="showScreen('admin-users'); loadAdminUsers(); closeMobileDrawer();">
@@ -269,6 +279,18 @@
             <span class="topbar-time" id="topbarLiveTime">--:--:-- --</span>
           </div>
         </div>
+
+        <!-- Mobile App LAN QR Code Trigger -->
+        <button type="button" class="topbar-action-pill-btn mobile-lan-btn" onclick="openModal('modalMobileConnect')" title="Open Oryzatix on Mobile Device via Wi-Fi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <span class="btn-text-desktop">Mobile App</span>
+        </button>
+
+        <!-- Dynamic In-App PWA Install Button -->
+        <button type="button" class="topbar-action-pill-btn pwa-install-btn" id="btnInstallAppTopbar" onclick="triggerPwaInstall()" style="display: none;" title="Install Oryzatix App">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="btn-text-desktop">Install App</span>
+        </button>
 
         <button class="topbar-notif-btn" onclick="openModal('modalNotifications')" title="Notifications">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -351,6 +373,22 @@
                 <div class="item-text">
                   <span class="item-title" data-en="About Oryzatix" data-tl="Tungkol sa Oryzatix">About Oryzatix System</span>
                   <span class="item-desc" data-en="DA-PhilRice v2.0 AI Platform" data-tl="DA-PhilRice v2.0 AI Platform">DA-PhilRice v2.0 AI Platform</span>
+                </div>
+              </button>
+
+              <button type="button" class="dropdown-item" onclick="openModal('modalMobileConnect'); toggleTopbarUserDropdown();">
+                <div class="item-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
+                <div class="item-text">
+                  <span class="item-title">Mobile Phone Connect (Wi-Fi)</span>
+                  <span class="item-desc">Scan QR code to open & install on phone</span>
+                </div>
+              </button>
+
+              <button type="button" class="dropdown-item" id="dropdownInstallItem" onclick="triggerPwaInstall(); toggleTopbarUserDropdown();" style="display: none;">
+                <div class="item-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+                <div class="item-text">
+                  <span class="item-title">Install Oryzatix App</span>
+                  <span class="item-desc">Add to Home Screen as native app</span>
                 </div>
               </button>
             </div>
@@ -2722,8 +2760,161 @@
   </div>
 </div>
 
+<!-- ═══════════ PWA MOBILE APP & CONNECTIVITY MODALS ═══════════ -->
 
+<!-- Smart PWA Floating Install Banner -->
+<div class="pwa-install-banner" id="pwaInstallBanner" style="display: none;">
+  <div class="pwa-banner-card">
+    <div class="pwa-banner-media">
+      <img src="{{ asset('images/logo.png') }}" alt="Oryzatix Logo" class="pwa-banner-icon">
+    </div>
+    <div class="pwa-banner-body">
+      <h4 class="pwa-banner-title">Install ORYZATIX App</h4>
+      <p class="pwa-banner-desc">Get fast full-screen leaf disease detection directly from your home screen.</p>
+    </div>
+    <div class="pwa-banner-actions">
+      <button type="button" class="pwa-btn-dismiss" onclick="dismissPwaBanner()">Not Now</button>
+      <button type="button" class="pwa-btn-install" onclick="triggerPwaInstall()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Install</span>
+      </button>
+    </div>
+  </div>
+</div>
 
+<!-- Offline Mode Toast Banner -->
+<div class="offline-indicator-banner" id="offlineIndicatorBanner" style="display: none;">
+  <div class="offline-banner-pill">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    <span>Offline Mode Active — Previously loaded scans and disease library remain available.</span>
+  </div>
+</div>
+
+<!-- Mobile Phone Connect (Wi-Fi LAN QR Code) Modal -->
+<div class="modal-backdrop" id="modalMobileConnect">
+  <div class="modal-box edit-profile-modal-box mobile-connect-modal" style="max-width: 580px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="modal-header-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Open & Install on Mobile Device</h3>
+          <p style="font-size: 11.5px; color: var(--neutral-500); margin: 2px 0 0;">Connect your smartphone over local Wi-Fi and install as an App</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal('modalMobileConnect')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <div class="mobile-connect-body">
+      <!-- QR Code Display Card -->
+      <div class="mobile-qr-card">
+        <div class="qr-canvas-wrapper" id="mobileConnectQrCanvasWrap">
+          <canvas id="mobileConnectQrCanvas" width="220" height="220"></canvas>
+        </div>
+        <div class="qr-caption">
+          <div class="qr-live-badge"><span class="pulse-dot"></span> Wi-Fi Live Sync</div>
+          <p>Scan with your iPhone or Android camera to open instantly</p>
+        </div>
+      </div>
+
+      <!-- LAN URL Box with Copy Button -->
+      <div class="mobile-url-box">
+        <label for="mobileLanUrlInput">Direct Mobile Web App URL:</label>
+        <div class="url-input-action-row">
+          <input type="text" id="mobileLanUrlInput" readonly value="http://192.168.1.34:8000">
+          <button type="button" class="btn-copy-url" id="btnCopyMobileUrl" onclick="copyMobileLanUrl()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copyUrlLabel">Copy Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Mobile Setup Guide -->
+      <div class="mobile-instructions-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <h5>Connect to Wi-Fi</h5>
+            <p>Ensure your phone and this computer are connected to the same Wi-Fi network.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <h5>Scan or Open URL</h5>
+            <p>Open in <strong>Chrome</strong> (Android) or <strong>Safari</strong> (iPhone).</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <h5>Install App</h5>
+            <p>Tap <strong>"Install App"</strong> inside Oryzatix to add it to your home screen!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid var(--neutral-200); padding-top: 14px;">
+      <a href="{{ asset('downloads/oryzatix.apk') }}" download="oryzatix-release.apk" class="btn-copy-url" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; background: #047857; color: #fff; border: 1px solid #047857; border-radius: 8px; font-weight: 700; font-size: 13px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Android APK
+      </a>
+      <button type="button" class="btn-modal-cancel" onclick="closeModal('modalMobileConnect')">Close</button>
+      <button type="button" class="auth-btn" onclick="triggerPwaInstall(); closeModal('modalMobileConnect');" style="margin-top: 0; min-width: 160px;">Install on this Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- iOS Safari Add to Home Screen Instructions Modal -->
+<div class="modal-backdrop" id="modalIosInstall">
+  <div class="modal-box edit-profile-modal-box" style="max-width: 480px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div class="modal-header-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Install on iPhone / iPad</h3>
+          <p style="font-size: 11.5px; color: var(--neutral-500); margin: 2px 0 0;">Add Oryzatix directly to your home screen</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal('modalIosInstall')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+
+    <div class="ios-install-steps" style="padding: 16px 0;">
+      <div class="ios-step-item">
+        <div class="ios-step-badge">1</div>
+        <div class="ios-step-text">
+          <p>In Safari, tap the <strong>Share</strong> button <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="vertical-align: middle; color: #0284c7;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> at the bottom of the screen.</p>
+        </div>
+      </div>
+
+      <div class="ios-step-item">
+        <div class="ios-step-badge">2</div>
+        <div class="ios-step-text">
+          <p>Scroll down the share sheet and tap <strong>"Add to Home Screen"</strong> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>.</p>
+        </div>
+      </div>
+
+      <div class="ios-step-item">
+        <div class="ios-step-badge">3</div>
+        <div class="ios-step-text">
+          <p>Tap <strong>"Add"</strong> in the top-right corner. Oryzatix will appear on your home screen like a native app!</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: right; border-top: 1px solid var(--neutral-200); padding-top: 14px;">
+      <button type="button" class="auth-btn" onclick="closeModal('modalIosInstall')" style="margin-top: 0; min-width: 120px;">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ asset('js/qrcode.min.js') }}"></script>
 <script src="{{ asset('js/rice-detector.js') }}?v={{ time() }}"></script>
 <script>
 if ('serviceWorker' in navigator) {
@@ -2734,3 +2925,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
