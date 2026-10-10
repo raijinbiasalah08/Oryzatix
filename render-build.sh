@@ -2,7 +2,7 @@
 set -e
 
 echo "[Oryzatix] Running Composer install..."
-composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
 echo "[Oryzatix] Generating storage symlink..."
 php artisan storage:link || true

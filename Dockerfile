@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip opcache
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip opcache sockets
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -43,7 +43,7 @@ RUN mkdir -p /var/www/html/storage/framework/cache/data \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Install composer production dependencies
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs
 
 # Copy and setup entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
