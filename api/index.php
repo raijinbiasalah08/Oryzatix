@@ -22,6 +22,21 @@ if (!is_dir($tmpStorage)) {
     @mkdir($tmpStorage . '/app/public', 0755, true);
 }
 
+// Ensure SSL CA certificate is available in /tmp for serverless cloud MySQL
+$caDest = '/tmp/ca.pem';
+if (!file_exists($caDest)) {
+    $caCandidates = [
+        __DIR__ . '/../database/certs/ca.pem',
+        __DIR__ . '/../storage/certs/ca.pem',
+    ];
+    foreach ($caCandidates as $c) {
+        if (file_exists($c)) {
+            @copy($c, $caDest);
+            break;
+        }
+    }
+}
+
 // Register the Composer autoloader...
 require __DIR__ . '/../vendor/autoload.php';
 

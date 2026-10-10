@@ -47,11 +47,11 @@ return [
         'mysql' => [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'),
-            'port' => env('DB_PORT', '4000'),
-            'database' => env('DB_DATABASE', 'oryzatix'),
-            'username' => env('DB_USERNAME', hex2bin('4d4532657776574d617332756662412e726f6f74')),
-            'password' => env('DB_PASSWORD', hex2bin('654b756d7047533578566c796c786e75')),
+            'host' => env('DB_HOST') ?: 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com',
+            'port' => env('DB_PORT') ?: '4000',
+            'database' => env('DB_DATABASE') ?: 'oryzatix',
+            'username' => env('DB_USERNAME') ?: hex2bin('4d4532657776574d617332756662412e726f6f74'),
+            'password' => env('DB_PASSWORD') ?: hex2bin('654b756d7047533578566c796c786e75'),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
@@ -62,6 +62,7 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', (function () {
                     $candidates = [
+                        '/tmp/ca.pem',
                         base_path('database/certs/ca.pem'),
                         base_path('storage/certs/ca.pem'),
                         '/etc/pki/tls/certs/ca-bundle.crt',
