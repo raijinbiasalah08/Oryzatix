@@ -60,7 +60,7 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', (str_contains(env('DB_HOST', 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'), 'tidbcloud.com') ? true : null)),
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', file_exists('/etc/ssl/certs/ca-certificates.crt') ? '/etc/ssl/certs/ca-certificates.crt' : null),
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
                 PDO::ATTR_EMULATE_PREPARES => true,
             ], fn($val) => $val !== null && $val !== '') : [],

@@ -15,7 +15,7 @@ if [ ! -L /var/www/html/public/storage ]; then
 fi
 
 # Run migrations if configured
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "[Oryzatix] Running database migrations..."
     php artisan migrate --force || echo "[Oryzatix] Migrations encountered an error, continuing startup..."
 fi
