@@ -2633,6 +2633,76 @@ function renderResultTreatments(scan, lang) {
     `;
   }
 
+  // Cultural Management Practices
+  const mPractices = (scan && scan.management_practices) || (data && data.management_practices);
+  if (mPractices && mPractices.length) {
+    html += `
+      <div style="margin-top:10px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; background:#e0f2fe; color:#0369a1;">
+            ${lang === 'tagalog' ? 'Wastong Pamamahala at Pag-iingat sa Bukid' : 'Field Management & Cultural Practices'}
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${mPractices.map(item => `
+            <div style="background:#fff; border:1px solid #bae6fd; border-radius:10px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <h5 style="margin:0; font-size:13.5px; font-weight:700; color:#0369a1;">${escapeHtml(item.practice || item.name || '')}</h5>
+                <span style="font-size:11px; font-weight:600; color:#0284c7; background:#f0f9ff; border:1px solid #7dd3fc; padding:2px 8px; border-radius:12px;">${escapeHtml(item.category || item.tag || 'Management')}</span>
+              </div>
+              <p style="margin:0; font-size:12.5px; color:#4b5563; line-height:1.5;">${escapeHtml(item.desc || '')}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Agricultural Strategies for High Productivity & Fruitful Harvests
+  const agStrategies = (scan && scan.agricultural_strategies) || (data && data.agricultural_strategies);
+  if (agStrategies && agStrategies.length) {
+    html += `
+      <div style="margin-top:10px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:3px 8px; border-radius:4px; background:#fef3c7; color:#b45309;">
+            ${lang === 'tagalog' ? 'Estratehiya sa Pagsasaka para sa Masaganang Ani' : 'Agricultural Strategies for Fruitful Harvests'}
+          </span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${agStrategies.map(item => `
+            <div style="background:#fff; border:1px solid #fde68a; border-radius:10px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <h5 style="margin:0; font-size:13.5px; font-weight:700; color:#b45309;">${escapeHtml(item.strategy || item.name || '')}</h5>
+                <span style="font-size:11px; font-weight:600; color:#d97706; background:#fffbeb; border:1px solid #fcd34d; padding:2px 8px; border-radius:12px;">${escapeHtml(item.category || item.tag || 'Strategy')}</span>
+              </div>
+              <p style="margin:0; font-size:12.5px; color:#4b5563; line-height:1.5;">${escapeHtml(item.desc || '')}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Productivity & Harvest Impact Banner
+  const prodImpact = (scan && scan.productivity_harvest_impact) || (data && data.productivity_harvest_impact);
+  if (prodImpact) {
+    html += `
+      <div style="margin-top:12px; background:linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border:1px solid #86efac; border-radius:10px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px;">
+        <span style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:#10b981; color:#fff; flex-shrink:0; margin-top:2px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        <div>
+          <h5 style="margin:0 0 2px; font-size:12.5px; font-weight:700; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">
+            ${lang === 'tagalog' ? 'Inaasahang Ani at Proteksyon sa Palayan' : 'Productivity & Harvest Yield Protection'}
+          </h5>
+          <p style="margin:0; font-size:12.5px; color:#065f46; line-height:1.45;">
+            ${escapeHtml(prodImpact)}
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = html;
 }
 

@@ -861,6 +861,7 @@
               <li><strong>Bacterial Leaf Blight (BLB)</strong> — <em>Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)</em></li>
               <li><strong>Rice Leaf Blast (Magnaporthe oryzae)</strong></li>
               <li><strong>Brown Spot (Bipolaris oryzae)</strong></li>
+              <li><strong>Sheath Blight (Rhizoctonia solani)</strong></li>
               <li><strong>Rice Tungro Disease (RTBV/RTSV)</strong></li>
               <li><strong>Healthy Rice Leaves</strong></li>
             </ul>

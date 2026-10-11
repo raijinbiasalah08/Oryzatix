@@ -44,7 +44,7 @@ class RiceScanController extends Controller
             'message_en' => 'Cannot read or diagnose this image because it is not found in the system dataset or database.',
             'message_tl' => 'Hindi mabasa ang larawan dahil wala ito sa dataset o database ng system.',
             'supported_diseases' => [
-                'Bacterial Leaf Blight (BLB) — Mild (≤25%), Moderate (26%-60%), Severe (>60%)',
+                'Bacterial Leaf Blight (BLB) — Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)',
                 'Rice Leaf Blast (Magnaporthe oryzae)',
                 'Brown Spot (Bipolaris oryzae)',
                 'Sheath Blight (Rhizoctonia solani)',
@@ -243,60 +243,92 @@ class RiceScanController extends Controller
                 'mild' => [
                     'severity' => 'mild',
                     'range' => '≤ 25%',
-                    'description' => 'Initial bacterial infection with small water-soaked streaks or narrow yellowish margins at leaf tips. Minimal vascular blockage.',
+                    'description' => 'Initial bacterial infection with small water-soaked streaks or narrow yellowish wavy margins at leaf tips. Minimal vascular blockage.',
                     'chemical' => [
-                        ['name' => 'Copper Hydroxide 77% WP', 'desc' => 'Apply 2.0 g/L of water as preventive contact foliar spray to sanitize leaf surfaces and inhibit bacterial entry through hydathodes.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
-                        ['name' => 'Copper Oxychloride 50% WP', 'desc' => 'Use 2.5–3.0 g/L spray during early vegetative stage. Provides an active protective barrier against Xanthomonas multiplication.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
+                        ['name' => 'Copper Hydroxide 77% WP (Kocide 2000 / Champion)', 'dosage' => '2.0–2.5 g / L water (1.0–1.25 kg/ha)', 'desc' => 'Apply as preventive contact foliar spray to sanitize leaf surfaces and inhibit Xanthomonas entry through hydathodes.', 'tag' => 'Contact Bactericide', 'tag_class' => 'bactericide'],
+                        ['name' => 'Copper Oxychloride 50% WP (Vitigran Blue / Cuprofix)', 'dosage' => '2.5–3.0 g / L water', 'desc' => 'Use during early vegetative stage. Provides an active inorganic protective copper barrier against bacterial multiplication.', 'tag' => 'Protective Bactericide', 'tag_class' => 'bactericide'],
                     ],
                     'organic' => [
-                        ['name' => 'Field Drainage & Humidity Control', 'desc' => 'Drain standing water from the paddy for 2–3 days to reduce canopy relative humidity and stop bacterial spread.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Potassium & Silica Fertilization', 'desc' => 'Apply Muriate of Potash (30–40 kg K₂O/ha) and silica/rice hull ash to strengthen leaf epidermal cell walls against penetration.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Bacillus subtilis / Pseudomonas fluorescens', 'desc' => 'Apply antagonistic bio-agent foliar spray at 5–10 g/L to naturally colonize leaf phyllosphere and suppress blight bacteria.', 'tag' => 'Biological', 'tag_class' => 'biological'],
-                        ['name' => 'Halt High Nitrogen (Urea)', 'desc' => 'Temporarily suspend topdress urea to avoid excessive succulent leaf tissue vulnerable to bacterial invasion.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
+                        ['name' => 'Bacillus subtilis / Pseudomonas fluorescens', 'dosage' => '5–10 g / L water (10^8 CFU/mL)', 'desc' => 'Spray late in the afternoon. Antagonistic bacteria aggressively colonize the leaf phyllosphere and suppress blight bacteria.', 'tag' => 'Bio-Bactericide', 'tag_class' => 'biological'],
+                        ['name' => 'Vermicompost Tea / Fermented Plant Juice (FPJ)', 'dosage' => '1:20 dilution', 'desc' => 'Stimulates plant Systemic Acquired Resistance (SAR) and enriches beneficial leaf microflora.', 'tag' => 'Bio-Stimulant', 'tag_class' => 'biological'],
                     ],
+                    'management_practices' => [
+                        ['practice' => 'Intermittent Field Drainage (2–3 Days)', 'category' => 'Water Management', 'desc' => 'Drain standing water completely from the paddy for 48–72 hours to lower relative humidity within the crop canopy below 80%.'],
+                        ['practice' => 'Strict Dew-Free Field Operations', 'category' => 'Cultural Sanitation', 'desc' => 'Strictly avoid walking through, weeding, or touching the crop while morning dew is on leaves to prevent mechanical bacterial transmission.'],
+                        ['practice' => 'Immediate Urea / Nitrogen Suspension', 'category' => 'Nutrient Management', 'desc' => 'Temporarily suspend all topdressing of urea to prevent thin, succulent leaf tissue vulnerable to bacterial invasion.'],
+                        ['practice' => 'Irrigation Water Isolation', 'category' => 'Field Quarantine', 'desc' => 'Close connecting bund inlets and outlets so irrigation water does not flow from infected paddies into neighboring uninfected rice plots.'],
+                    ],
+                    'agricultural_strategies' => [
+                        ['strategy' => 'Potassium & Silica Cell Wall Fortification', 'category' => 'Nutrition & Resilience', 'desc' => 'Apply 30–40 kg/ha K₂O (Muriate of Potash, 0-0-60) and 200–300 kg/ha Carbonized Rice Hull (CRH) to thicken epidermal cell walls against penetration.'],
+                        ['strategy' => 'Leaf Color Chart (LCC) Precision Nitrogen Scheduling', 'category' => 'Fertilizer Optimization', 'desc' => 'Measure leaf greenness with DA-PhilRice LCC. Apply nitrogen only when readings drop below panel 4 to optimize tiller count without excessive lushness.'],
+                        ['strategy' => 'Alternate Wetting and Drying (AWD) Water Regime', 'category' => 'Water Efficiency', 'desc' => 'Allow water level to drop to 15 cm below soil surface before re-flooding to strengthen root anchorage and halt bacterial spread.'],
+                        ['strategy' => 'Flag Leaf Preservation for High Harvest Yield', 'category' => 'Yield Protection', 'desc' => 'Intervening early keeps blight below 25%, preserving over 75% of grain filling capacity and securing full potential harvest yield (5.5–6.5 t/ha).'],
+                    ],
+                    'productivity_harvest_impact' => 'Mild infection affects ≤ 25% leaf area. Early treatment preserves 85–95% canopy photosynthesis, protecting full harvest yield potential (5.5–6.5 tons/ha).',
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
                     'range' => '26% – 60%',
                     'description' => 'Active bacterial blight with noticeable wavy yellow-orange margins expanding along leaf blades and drying tips.',
                     'chemical' => [
-                        ['name' => 'Streptomycin Sulfate + Oxytetracycline (Plantomycin / Agrimycin)', 'desc' => 'Apply 150–200 ppm (1.5–2.0 g/L) foliar spray. Systemic agricultural antibiotic that penetrates vascular bundles to arrest bacterial replication. Repeat after 7–10 days.', 'tag' => 'Antibiotic', 'tag_class' => 'bactericide'],
-                        ['name' => 'Zinc Thiazole / Bismerthiazol 20% SC', 'desc' => 'Apply 1.5–2.0 ml/L. Highly effective systemic bactericide specifically targeting Xanthomonas bacterial cells.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
-                        ['name' => 'Kasugamycin + Copper Oxychloride', 'desc' => 'Apply 2.0 ml/L for combined protective and curative bactericidal action across the mid-canopy.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
+                        ['name' => 'Streptomycin Sulfate + Oxytetracycline (Plantomycin / Agrimycin 100)', 'dosage' => '150–200 ppm (1.5–2.0 g / L water)', 'desc' => 'Systemic agricultural antibiotic that penetrates vascular bundles to arrest bacterial replication. Repeat after 7–10 days.', 'tag' => 'Systemic Antibiotic', 'tag_class' => 'bactericide'],
+                        ['name' => 'Zinc Thiazole / Bismerthiazol 20% SC', 'dosage' => '1.5–2.0 mL / L water (750–1000 mL/ha)', 'desc' => 'Highly effective systemic bactericide specifically targeting Xanthomonas bacterial cells with zero phytotoxicity.', 'tag' => 'Targeted Bactericide', 'tag_class' => 'bactericide'],
+                        ['name' => 'Kasugamycin 2% + Copper Oxychloride (Kasumin-B)', 'dosage' => '2.0 mL / L water', 'desc' => 'Provides synergistic translaminar systemic action and broad-spectrum contact protection to halt active lesion expansion.', 'tag' => 'Translaminar Bactericide', 'tag_class' => 'bactericide'],
                     ],
                     'organic' => [
-                        ['name' => 'Strict Nitrogen Suspension', 'desc' => 'Strictly suspend all top-dress nitrogen applications until disease spread is completely halted.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Avoid Field Operations During Morning Dew', 'desc' => 'Do not walk through, weed, or touch the crop while morning dew is on the leaves to prevent mechanical bacterial transmission.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Irrigation Water Isolation', 'desc' => 'Ensure irrigation water does not flow from infected fields into healthy neighboring rice plots.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
+                        ['name' => 'Paenibacillus polymyxa / Bacillus amyloliquefaciens', 'dosage' => '5–10 g / L water', 'desc' => 'Late afternoon spray following drainage to induce plant defense enzymes and suppress bacterial spread.', 'tag' => 'Bio-Bactericide', 'tag_class' => 'biological'],
+                        ['name' => 'Pyroligneous Acid (Wood Vinegar 1:300)', 'dosage' => '3–4 mL / L water', 'desc' => 'Natural organic bactericide spray to acidify leaf phyllosphere and suppress bacterial ooze.', 'tag' => 'Organic Bactericide', 'tag_class' => 'biological'],
                     ],
+                    'management_practices' => [
+                        ['practice' => 'Complete Nitrogen (Urea) Suspension', 'category' => 'Nutrient Management', 'desc' => 'Completely cease all nitrogen topdressing until lesion margins dry up, turn grayish-white, and stop oozing.'],
+                        ['practice' => 'Paddy Drainage & Canopy Aeration (3–4 Days)', 'category' => 'Water Management', 'desc' => 'Drain floodwater from the field for 3 to 4 days until soil exhibits hairline cracks to stop bacterial swimming mobility.'],
+                        ['practice' => 'Strict Field Hygiene & Disinfection', 'category' => 'Sanitation', 'desc' => 'Disinfect footgear and tools with 5% bleach or disinfectant when moving from affected plots to unaffected fields.'],
+                        ['practice' => 'Bund Weed Clearance (Rogue Host Removal)', 'category' => 'Host Eradication', 'desc' => 'Clear wild host grasses (Leersia oryzoides, Echinochloa) along paddy dikes that harbor Xanthomonas bacteria.'],
+                    ],
+                    'agricultural_strategies' => [
+                        ['strategy' => 'Panicle Initiation Potassium Booster (0-0-60 Topdress)', 'category' => 'Nutrient Compensation', 'desc' => 'Apply 20–25 kg/ha K₂O (MOP) at panicle initiation to enhance carbohydrate translocation and reduce chaffy grains.'],
+                        ['strategy' => 'Foliar Zinc & Micronutrient Recovery Spray', 'category' => 'Metabolic Support', 'desc' => 'Apply chelated zinc (0.5% ZnSO₄) and boron foliar spray to preserve pollen viability and promote uniform panicle exertion.'],
+                        ['strategy' => 'Canopy Micro-Climate Moderation via AWD', 'category' => 'Disease Suppression', 'desc' => 'Practice controlled AWD to eliminate continuous standing water films on lower leaf sheaths, breaking the disease cycle.'],
+                        ['strategy' => 'Productivity Recovery & Yield Salvage Strategy', 'category' => 'Harvest Protection', 'desc' => 'Arresting moderate blight at 26–60% preserves upper canopy photosynthesis, salvaging up to 80–85% of standard crop harvest.'],
+                    ],
+                    'productivity_harvest_impact' => 'Moderate infection affects 26–60% leaf area. Rapid antibiotic/bactericide spray and AWD drainage halt lesion spread, salvaging 80–85% of standard harvest yield.',
                 ],
                 'severe' => [
                     'severity' => 'severe',
                     'range' => '> 60%',
                     'description' => 'Advanced blight condition (Kresek / systemic wilt) with large bleached-gray or straw-colored dried leaves and severe photosynthetic impairment.',
                     'chemical' => [
-                        ['name' => 'Therapeutic Streptomycin-Tetracycline (200 ppm)', 'desc' => 'Emergency therapeutic application (2.0–2.5 g/L) directed at upper foliage and flag leaves to salvage productive tillers.', 'tag' => 'Emergency Antibiotic', 'tag_class' => 'bactericide'],
-                        ['name' => 'Zinc Thiazole 20% SC + Copper Hydroxide Tank Mix', 'desc' => 'Dual-action systemic + contact application to rapidly arrest active bacterial streaming from cuticular cracks and hydathodes.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
+                        ['name' => 'Therapeutic Streptomycin-Oxytetracycline (200 ppm) + Zinc Thiazole 20% SC Tank Mix', 'dosage' => '2.0–2.5 g + 1.5 mL / L water', 'desc' => 'Emergency curative spray directed forcefully at remaining green foliage and flag leaf boots to salvage productive tillers.', 'tag' => 'Emergency Therapeutic', 'tag_class' => 'bactericide'],
+                        ['name' => 'Copper Hydroxide 77% WP + Propiconazole (Dual Bactericide-Fungicide)', 'dosage' => '2.5 g + 1.0 mL / L water', 'desc' => 'Sanitizes collapsing leaf tissues and suppresses opportunistic secondary pathogens (sheath rot, blast).', 'tag' => 'Broad-Spectrum Therapy', 'tag_class' => 'bactericide'],
                     ],
                     'organic' => [
-                        ['name' => 'Deep Field Aeration & Sun Drying', 'desc' => 'Completely drain water from the field and allow the soil surface to crack and sun-dry to eradicate bacterial ooze.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Rogueing Severely Stricken Clumps', 'desc' => 'Carefully pull out completely wilted/kresek tillers at field borders, place in bags, and destroy away from paddy.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                        ['name' => 'Post-Harvest Sanitation & Deep Plowing', 'desc' => 'Plow down and decompose all crop residues and stubbles immediately after harvest to destroy bacterial overwintering shelters.', 'tag' => 'Sanitation', 'tag_class' => 'cultural'],
-                        ['name' => 'Switch to Resistant Varieties Next Season', 'desc' => 'In the next cropping cycle, plant certified rice varieties with proven multi-gene resistance (Xa4, Xa7, Xa21) such as NSIC Rc152, PSB Rc82, or IRBB varieties.', 'tag' => 'Varietal Selection', 'tag_class' => 'cultural'],
+                        ['name' => 'Trichoderma harzianum + Effective Microorganisms (EM-1)', 'dosage' => '500 mL / 100 L water applied to soil during drainage', 'desc' => 'Biologically digests infected crop debris and suppresses soil-borne bacterial survivability ahead of the next cycle.', 'tag' => 'Soil Bio-Restoration', 'tag_class' => 'biological'],
                     ],
+                    'management_practices' => [
+                        ['practice' => 'Deep Soil Sun-Drying & Complete Aeration', 'category' => 'Field Rehabilitation', 'desc' => 'Completely drain standing water and allow soil to dry thoroughly for 5–7 days. Solar UV radiation sanitizes surface bacterial ooze.'],
+                        ['practice' => 'Rogueing & Safe Destruction of Kresek Tillers', 'category' => 'Inoculum Reduction', 'desc' => 'Carefully uproot and remove completely wilted, bleached-white tillers exhibiting kresek collapse; dispose of away from waterways.'],
+                        ['practice' => 'Post-Harvest Deep Moldboard Plowing (20–25 cm)', 'category' => 'Sanitation & Inter-Season Hygiene', 'desc' => 'Plow under all crop stubble and infected straw immediately after harvest to an inversion depth of 20–25 cm.'],
+                    ],
+                    'agricultural_strategies' => [
+                        ['strategy' => 'Strict Switch to PhilRice BLB-Resistant Rice Varieties Next Season', 'category' => 'Varietal Selection (Crucial)', 'desc' => 'Next cropping season, transition strictly to certified varieties with proven multi-gene resistance (Xa4, Xa7, Xa21) such as NSIC Rc152, PSB Rc82, NSIC Rc222, or IRBB21.'],
+                        ['strategy' => 'Certified Clean Seed Sourcing & Hot Water Seed Treatment', 'category' => 'Seed Health', 'desc' => 'Purchase certified blue-tag seeds. Submerge seeds in warm water (52–54°C) for 15 minutes before soaking to eradicate seed-borne inoculum.'],
+                        ['strategy' => 'Pre-Planting Basal Silicate & Organic Conditioning', 'category' => 'Soil Regeneration', 'desc' => 'Incorporate 2–3 tons/ha decomposed manure/compost plus 300 kg/ha Carbonized Rice Hull (CRH) during land preparation.'],
+                        ['strategy' => 'Salvaging Grain Filling in Surviving Tillers', 'category' => 'Harvest Protection', 'desc' => 'Apply light potassium topdressing (15 kg K₂O/ha) to surviving tillers to optimize panicle filling, minimizing catastrophic crop failure.'],
+                    ],
+                    'productivity_harvest_impact' => 'Severe infection affects > 60% leaf area (advanced kresek/wilt). Emergency therapeutic intervention salvages remaining tillers; immediate switch to resistant varieties next season ensures sustained productivity.',
                 ],
             ],
             'treatments' => [
                 'chemical' => [
-                    ['name' => 'Streptomycin Sulfate + Oxytetracycline', 'desc' => 'Apply 150-200 ppm as foliar spray at first sign of disease. Repeat every 7-10 days until controlled.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
+                    ['name' => 'Streptomycin Sulfate + Oxytetracycline (150-200 ppm)', 'desc' => 'Apply 1.5-2.0 g/L as systemic foliar spray. Repeat every 7-10 days until bacterial replication is arrested.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
                     ['name' => 'Zinc Thiazole 20% SC', 'desc' => 'Apply 1.5-2.0 ml/L. Highly effective bactericide with systemic translocation specifically targeting Xanthomonas.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
-                    ['name' => 'Copper Hydroxide 77% WP', 'desc' => 'Apply 2-2.5 g/L as foliar spray. Acts as contact bactericide that kills bacterial cells on leaf surface.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
+                    ['name' => 'Copper Hydroxide 77% WP', 'desc' => 'Apply 2-2.5 g/L as contact foliar spray to sanitize leaf surfaces and prevent hydathode penetration.', 'tag' => 'Bactericide', 'tag_class' => 'bactericide'],
                 ],
                 'organic' => [
-                    ['name' => 'Resistant Varieties with Xa Genes', 'desc' => 'Use varieties with Xa4, Xa7, or Xa21 resistance genes such as PSB Rc82, NSIC Rc152, or IRBB varieties.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                    ['name' => 'Field Drainage & Moisture Reduction', 'desc' => 'Drain standing water from paddy for 2-3 days to lower relative humidity and stop bacterial spread.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
-                    ['name' => 'Pseudomonas fluorescens / Bacillus subtilis', 'desc' => 'Seed treatment (10 g/kg) + foliar spray (5 g/L). Antagonistic bacteria that outcompetes pathogens.', 'tag' => 'Biological', 'tag_class' => 'biological'],
-                    ['name' => 'Balanced Fertilization & Potassium', 'desc' => 'Avoid excessive nitrogen. Apply potassium (30-40 kg K2O/ha) to improve leaf cell wall resistance.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
+                    ['name' => 'Resistant Varieties with Xa Genes (NSIC Rc152, PSB Rc82)', 'desc' => 'Plant certified varieties with Xa4, Xa7, or Xa21 resistance genes recommended by DA-PhilRice.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
+                    ['name' => 'Field Drainage & Moisture Reduction', 'desc' => 'Drain standing water from paddy for 2-3 days to lower relative humidity below 80% and halt bacterial spread.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
+                    ['name' => 'Pseudomonas fluorescens / Bacillus subtilis', 'desc' => 'Antagonistic bacteria foliar spray at 5-10 g/L to naturally colonize leaf phyllosphere.', 'tag' => 'Biological', 'tag_class' => 'biological'],
+                    ['name' => 'Balanced Fertilization & Potassium (MOP 0-0-60)', 'desc' => 'Halt excessive nitrogen. Apply potassium (30-40 kg K2O/ha) to improve leaf cell wall resistance.', 'tag' => 'Cultural', 'tag_class' => 'cultural'],
                 ],
             ],
         ],
@@ -1595,11 +1627,12 @@ class RiceScanController extends Controller
         }
 
         $diseaseKeys = $this->supportedDatasetKeys();
-        $selectedDiseaseKey = 'healthy';
-        $confidence = 85.0;
+        $selectedDiseaseKey = null;
+        $confidence = 94.0;
         $matchedBy = 'fallback';
         $affectedPercentage = null;
         $calculatedSeverity = null;
+        $matchedEntry = null;
 
         try {
             if ($fullPath && file_exists($fullPath)) {
@@ -1613,46 +1646,46 @@ class RiceScanController extends Controller
 
                 // ── STEP 1: EXACT DATASET MATCH BY FILENAME ──
                 if (isset($blastMetadata[$originalName])) {
-                    $item = $blastMetadata[$originalName];
+                    $matchedEntry = $blastMetadata[$originalName];
                     $selectedDiseaseKey = 'blast';
-                    $calculatedSeverity = $item['severity'];
-                    $affectedPercentage = $item['affected_percentage'] !== null ? (float)$item['affected_percentage'] : null;
-                    $confidence = (float)($item['confidence'] ?? 95.0);
+                    $calculatedSeverity = $matchedEntry['severity'];
+                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
                     $matchedBy = 'blast_dataset_exact_entry';
                 } elseif (isset($blbMetadata[$originalName])) {
-                    $item = $blbMetadata[$originalName];
+                    $matchedEntry = $blbMetadata[$originalName];
                     $selectedDiseaseKey = 'blb';
-                    $calculatedSeverity = $item['severity'];
-                    $affectedPercentage = $item['affected_percentage'] !== null ? (float)$item['affected_percentage'] : null;
-                    $confidence = (float)($item['confidence'] ?? 95.0);
+                    $calculatedSeverity = $matchedEntry['severity'];
+                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
                     $matchedBy = 'blb_dataset_exact_entry';
                 } elseif (isset($sheathBlightMetadata[$originalName])) {
-                    $item = $sheathBlightMetadata[$originalName];
+                    $matchedEntry = $sheathBlightMetadata[$originalName];
                     $selectedDiseaseKey = 'sheath_blight';
-                    $calculatedSeverity = $item['severity'];
-                    $affectedPercentage = $item['affected_percentage'] !== null ? (float)$item['affected_percentage'] : null;
-                    $confidence = (float)($item['confidence'] ?? 95.0);
+                    $calculatedSeverity = $matchedEntry['severity'];
+                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
                     $matchedBy = 'sheath_blight_dataset_exact_entry';
                 } elseif (isset($tungroMetadata[$originalName])) {
-                    $item = $tungroMetadata[$originalName];
+                    $matchedEntry = $tungroMetadata[$originalName];
                     $selectedDiseaseKey = 'tungro';
-                    $calculatedSeverity = $item['severity'];
-                    $affectedPercentage = $item['affected_percentage'] !== null ? (float)$item['affected_percentage'] : null;
-                    $confidence = (float)($item['confidence'] ?? 95.0);
+                    $calculatedSeverity = $matchedEntry['severity'];
+                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
                     $matchedBy = 'tungro_dataset_exact_entry';
                 } elseif (isset($brownSpotMetadata[$originalName])) {
-                    $item = $brownSpotMetadata[$originalName];
+                    $matchedEntry = $brownSpotMetadata[$originalName];
                     $selectedDiseaseKey = 'brown_spot';
-                    $calculatedSeverity = $item['severity'];
-                    $affectedPercentage = $item['affected_percentage'] !== null ? (float)$item['affected_percentage'] : null;
-                    $confidence = (float)($item['confidence'] ?? 95.0);
+                    $calculatedSeverity = $matchedEntry['severity'];
+                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
                     $matchedBy = 'brown_spot_dataset_exact_entry';
                 } elseif (isset($healthyMetadata[$originalName])) {
-                    $item = $healthyMetadata[$originalName];
+                    $matchedEntry = $healthyMetadata[$originalName];
                     $selectedDiseaseKey = 'healthy';
                     $calculatedSeverity = 'healthy';
                     $affectedPercentage = null;
-                    $confidence = (float)($item['confidence'] ?? 98.5);
+                    $confidence = (float)($matchedEntry['confidence'] ?? 98.5);
                     $matchedBy = 'healthy_dataset_exact_entry';
                 }
 
@@ -1686,7 +1719,7 @@ class RiceScanController extends Controller
                         }
                     }
 
-                    // If not exact MD5, check perceptual dHash (strict distance <= 4 and non-trivial hash)
+                    // If not exact MD5, check perceptual dHash (strict distance <= 6 and non-trivial hash)
                     $isTrivialHash = (!$uploadDHash || $uploadDHash === str_repeat('0', 64) || $uploadDHash === str_repeat('1', 64));
                     if (!$bestEntry && !$isTrivialHash) {
                         foreach ($allDatasets as $dKey => $entries) {
@@ -1704,7 +1737,8 @@ class RiceScanController extends Controller
                         }
                     }
 
-                    if ($bestEntry && $minDistance <= 4 && $matchedDisease) {
+                    if ($bestEntry && $minDistance <= 6 && $matchedDisease) {
+                        $matchedEntry = $bestEntry;
                         $selectedDiseaseKey = $matchedDisease;
                         $calculatedSeverity = $bestEntry['severity'];
                         $affectedPercentage = $bestEntry['affected_percentage'] !== null ? (float)$bestEntry['affected_percentage'] : null;
@@ -1713,69 +1747,32 @@ class RiceScanController extends Controller
                     }
                 }
 
-                // ── STEP 3: Check explicit disease keywords in filename ──
+                // ── STEP 3: Check explicit disease test sample keywords in filename ──
                 if ($matchedBy === 'fallback') {
-                    if (str_contains($fileNameLower, 'healthy') || str_contains($fileNameLower, 'malusog') || str_contains($fileNameLower, 'healthy_rice_leaf') || preg_match('/^hl[_\s\-\d]/i', $fileNameLower)) {
-                        $selectedDiseaseKey = 'healthy';
-                        $calculatedSeverity = 'healthy';
-                        $affectedPercentage = null;
-                        $confidence = 98.5;
-                        $matchedBy = 'healthy_filename_inference';
-                    } elseif (str_contains($fileNameLower, 'sheath') || str_contains($fileNameLower, 'sheath_blight') || str_contains($fileNameLower, 'rhizoctonia') || preg_match('/^sb[_\s\-\d]/i', $fileNameLower)) {
-                        $selectedDiseaseKey = 'sheath_blight';
-                        $confidence = 95.0;
-                        $matchedBy = 'sheath_blight_filename_inference';
-                    } elseif (str_contains($fileNameLower, 'tungro') || str_contains($fileNameLower, 'rtbv') || str_contains($fileNameLower, 'rtsv') || preg_match('/^rt[_\s\-\d]/i', $fileNameLower)) {
-                        $selectedDiseaseKey = 'tungro';
-                        $confidence = 95.0;
-                        $matchedBy = 'tungro_filename_inference';
-                    } elseif (str_contains($fileNameLower, 'blb') || str_contains($fileNameLower, 'blight') || str_contains($fileNameLower, 'bacterial')) {
-                        $selectedDiseaseKey = 'blb';
-                        $confidence = 94.0;
-                        $matchedBy = 'blb_filename_inference';
-                    } elseif (str_contains($fileNameLower, 'blast')) {
-                        $selectedDiseaseKey = 'blast';
-                        $confidence = 94.0;
-                        $matchedBy = 'blast_filename_inference';
-                    } elseif (str_contains($fileNameLower, 'brown') || str_contains($fileNameLower, 'spot')) {
-                        $selectedDiseaseKey = 'brown_spot';
-                        $confidence = 94.0;
-                        $matchedBy = 'brown_spot_filename_inference';
-                    } else {
-                        $sampleKeywords = [
-                            'blast_sample'         => 'blast',
-                            'blb_sample'           => 'blb',
-                            'brown_spot_sample'    => 'brown_spot',
-                            'sheath_blight_sample' => 'sheath_blight',
-                            'tungro_sample'        => 'tungro',
-                            'healthy_sample'       => 'healthy',
-                        ];
-                        foreach ($sampleKeywords as $kw => $dk) {
-                            if (str_contains($fileNameLower, $kw)) {
-                                $selectedDiseaseKey = $dk;
-                                $confidence = 94.5;
-                                $matchedBy = 'sample_test_leaf';
-                                break;
-                            }
+                    $sampleKeywords = [
+                        'blast_sample'         => 'blast',
+                        'blb_sample'           => 'blb',
+                        'brown_spot_sample'    => 'brown_spot',
+                        'sheath_blight_sample' => 'sheath_blight',
+                        'tungro_sample'        => 'tungro',
+                        'healthy_sample'       => 'healthy',
+                    ];
+                    foreach ($sampleKeywords as $kw => $dk) {
+                        if (str_contains($fileNameLower, $kw)) {
+                            $selectedDiseaseKey = $dk;
+                            $confidence = 94.5;
+                            $matchedBy = 'sample_test_leaf';
+                            break;
                         }
                     }
                 }
 
-                // ── STEP 4: Intelligent Computer Vision & Pixel Color Lesion Analysis ──
-                if ($matchedBy === 'fallback' && file_exists($fullPath)) {
-                    $pixelAnalysis = $this->analyzeImagePixels($fullPath);
-                    if (!empty($pixelAnalysis['disease_key'])) {
-                        $selectedDiseaseKey = $pixelAnalysis['disease_key'];
-                        $confidence = (float)($pixelAnalysis['confidence'] ?? 88.5);
-                        $matchedBy = 'pixel_color_signature';
-                    } else {
-                        $selectedDiseaseKey = 'healthy';
-                        $confidence = 90.0;
-                        $matchedBy = 'visual_color_detection';
-                    }
+                // ── STRICT REJECTION: If NOT matched in active dataset, do NOT guess or fake diagnosis ──
+                if ($matchedBy === 'fallback' || !$selectedDiseaseKey) {
+                    return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
                 }
 
-                // ── SEVERITY & PERCENTAGE DETERMINATION ONLY IF NOT PRE-SET FROM DATASET ──
+                // Severity calculation for sample test leaves if not pre-set
                 if ($calculatedSeverity === null && file_exists($fullPath)) {
                     if ($selectedDiseaseKey === 'blb') {
                         $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
@@ -1808,13 +1805,12 @@ class RiceScanController extends Controller
                         $confidence = 98.5;
                     }
                 }
+            } else {
+                return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
             }
         } catch (\Throwable $e) {
             Log::warning('Scan analysis warning: ' . $e->getMessage());
-            $selectedDiseaseKey = 'blast';
-            $calculatedSeverity = 'moderate';
-            $affectedPercentage = 45.0;
-            $confidence = 88.0;
+            return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
         }
 
         $selectedDiseaseKey = $this->resolveDiseaseKey($selectedDiseaseKey);
@@ -1826,7 +1822,7 @@ class RiceScanController extends Controller
         $disease = $this->diseases[$selectedDiseaseKey];
         $severity = $calculatedSeverity ?? $this->assessSeverity($selectedDiseaseKey, $affectedPercentage);
 
-        // Compute or assign affected percentage based on user's exact specification:
+        // Strictly synchronize severity category to the physical affected percentage:
         // Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60% | Healthy: None (null)
         if ($selectedDiseaseKey === 'healthy') {
             $affectedPercentage = null;
@@ -1841,7 +1837,6 @@ class RiceScanController extends Controller
                 $affectedPercentage = 75.0;
             }
         } else {
-            // Strictly synchronize severity category to the physical affected percentage
             if ($affectedPercentage <= 25.0) {
                 $severity = 'mild';
             } elseif ($affectedPercentage <= 60.0) {
@@ -1853,12 +1848,35 @@ class RiceScanController extends Controller
 
         // Get severity-specific treatments for BLB, Sheath Blight, Tungro, Leaf Blast, and Brown Spot
         $treatments = $disease['treatments'];
+        $managementPractices = null;
+        $agriculturalStrategies = null;
+        $productivityImpact = null;
+
         if (in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true) && isset($disease['severity_levels'][$severity])) {
             $treatments = [
                 'chemical' => $disease['severity_levels'][$severity]['chemical'],
                 'organic' => $disease['severity_levels'][$severity]['organic'],
                 'level_info' => $disease['severity_levels'][$severity],
             ];
+            $managementPractices = $disease['severity_levels'][$severity]['management_practices'] ?? null;
+            $agriculturalStrategies = $disease['severity_levels'][$severity]['agricultural_strategies'] ?? null;
+            $productivityImpact = $disease['severity_levels'][$severity]['productivity_harvest_impact'] ?? null;
+        }
+
+        if ($matchedEntry) {
+            if (!empty($matchedEntry['recommended_treatments'])) {
+                $treatments['chemical'] = $matchedEntry['recommended_treatments']['chemical'] ?? $treatments['chemical'];
+                $treatments['organic'] = $matchedEntry['recommended_treatments']['biological'] ?? ($treatments['organic'] ?? []);
+            }
+            if (!empty($matchedEntry['management_practices'])) {
+                $managementPractices = $matchedEntry['management_practices'];
+            }
+            if (!empty($matchedEntry['agricultural_strategies'])) {
+                $agriculturalStrategies = $matchedEntry['agricultural_strategies'];
+            }
+            if (!empty($matchedEntry['productivity_harvest_impact'])) {
+                $productivityImpact = $matchedEntry['productivity_harvest_impact'];
+            }
         }
 
         $scanId = null;
@@ -1900,6 +1918,9 @@ class RiceScanController extends Controller
                 'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : ($severity === 'severe' ? 'blast-bg' : 'blb-bg')),
                 'image_url' => $imageUrl,
                 'treatments' => $treatments,
+                'management_practices' => $managementPractices,
+                'agricultural_strategies' => $agriculturalStrategies,
+                'productivity_harvest_impact' => $productivityImpact,
                 'all_severity_treatments' => $disease['severity_levels'] ?? null,
                 'date' => now()->format('M j, Y'),
                 'time' => now()->format('g:i A'),
