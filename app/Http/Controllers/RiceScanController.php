@@ -171,8 +171,10 @@ class RiceScanController extends Controller
         $skinToneRatio = $skinTonePixels / $totalPixels;
 
         // Allow low-green disease symptoms, but reject photos with virtually
-        // no leaf-colored pixels or portrait-like skin dominating the frame.
-        return $plantRatio >= 0.015 && !($plantRatio < 0.04 && $skinToneRatio > 0.15);
+        // no leaf-colored pixels or portrait/store scenes where skin tones
+        // outweigh the leaf-colored area.
+        $portraitDominates = $skinToneRatio > 0.15 && $plantRatio < 0.20;
+        return $plantRatio >= 0.015 && !$portraitDominates;
     }
 
     private function predictWithServerMobileNet(string $imagePath): ?array
