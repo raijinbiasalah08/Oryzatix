@@ -24,7 +24,8 @@ android {
         applicationId = "com.oryzatix.oryzatix_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // tflite_flutter's Android runtime requires API level 26 or newer.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

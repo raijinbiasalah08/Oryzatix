@@ -1586,8 +1586,10 @@ class RiceScanController extends Controller
 
     public function upload(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'model_disease_key' => 'sometimes|required_with:model_confidence|in:blb,brown_spot,healthy,sheath_blight,tungro',
+            'model_confidence' => 'sometimes|required_with:model_disease_key|numeric|between:0.55,1',
         ]);
 
         $file = $request->file('image');
@@ -1601,9 +1603,16 @@ class RiceScanController extends Controller
         $affectedPercentage = null;
         $calculatedSeverity = null;
         $matchedEntry = null;
+        $modelDiseaseKey = $validated['model_disease_key'] ?? null;
+        $modelConfidence = isset($validated['model_confidence']) ? (float)$validated['model_confidence'] : null;
+        $isModelPrediction = $modelDiseaseKey !== null && $modelConfidence !== null;
 
         try {
-            if ($fullPath && file_exists($fullPath)) {
+            if ($isModelPrediction) {
+                $selectedDiseaseKey = $modelDiseaseKey;
+                $confidence = round($modelConfidence * 100, 1);
+                $matchedBy = 'on_device_mobilenetv2';
+            } elseif ($fullPath && file_exists($fullPath)) {
                 // Load all pre-indexed dataset metadata files
                 $blbMetadata = $this->getBlbDatasetMetadata();
                 $brownSpotMetadata = $this->getBrownSpotDatasetMetadata();
@@ -1651,42 +1660,54 @@ class RiceScanController extends Controller
                 if ($matchedBy === 'fallback' || !$selectedDiseaseKey) {
                     return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
                 }
+            } elseif (!$fullPath || !file_exists($fullPath)) {
+                return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
+            }
 
-                // Calculate missing severity values for exact content matches.
-                if ($calculatedSeverity === null && file_exists($fullPath)) {
-                    if ($selectedDiseaseKey === 'blb') {
-                        $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
-                        $calculatedSeverity = $blbAnalysis['severity'];
-                        $affectedPercentage = $blbAnalysis['affected_percentage'];
+            // Keep severity estimation separate from the MobileNet disease prediction.
+            if ($calculatedSeverity === null && $fullPath && file_exists($fullPath)) {
+                if ($selectedDiseaseKey === 'blb') {
+                    $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
+                    $calculatedSeverity = $blbAnalysis['severity'];
+                    $affectedPercentage = $blbAnalysis['affected_percentage'];
+                    if (!$isModelPrediction) {
                         $confidence = max($confidence, $blbAnalysis['confidence']);
-                    } elseif ($selectedDiseaseKey === 'sheath_blight') {
-                        $sbAnalysis = $this->analyzeSheathBlightLesionPixels($fullPath);
-                        $calculatedSeverity = $sbAnalysis['severity'];
-                        $affectedPercentage = $sbAnalysis['affected_percentage'];
+                    }
+                } elseif ($selectedDiseaseKey === 'sheath_blight') {
+                    $sbAnalysis = $this->analyzeSheathBlightLesionPixels($fullPath);
+                    $calculatedSeverity = $sbAnalysis['severity'];
+                    $affectedPercentage = $sbAnalysis['affected_percentage'];
+                    if (!$isModelPrediction) {
                         $confidence = max($confidence, $sbAnalysis['confidence']);
-                    } elseif ($selectedDiseaseKey === 'tungro') {
-                        $tungroAnalysis = $this->analyzeTungroDiscolorationPixels($fullPath);
-                        $calculatedSeverity = $tungroAnalysis['severity'];
-                        $affectedPercentage = $tungroAnalysis['affected_percentage'];
+                    }
+                } elseif ($selectedDiseaseKey === 'tungro') {
+                    $tungroAnalysis = $this->analyzeTungroDiscolorationPixels($fullPath);
+                    $calculatedSeverity = $tungroAnalysis['severity'];
+                    $affectedPercentage = $tungroAnalysis['affected_percentage'];
+                    if (!$isModelPrediction) {
                         $confidence = max($confidence, $tungroAnalysis['confidence']);
-                    } elseif ($selectedDiseaseKey === 'blast') {
-                        $blastAnalysis = $this->analyzeBlastLesionPixels($fullPath);
-                        $calculatedSeverity = $blastAnalysis['severity'];
-                        $affectedPercentage = $blastAnalysis['affected_percentage'];
+                    }
+                } elseif ($selectedDiseaseKey === 'blast') {
+                    $blastAnalysis = $this->analyzeBlastLesionPixels($fullPath);
+                    $calculatedSeverity = $blastAnalysis['severity'];
+                    $affectedPercentage = $blastAnalysis['affected_percentage'];
+                    if (!$isModelPrediction) {
                         $confidence = max($confidence, $blastAnalysis['confidence']);
-                    } elseif ($selectedDiseaseKey === 'brown_spot') {
-                        $brownSpotAnalysis = $this->analyzeBrownSpotLesionPixels($fullPath);
-                        $calculatedSeverity = $brownSpotAnalysis['severity'];
-                        $affectedPercentage = $brownSpotAnalysis['affected_percentage'];
+                    }
+                } elseif ($selectedDiseaseKey === 'brown_spot') {
+                    $brownSpotAnalysis = $this->analyzeBrownSpotLesionPixels($fullPath);
+                    $calculatedSeverity = $brownSpotAnalysis['severity'];
+                    $affectedPercentage = $brownSpotAnalysis['affected_percentage'];
+                    if (!$isModelPrediction) {
                         $confidence = max($confidence, $brownSpotAnalysis['confidence']);
-                    } elseif ($selectedDiseaseKey === 'healthy') {
-                        $calculatedSeverity = 'healthy';
-                        $affectedPercentage = null;
+                    }
+                } elseif ($selectedDiseaseKey === 'healthy') {
+                    $calculatedSeverity = 'healthy';
+                    $affectedPercentage = null;
+                    if (!$isModelPrediction) {
                         $confidence = 98.5;
                     }
                 }
-            } else {
-                return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
             }
         } catch (\Throwable $e) {
             Log::warning('Scan analysis warning: ' . $e->getMessage());
@@ -1707,7 +1728,9 @@ class RiceScanController extends Controller
         if ($selectedDiseaseKey === 'healthy') {
             $affectedPercentage = null;
             $severity = 'healthy';
-            $confidence = 98.5;
+            if (!$isModelPrediction) {
+                $confidence = 98.5;
+            }
         } elseif ($affectedPercentage === null) {
             if ($severity === 'mild') {
                 $affectedPercentage = 15.0;
@@ -1804,6 +1827,7 @@ class RiceScanController extends Controller
                 'id' => $scanId,
                 'disease' => $disease['name'],
                 'scientific' => $disease['scientific'],
+                'analysis_source' => $isModelPrediction ? 'mobilenet_v2' : 'reference_match',
                 'confidence' => number_format($confidence, 1),
                 'severity' => $severity,
                 'affected_percentage' => ($selectedDiseaseKey === 'healthy' || $affectedPercentage === null) ? null : number_format($affectedPercentage, 1),

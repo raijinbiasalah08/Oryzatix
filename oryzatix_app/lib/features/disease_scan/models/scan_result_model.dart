@@ -33,6 +33,7 @@ class ScanResultModel {
   final String severity;
   final String? affectedPercentage;
   final String? imageUrl;
+  final String analysisSource;
   final String date;
   final String time;
   final List<TreatmentItem> chemicalTreatments;
@@ -51,6 +52,7 @@ class ScanResultModel {
     required this.severity,
     this.affectedPercentage,
     this.imageUrl,
+    required this.analysisSource,
     required this.date,
     required this.time,
     required this.chemicalTreatments,
@@ -82,6 +84,7 @@ class ScanResultModel {
       severity: scan['severity']?.toString() ?? 'healthy',
       affectedPercentage: scan['affected_percentage']?.toString(),
       imageUrl: scan['image_url']?.toString(),
+      analysisSource: scan['analysis_source']?.toString() ?? 'reference_match',
       date: scan['date']?.toString() ?? '',
       time: scan['time']?.toString() ?? '',
       chemicalTreatments: chemList,

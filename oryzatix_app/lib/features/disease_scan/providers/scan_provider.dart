@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
 import '../models/scan_result_model.dart';
+import '../services/mobilenet_classifier.dart';
 
 class ScanProvider extends ChangeNotifier {
   Uint8List? _selectedImageBytes;
@@ -21,6 +22,9 @@ class ScanProvider extends ChangeNotifier {
   ScanResultModel? get result => _result;
 
   final ImagePicker _picker = ImagePicker();
+  final MobileNetClassifier _classifier = MobileNetClassifier.instance;
+
+  bool get usesOnDeviceModel => _classifier.supportsOnDeviceInference;
 
   Future<void> pickFromCamera() async {
     try {
@@ -33,7 +37,9 @@ class ScanProvider extends ChangeNotifier {
       if (photo != null) {
         final bytes = await photo.readAsBytes();
         _selectedImageBytes = bytes;
-        _selectedImageName = photo.name.isNotEmpty ? photo.name : 'camera_leaf_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        _selectedImageName = photo.name.isNotEmpty
+            ? photo.name
+            : 'camera_leaf_${DateTime.now().millisecondsSinceEpoch}.jpg';
         _result = null;
         _errorMessage = null;
         notifyListeners();
@@ -55,7 +61,9 @@ class ScanProvider extends ChangeNotifier {
       if (image != null) {
         final bytes = await image.readAsBytes();
         _selectedImageBytes = bytes;
-        _selectedImageName = image.name.isNotEmpty ? image.name : 'gallery_leaf_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        _selectedImageName = image.name.isNotEmpty
+            ? image.name
+            : 'gallery_leaf_${DateTime.now().millisecondsSinceEpoch}.jpg';
         _result = null;
         _errorMessage = null;
         notifyListeners();
@@ -99,19 +107,49 @@ class ScanProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final prediction = usesOnDeviceModel
+          ? await _classifier.classify(_selectedImageBytes!)
+          : null;
+
+      if (prediction != null && prediction.needsReview) {
+        _errorMessage =
+            'The MobileNetV2 model is unsure (${(prediction.confidence * 100).toStringAsFixed(1)}%). Try a clearer, closer rice-leaf photo.';
+        _isAnalyzing = false;
+        notifyListeners();
+        return false;
+      }
+
       final res = await ApiClient.uploadFile(
         path: ApiEndpoints.uploadScan,
         fileBytes: _selectedImageBytes!,
         filename: _selectedImageName ?? 'leaf_scan.jpg',
+        extraFields: prediction == null
+            ? null
+            : {
+                'model_disease_key': prediction.diseaseKey,
+                'model_confidence': prediction.confidence.toString(),
+              },
       );
 
       if (res is Map<String, dynamic> && res['success'] == true) {
+        if (res['recognized'] != true) {
+          _errorMessage =
+              res['message']?.toString() ??
+              'The image could not be recognized. Try another rice-leaf photo.';
+          _isAnalyzing = false;
+          notifyListeners();
+          return false;
+        }
+
         _result = ScanResultModel.fromJson(res);
         _isAnalyzing = false;
         notifyListeners();
         return true;
       } else {
-        _errorMessage = res['message']?.toString() ?? 'Analysis could not recognize this image.';
+        _errorMessage = res is Map<String, dynamic>
+            ? res['message']?.toString() ??
+                  'Analysis could not recognize this image.'
+            : 'Analysis could not recognize this image.';
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;

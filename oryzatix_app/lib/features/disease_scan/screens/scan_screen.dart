@@ -41,7 +41,7 @@ class _ScanScreenState extends State<ScanScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -54,8 +54,10 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Image reference matching and color-based severity estimate',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      scanner.usesOnDeviceModel
+                          ? 'On-device MobileNetV2 diagnosis; severity is estimated separately.'
+                          : 'Image reference matching and color-based severity estimate',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -154,7 +156,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_photo_alternate_outlined, size: 54, color: AppColors.textMuted.withOpacity(0.6)),
+                            Icon(Icons.add_photo_alternate_outlined, size: 54, color: AppColors.textMuted.withValues(alpha: 0.6)),
                             const SizedBox(height: 12),
                             const Text(
                               'No Rice Leaf Selected',
@@ -232,8 +234,10 @@ class _ScanScreenState extends State<ScanScreen> {
                         Text('Analyzing Rice Leaf...'),
                       ],
                     )
-                  : const Text(
-                    'Check Against Reference Dataset',
+                  : Text(
+                    scanner.usesOnDeviceModel
+                        ? 'Analyze with MobileNetV2'
+                        : 'Analyze Rice Leaf',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
             ),
@@ -275,8 +279,8 @@ class _ScanScreenState extends State<ScanScreen> {
             const SizedBox(height: 12),
             _buildGuidelineItem(
               icon: Icons.verified_user_outlined,
-              title: 'Supported Rice Pathogens',
-              desc: 'Trained to recognize Bacterial Leaf Blight (BLB), Leaf Blast, Brown Spot, Sheath Blight, Tungro, and Healthy leaf tissue.',
+              title: 'MobileNetV2 classes (Android/iOS)',
+              desc: 'Recognizes Bacterial Leaf Blight (BLB), Brown Spot, Sheath Blight, Tungro, and Healthy leaves. Leaf Blast is not included in this model.',
             ),
           ],
         ),
@@ -318,7 +322,7 @@ class _ScanScreenState extends State<ScanScreen> {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: sevColor.withOpacity(0.5), width: 1.5),
+        side: BorderSide(color: sevColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -393,7 +397,12 @@ class _ScanScreenState extends State<ScanScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Color analysis', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Text(
+                          result.analysisSource == 'mobilenet_v2'
+                              ? 'MobileNetV2 confidence'
+                              : 'Color analysis',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           '${result.confidence}%',
