@@ -1,0 +1,4 @@
+# Windows CPU training/inference using the project-local MobileNetV2 workflow.
+tensorflow>=2.20,<2.21
+numpy>=1.26,<3
+Pillow>=10,<13

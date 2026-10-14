@@ -34,10 +34,11 @@ class StaffDashboardController extends Controller
             $blastCount = RiceScan::where('disease_name', 'like', '%Blast%')->orWhere('disease_name', 'blast')->count();
             $brownSpotCount = RiceScan::where('disease_name', 'like', '%Brown Spot%')->orWhere('disease_name', 'brown_spot')->count();
             $tungroCount = RiceScan::where('disease_name', 'like', '%Tungro%')->orWhere('disease_name', 'tungro')->count();
+            $sheathBlightCount = RiceScan::where('disease_name', 'like', '%Sheath Blight%')->orWhere('disease_name', 'sheath_blight')->count();
             $healthyCount = RiceScan::where('disease_name', 'like', '%Healthy%')->orWhere('severity', 'healthy')->count();
 
             $activeOutbreaks = RiceScan::whereIn('severity', ['moderate', 'severe'])->count();
-            $healthyRatio = $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 100.0;
+            $healthyRatio = $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 0.0;
 
             // Fetch recent scans with user info
             $recentScans = RiceScan::with('user')
@@ -50,7 +51,7 @@ class StaffDashboardController extends Controller
                         if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
                             $imageUrl = $scan->image_path;
                         } else {
-                            $imageUrl = asset('storage/' . $scan->image_path);
+                            $imageUrl = Storage::disk('public')->url($scan->image_path);
                         }
                     }
 
@@ -84,7 +85,9 @@ class StaffDashboardController extends Controller
                         'blast' => 0,
                         'brown_spot' => 0,
                         'tungro' => 0,
+                        'sheath_blight' => 0,
                         'healthy' => 0,
+                        'other' => 0,
                         'severe' => 0,
                         'moderate' => 0,
                     ];
@@ -96,7 +99,9 @@ class StaffDashboardController extends Controller
                 if ($sev === 'moderate') $locationMap[$loc]['moderate']++;
 
                 $dName = strtolower($scan->disease_name ?: '');
-                if (str_contains($dName, 'blight') || str_contains($dName, 'blb')) {
+                if (str_contains($dName, 'sheath')) {
+                    $locationMap[$loc]['sheath_blight']++;
+                } elseif (str_contains($dName, 'blight') || str_contains($dName, 'blb')) {
                     $locationMap[$loc]['blb']++;
                 } elseif (str_contains($dName, 'blast')) {
                     $locationMap[$loc]['blast']++;
@@ -104,8 +109,10 @@ class StaffDashboardController extends Controller
                     $locationMap[$loc]['brown_spot']++;
                 } elseif (str_contains($dName, 'tungro')) {
                     $locationMap[$loc]['tungro']++;
-                } else {
+                } elseif (str_contains($dName, 'healthy') || $sev === 'healthy') {
                     $locationMap[$loc]['healthy']++;
+                } else {
+                    $locationMap[$loc]['other']++;
                 }
             }
 
@@ -137,6 +144,7 @@ class StaffDashboardController extends Controller
                         'blast' => $blastCount,
                         'brown_spot' => $brownSpotCount,
                         'tungro' => $tungroCount,
+                        'sheath_blight' => $sheathBlightCount,
                         'healthy' => $healthyCount,
                     ],
                     'recent_scans' => $recentScans,
@@ -148,7 +156,7 @@ class StaffDashboardController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load staff dashboard data: ' . $e->getMessage(),
+                'message' => 'Failed to load staff dashboard data.',
             ], 500);
         }
     }
@@ -188,9 +196,10 @@ class StaffDashboardController extends Controller
                 ]
             ]);
         } catch (Exception $e) {
+            Log::error('Staff advisory save failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save staff advisory: ' . $e->getMessage(),
+                'message' => 'Failed to save staff advisory.',
             ], 500);
         }
     }

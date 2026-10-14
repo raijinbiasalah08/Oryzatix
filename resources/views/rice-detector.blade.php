@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Oryzatix">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Image processing-based rice leaf disease detection using MobileNet with management recommendations">
+<meta name="description" content="Rice leaf reference-image matching with color-based severity estimates and management recommendations">
 <link rel="manifest" href="{{ asset('manifest.json') }}">
 <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
 <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
@@ -683,7 +683,7 @@
           <img src="{{ asset('images/logo.png') }}" alt="Oryzatix Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
         </div>
         <h1>ORYZATIX</h1>
-        <p>An Image Processing-Based System for Rice Leaf Disease Detection using MobileNet with Management Recommendations</p>
+        <p>A rice leaf reference-image matching system with color-based severity estimates and management recommendations</p>
         <div class="tap-hint">Click anywhere to continue →</div>
       </section>
 
@@ -700,7 +700,7 @@
           <div class="quick-scan-card">
             <div>
               <h3>Scan Rice Plant Leaf</h3>
-              <p>Capture or upload a leaf photo to diagnose rice diseases instantly with MobileNet deep learning AI.</p>
+              <p>Upload a leaf photo to check it against the labeled reference images and estimate affected area.</p>
             </div>
             <button class="scan-action-btn" onclick="showScreen('scan')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -757,13 +757,13 @@
       <!-- ═══════════ SCREEN 6: LOADING / ANALYZING ═══════════ -->
       <section class="screen" id="loading">
         <div class="loading-ring"></div>
-        <h2>Analyzing Rice Leaf</h2>
-        <p>Scanning leaf lesion patterns using MobileNet Convolutional Neural Network architecture...</p>
+        <h2>Checking Reference Match</h2>
+        <p>Checking whether this image exactly matches a labeled rice leaf reference...</p>
         <div class="loading-steps">
-          <div class="loading-step" id="step1"><div class="step-check"></div><span>Pre-processing & resizing</span></div>
-          <div class="loading-step" id="step2"><div class="step-check"></div><span>Feature extraction (edges & lesions)</span></div>
-          <div class="loading-step" id="step3"><div class="step-check"></div><span>MobileNet CNN diagnosis</span></div>
-          <div class="loading-step" id="step4"><div class="step-check"></div><span>Severity & recommendations</span></div>
+          <div class="loading-step" id="step1"><div class="step-check"></div><span>Reading uploaded image</span></div>
+          <div class="loading-step" id="step2"><div class="step-check"></div><span>Checking exact image match</span></div>
+          <div class="loading-step" id="step3"><div class="step-check"></div><span>Loading stored severity</span></div>
+          <div class="loading-step" id="step4"><div class="step-check"></div><span>Preparing recommendations</span></div>
         </div>
       </section>
 
@@ -2318,7 +2318,7 @@
       <button class="modal-close-btn" onclick="closeModal('modalAbout')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="font-size:13.5px; line-height:1.6; color:#4b5563;">
-      <p><strong>ORYZATIX</strong> is an image processing-based rice leaf disease detection system utilizing MobileNet deep convolutional neural network architecture with automated management recommendations.</p>
+      <p><strong>ORYZATIX</strong> checks uploaded images against labeled rice leaf references and estimates severity from image colors. Unmatched images are not assigned a disease label.</p>
       <p>Developed by: John Paul College · Department of Information Technology</p>
     </div>
   </div>

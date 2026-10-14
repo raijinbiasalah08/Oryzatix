@@ -15,18 +15,18 @@ export default function LoadingPage() {
     }, []);
 
     const labels = [
-        t('Image pre-processing', 'Image pre-processing'),
-        t('Feature extraction', 'Feature extraction'),
-        t('MobileNet classification', 'MobileNet classification'),
-        t('Severity assessment', 'Pagtasa ng Severity'),
+        t('Reading uploaded image', 'Binabasa ang na-upload na larawan'),
+        t('Checking exact image match', 'Sinusuri ang eksaktong tugma ng larawan'),
+        t('Loading stored severity', 'Kinukuha ang nakatalang antas ng pinsala'),
+        t('Preparing recommendations', 'Inihahanda ang mga rekomendasyon'),
     ];
 
     return (
         <AppLayout>
             <div className="screen active" id="loading">
                 <div className="loading-ring" />
-                <h2>{t('Analyzing Image', 'Sinusuri ang Larawan')}</h2>
-                <p>{t('Our AI model is scanning your rice leaf image for disease indicators.', 'Sinisuri ng aming AI model ang larawan ng dahon ng palay para sa mga senyales ng sakit.')}</p>
+                <h2>{t('Checking Reference Match', 'Sinusuri ang Reference')}</h2>
+                <p>{t('Only an exact match to a labeled rice-leaf image receives a result.', 'Resulta lamang ang ibinibigay kapag eksaktong tumugma sa may label na larawan ng dahon ng palay.')}</p>
                 <div className="loading-steps">
                     {STEPS.map((step, i) => (
                         <div key={step} className={`loading-step ${doneSteps.includes(step) ? 'done' : ''}`} id={step}>

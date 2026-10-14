@@ -44,6 +44,7 @@ export default function HistoryPage() {
         setCurrentScan({
             id: scan.id,
             disease: scan.disease,
+            disease_key: scan.disease_key,
             scientific: scan.scientific,
             confidence: scan.confidence,
             severity: scan.severity,
@@ -75,6 +76,7 @@ export default function HistoryPage() {
                 if (activeFilter === 'blast') return dis.includes('blast');
                 if (activeFilter === 'blb') return dis.includes('blight') || dis.includes('blb');
                 if (activeFilter === 'brown_spot') return dis.includes('brown') || dis.includes('spot');
+                if (activeFilter === 'sheath_blight') return dis.includes('sheath');
                 if (activeFilter === 'tungro') return dis.includes('tungro');
                 return true;
             });
@@ -185,6 +187,7 @@ export default function HistoryPage() {
                             { key: 'blast', label: 'Leaf Blast' },
                             { key: 'blb', label: 'BLB' },
                             { key: 'brown_spot', label: 'Brown Spot' },
+                            { key: 'sheath_blight', label: 'Sheath Blight' },
                             { key: 'tungro', label: 'Tungro' },
                         ].map((chip) => (
                             <button
@@ -237,7 +240,7 @@ export default function HistoryPage() {
                                                     {scan.disease}
                                                 </div>
                                                 <div className="ht-scientific-name">
-                                                    {scan.scientific ? <em>{scan.scientific}</em> : (scan.severity === 'healthy' ? t('Optimal Plant Health', 'Malusog na Halaman') : 'MobileNet Diagnosis')}
+                                                    {scan.scientific ? <em>{scan.scientific}</em> : (scan.severity === 'healthy' ? t('Optimal Plant Health', 'Malusog na Halaman') : t('Reference image match', 'Katugmang reference image'))}
                                                 </div>
                                             </td>
                                             <td>

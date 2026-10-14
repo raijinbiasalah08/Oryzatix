@@ -95,7 +95,7 @@ export default function ScanPage() {
                         <p>{t('Position leaf inside frame', 'Ilagay ang dahon sa loob ng frame')}</p>
                     </div>
                 </div>
-                <p className="scan-tip">{t('Supported: BLB, Leaf Blast, Brown Spot, Tungro, and Healthy leaves only.', 'Supported: BLB, Leaf Blast, Brown Spot, Tungro, at malusog na dahon lang.')}</p>
+                <p className="scan-tip">{t('Reference images: BLB, Leaf Blast, Brown Spot, Sheath Blight, Tungro, and Healthy leaves.', 'Mga reference image: BLB, Leaf Blast, Brown Spot, Sheath Blight, Tungro, at malusog na dahon.')}</p>
                 <div className="scan-controls">
                     <button type="button" className="secondary-btn" onClick={openFile}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>

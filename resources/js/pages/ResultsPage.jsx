@@ -88,6 +88,26 @@ const RESULT_LOCALIZATION = {
             }
         }
     },
+    sheath_blight: {
+        tagalog: {
+            name: 'Sheath Blight (Bingaw ng Puso ng Palay)',
+            scientific: 'Sanhi ng fungal pathogen na Rhizoctonia solani',
+            symptoms: {
+                mild: 'Maagang sheath blight: may maliliit na pahabang mantsa sa kaluban ng dahon malapit sa tubig. Suriin ang mga kalapit na halaman at panatilihing malinis ang bukid.',
+                moderate: 'Katamtamang sheath blight: lumalaki at nagdurugtong ang mga mantsa sa kaluban at ibabang bahagi ng dahon. Bawasan ang sobrang siksik na tanim at labis na nitrogen.',
+                severe: 'Malalang sheath blight: kumakalat ang mga mantsa sa itaas na bahagi ng halaman at maaaring magdulot ng pagdapa. Humingi ng payo sa lokal na agricultural technician para sa angkop na pamamahala.'
+            }
+        },
+        english: {
+            name: 'Rice Sheath Blight',
+            scientific: 'Caused by the fungal pathogen Rhizoctonia solani',
+            symptoms: {
+                mild: 'Early sheath blight: small, oblong lesions appear on lower leaf sheaths near the waterline. Check nearby plants and keep the field clean.',
+                moderate: 'Moderate sheath blight: lesions enlarge and join across sheaths and lower leaves. Reduce excessive crop density and nitrogen.',
+                severe: 'Severe sheath blight: lesions spread into the upper canopy and may increase lodging risk. Ask a local agricultural technician about suitable management.'
+            }
+        }
+    },
     healthy: {
         tagalog: {
             name: 'Malusog na Dahon ng Palay',
@@ -184,16 +204,34 @@ export default function ResultsPage() {
     else if (lower.includes('healthy')) imgCls = 'disease-healthy';
 
     const isHealthy = scan.severity === 'healthy' || scan.disease_key === 'healthy' || lower.includes('healthy');
-    const diseaseKey = scan.disease_key || (isHealthy ? 'healthy' : 'blast');
-    const localizedData = (RESULT_LOCALIZATION[diseaseKey] && RESULT_LOCALIZATION[diseaseKey][resultLang]) || RESULT_LOCALIZATION.blast[resultLang];
+    const inferredDiseaseKey = isHealthy
+        ? 'healthy'
+        : lower.includes('sheath')
+            ? 'sheath_blight'
+            : lower.includes('blight') || lower.includes('blb')
+                ? 'blb'
+                : lower.includes('brown') || lower.includes('spot')
+                    ? 'brown_spot'
+                    : lower.includes('tungro')
+                        ? 'tungro'
+                        : lower.includes('blast')
+                            ? 'blast'
+                            : null;
+    const diseaseKey = RESULT_LOCALIZATION[scan.disease_key] ? scan.disease_key : inferredDiseaseKey;
+    const localizedData = diseaseKey ? RESULT_LOCALIZATION[diseaseKey]?.[resultLang] : null;
 
     const pct = scan.affected_percentage || (scan.severity === 'severe' ? '80' : (scan.severity === 'moderate' ? '45' : '15'));
     let symptomsText = '';
-    if (isHealthy) {
+    if (isHealthy && typeof localizedData?.symptoms === 'string') {
         symptomsText = localizedData.symptoms;
-    } else if (localizedData.symptoms) {
+    } else if (localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
         const sevKey = scan.severity || 'moderate';
         symptomsText = (localizedData.symptoms[sevKey] || localizedData.symptoms.moderate || '').replace('{pct}', pct);
+    } else {
+        symptomsText = t(
+            'No disease-specific guidance is available for this scan.',
+            'Walang tiyak na gabay para sa sakit na ito sa scan.'
+        );
     }
 
     const toggleSpeech = () => {
@@ -239,7 +277,7 @@ export default function ResultsPage() {
                     </div>
                     <div className="diag-text">
                         <h3>{isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast')}</h3>
-                        <p>{isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Symptoms evaluated by MobileNet convolutional neural network.')}</p>
+                        <p>{isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Matched against a labeled reference image; severity is estimated from image colors.')}</p>
                     </div>
                 </div>
 

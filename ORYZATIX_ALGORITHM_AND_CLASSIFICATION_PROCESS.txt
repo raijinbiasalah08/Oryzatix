@@ -2,7 +2,23 @@
             ORYZATIX: SYSTEM ALGORITHM & RICE DISEASE CLASSIFICATION PROCESS
 ========================================================================================
 
-1. ANONG ALGORITHM ANG GAMIT SA SYSTEM?
+IMPLEMENTATION STATUS (October 14, 2026)
+----------------------------------------------------------------------------------------
+The MobileNet process described below is a target design; this project does not currently
+train or load a MobileNet model. The live scan endpoint matches uploaded file contents
+against labeled image metadata and rejects files that do not match. Severity percentages
+come from color-based pixel heuristics, not a trained neural network, and the returned
+confidence values are not calibrated model probabilities.
+
+Available source image folders currently contain BLB, Brown Spot, Healthy, Sheath Blight,
+and Tungro images. There is no dedicated Leaf Blast folder, and the existing train/val/test
+split only contains Brown Spot, Healthy, and Tungro. A six-class model cannot be trained
+and validated from the current split without adding and organizing more labeled data.
+
+The sections below document the intended MobileNet workflow and should not be read as a
+description of the current live classifier.
+
+1. TARGET ALGORITHM PARA SA SYSTEM
 ----------------------------------------------------------------------------------------
 Ang Oryzatix ay gumagamit ng kombinasyon ng Deep Learning (Artificial Intelligence) at 
 Computer Vision / Image Processing algorithms:

@@ -128,7 +128,6 @@ class AuthController extends Controller
                 'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/i'
             ],
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:farmer,agri_worker,admin',
             'location' => 'nullable|string|max:255',
             'device' => 'nullable|in:web,mobile',
         ], [
@@ -143,7 +142,8 @@ class AuthController extends Controller
                 'name' => trim($request->name),
                 'email' => strtolower(trim($request->email)),
                 'password' => $request->password,
-                'role' => $request->role,
+                // Public registration must never grant privileged roles.
+                'role' => 'farmer',
                 'location' => $request->location ?: 'Not specified',
             ]);
 

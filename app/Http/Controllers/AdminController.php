@@ -122,7 +122,7 @@ class AdminController extends Controller
 
             $activeOutbreaks = RiceScan::whereIn('severity', ['moderate', 'severe'])->count();
             $advisoriesCount = RiceScan::whereNotNull('notes')->where('notes', '!=', '')->count();
-            $healthyRatio = $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 100.0;
+            $healthyRatio = $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 0.0;
 
             // Most detected disease
             $diseaseRankings = [
@@ -985,7 +985,7 @@ class AdminController extends Controller
             if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
                 $imageUrl = $scan->image_path;
             } else {
-                $imageUrl = asset('storage/' . $scan->image_path);
+                $imageUrl = Storage::disk('public')->url($scan->image_path);
             }
         }
 

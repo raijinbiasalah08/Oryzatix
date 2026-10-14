@@ -9,7 +9,7 @@ export default function RegisterPage() {
     const { register } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const [form, setForm] = useState({ name: '', email: '', role: 'farmer', location: '', password: '', password_confirmation: '' });
+    const [form, setForm] = useState({ name: '', email: '', location: '', password: '', password_confirmation: '' });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -26,7 +26,7 @@ export default function RegisterPage() {
             const data = await register(form);
             if (data.success) {
                 setSuccess(data.message || t('Account saved to database!', 'Na-save na ang account sa database!'));
-                setTimeout(() => navigate('/home'), 800);
+                setTimeout(() => navigate('/login'), 800);
             } else {
                 setError(data.message || t('Registration failed.', 'Hindi matagumpay ang pagrehistro.'));
             }
@@ -71,14 +71,6 @@ export default function RegisterPage() {
                         <div className="form-group">
                             <label>{t('Email Address', 'Email Address')}</label>
                             <input type="email" name="email" value={form.email} onChange={handleChange} required />
-                        </div>
-                        <div className="form-group">
-                            <label>{t('User Role', 'Uri ng User')}</label>
-                            <select name="role" value={form.role} onChange={handleChange} required>
-                                <option value="farmer">{t('Rice Farmer', 'Magsasaka ng Palay')}</option>
-                                <option value="agri_worker">{t('Agricultural Extension Worker', 'Agricultural Extension Worker')}</option>
-                                <option value="admin">{t('Administrator', 'Administrator')}</option>
-                            </select>
                         </div>
                         <div className="form-group">
                             <label>{t('Location (optional)', 'Lokasyon (optional)')}</label>

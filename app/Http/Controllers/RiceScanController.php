@@ -6,6 +6,7 @@ use App\Models\RiceScan;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -22,11 +23,6 @@ class RiceScanController extends Controller
         'tungro',
         'healthy',
     ];
-
-    private function supportedDatasetKeys(): array
-    {
-        return $this->supportedDatasetKeys;
-    }
 
     private function isDatasetSupported(string $key): bool
     {
@@ -58,61 +54,6 @@ class RiceScanController extends Controller
                 'time' => now()->format('g:i A'),
             ],
         ]);
-    }
-
-    private function computeDHash(string $imagePath): ?string
-    {
-        if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return null;
-        if (!file_exists($imagePath)) return null;
-        $info = @getimagesize($imagePath);
-        if (!$info) return null;
-        $mime = $info['mime'] ?? '';
-        $src = null;
-        if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-            $src = @imagecreatefromjpeg($imagePath);
-        } elseif ($mime === 'image/png') {
-            $src = @imagecreatefrompng($imagePath);
-        } elseif ($mime === 'image/webp') {
-            $src = @imagecreatefromwebp($imagePath);
-        }
-        if (!$src) return null;
-
-        $w = imagesx($src);
-        $h = imagesy($src);
-        $tmp = imagecreatetruecolor(9, 8);
-        imagecopyresampled($tmp, $src, 0, 0, 0, 0, 9, 8, $w, $h);
-        imagedestroy($src);
-
-        $grays = [];
-        for ($y = 0; $y < 8; $y++) {
-            for ($x = 0; $x < 9; $x++) {
-                $rgb = imagecolorat($tmp, $x, $y);
-                $r = ($rgb >> 16) & 0xFF;
-                $g = ($rgb >> 8) & 0xFF;
-                $b = $rgb & 0xFF;
-                $grays[$y][$x] = (int)(0.299 * $r + 0.587 * $g + 0.114 * $b);
-            }
-        }
-        imagedestroy($tmp);
-
-        $hash = '';
-        for ($y = 0; $y < 8; $y++) {
-            for ($x = 0; $x < 8; $x++) {
-                $hash .= ($grays[$y][$x] < $grays[$y][$x + 1]) ? '1' : '0';
-            }
-        }
-        return $hash;
-    }
-
-    private function hammingDistance(?string $h1, ?string $h2): int
-    {
-        if (!$h1 || !$h2 || strlen($h1) !== strlen($h2)) return 999;
-        $dist = 0;
-        $len = strlen($h1);
-        for ($i = 0; $i < $len; $i++) {
-            if ($h1[$i] !== $h2[$i]) $dist++;
-        }
-        return $dist;
     }
 
     // ── DISEASE COLOR SIGNATURES (for visual matching) ───────────────────
@@ -542,6 +483,26 @@ class RiceScanController extends Controller
         ],
     ];
 
+    private function readDatasetMetadataCache(string $key): ?array
+    {
+        try {
+            $cached = Cache::get($key);
+            return is_array($cached) ? $cached : null;
+        } catch (\Throwable $e) {
+            Log::debug('Dataset metadata cache read failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function writeDatasetMetadataCache(string $key, array $metadata): void
+    {
+        try {
+            Cache::put($key, $metadata, now()->addMinutes(15));
+        } catch (\Throwable $e) {
+            Log::debug('Dataset metadata cache write failed: ' . $e->getMessage());
+        }
+    }
+
     private function getBlbDatasetMetadata(): array
     {
         if ($this->blbDatasetMetadata !== null) {
@@ -551,6 +512,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/blb_dataset_metadata.json'))
             ? storage_path('app/datasets/blb_dataset_metadata.json')
             : base_path('storage/app/datasets/blb_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.blb.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->blbDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -583,7 +549,6 @@ class RiceScanController extends Controller
                             'severity' => $analysis['severity'],
                             'affected_percentage' => $analysis['affected_percentage'],
                             'confidence' => $analysis['confidence'],
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -592,6 +557,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->blbDatasetMetadata);
         return $this->blbDatasetMetadata;
     }
 
@@ -604,6 +570,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/tungro_dataset_metadata.json'))
             ? storage_path('app/datasets/tungro_dataset_metadata.json')
             : base_path('storage/app/datasets/tungro_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.tungro.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->tungroDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -635,7 +606,6 @@ class RiceScanController extends Controller
                             'severity' => $analysis['severity'],
                             'affected_percentage' => $analysis['affected_percentage'],
                             'confidence' => $analysis['confidence'],
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -644,6 +614,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->tungroDatasetMetadata);
         return $this->tungroDatasetMetadata;
     }
 
@@ -656,6 +627,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/blast_dataset_metadata.json'))
             ? storage_path('app/datasets/blast_dataset_metadata.json')
             : base_path('storage/app/datasets/blast_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.blast.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->blastDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -689,7 +665,6 @@ class RiceScanController extends Controller
                             'severity' => $analysis['severity'],
                             'affected_percentage' => $analysis['affected_percentage'],
                             'confidence' => $analysis['confidence'],
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -698,6 +673,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->blastDatasetMetadata);
         return $this->blastDatasetMetadata;
     }
 
@@ -710,6 +686,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/brown_spot_dataset_metadata.json'))
             ? storage_path('app/datasets/brown_spot_dataset_metadata.json')
             : base_path('storage/app/datasets/brown_spot_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.brown_spot.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->brownSpotDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -742,7 +723,6 @@ class RiceScanController extends Controller
                             'severity' => $analysis['severity'],
                             'affected_percentage' => $analysis['affected_percentage'],
                             'confidence' => $analysis['confidence'],
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -751,6 +731,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->brownSpotDatasetMetadata);
         return $this->brownSpotDatasetMetadata;
     }
 
@@ -763,6 +744,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/healthy_dataset_metadata.json'))
             ? storage_path('app/datasets/healthy_dataset_metadata.json')
             : base_path('storage/app/datasets/healthy_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.healthy.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->healthyDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -793,7 +779,6 @@ class RiceScanController extends Controller
                             'severity' => 'healthy',
                             'affected_percentage' => null,
                             'confidence' => 98.5,
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -802,6 +787,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->healthyDatasetMetadata);
         return $this->healthyDatasetMetadata;
     }
 
@@ -814,6 +800,11 @@ class RiceScanController extends Controller
         $path = file_exists(storage_path('app/datasets/sheath_blight_dataset_metadata.json'))
             ? storage_path('app/datasets/sheath_blight_dataset_metadata.json')
             : base_path('storage/app/datasets/sheath_blight_dataset_metadata.json');
+        $cacheKey = 'oryzatix.dataset_metadata.sheath_blight.' . (file_exists($path) ? filemtime($path) : 'missing');
+        $cached = $this->readDatasetMetadataCache($cacheKey);
+        if ($cached !== null) {
+            return $this->sheathBlightDatasetMetadata = $cached;
+        }
 
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
@@ -844,7 +835,6 @@ class RiceScanController extends Controller
                             'severity' => $analysis['severity'],
                             'affected_percentage' => $analysis['affected_percentage'],
                             'confidence' => $analysis['confidence'],
-                            'dhash' => $this->computeDHash($file),
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -853,6 +843,7 @@ class RiceScanController extends Controller
             }
         }
 
+        $this->writeDatasetMetadataCache($cacheKey, $this->sheathBlightDatasetMetadata);
         return $this->sheathBlightDatasetMetadata;
     }
 
@@ -1596,39 +1587,16 @@ class RiceScanController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
 
         $file = $request->file('image');
-        $originalName = $file->getClientOriginalName();
-        $fileNameLower = strtolower($originalName);
         $fullPath = $file->getRealPath();
 
         $path = null;
         $imageUrl = null;
-        $base64Image = null;
-
-        if ($fullPath && file_exists($fullPath)) {
-            $mime = $file->getMimeType() ?: 'image/jpeg';
-            $fileContent = @file_get_contents($fullPath);
-            if ($fileContent) {
-                $base64Image = 'data:' . $mime . ';base64,' . base64_encode($fileContent);
-                $imageUrl = $base64Image;
-            }
-        }
-
-        try {
-            $path = $file->store('scans', 'public');
-            if ($path && !$imageUrl) {
-                $imageUrl = asset('storage/' . $path);
-            }
-        } catch (\Throwable $e) {
-            $path = null;
-        }
-
-        $diseaseKeys = $this->supportedDatasetKeys();
         $selectedDiseaseKey = null;
-        $confidence = 94.0;
+        $confidence = 0.0;
         $matchedBy = 'fallback';
         $affectedPercentage = null;
         $calculatedSeverity = null;
@@ -1644,127 +1612,39 @@ class RiceScanController extends Controller
                 $blastMetadata = $this->getBlastDatasetMetadata();
                 $tungroMetadata = $this->getTungroDatasetMetadata();
 
-                // ── STEP 1: EXACT DATASET MATCH BY FILENAME ──
-                if (isset($blastMetadata[$originalName])) {
-                    $matchedEntry = $blastMetadata[$originalName];
-                    $selectedDiseaseKey = 'blast';
-                    $calculatedSeverity = $matchedEntry['severity'];
-                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
-                    $matchedBy = 'blast_dataset_exact_entry';
-                } elseif (isset($blbMetadata[$originalName])) {
-                    $matchedEntry = $blbMetadata[$originalName];
-                    $selectedDiseaseKey = 'blb';
-                    $calculatedSeverity = $matchedEntry['severity'];
-                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
-                    $matchedBy = 'blb_dataset_exact_entry';
-                } elseif (isset($sheathBlightMetadata[$originalName])) {
-                    $matchedEntry = $sheathBlightMetadata[$originalName];
-                    $selectedDiseaseKey = 'sheath_blight';
-                    $calculatedSeverity = $matchedEntry['severity'];
-                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
-                    $matchedBy = 'sheath_blight_dataset_exact_entry';
-                } elseif (isset($tungroMetadata[$originalName])) {
-                    $matchedEntry = $tungroMetadata[$originalName];
-                    $selectedDiseaseKey = 'tungro';
-                    $calculatedSeverity = $matchedEntry['severity'];
-                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
-                    $matchedBy = 'tungro_dataset_exact_entry';
-                } elseif (isset($brownSpotMetadata[$originalName])) {
-                    $matchedEntry = $brownSpotMetadata[$originalName];
-                    $selectedDiseaseKey = 'brown_spot';
-                    $calculatedSeverity = $matchedEntry['severity'];
-                    $affectedPercentage = $matchedEntry['affected_percentage'] !== null ? (float)$matchedEntry['affected_percentage'] : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 95.0);
-                    $matchedBy = 'brown_spot_dataset_exact_entry';
-                } elseif (isset($healthyMetadata[$originalName])) {
-                    $matchedEntry = $healthyMetadata[$originalName];
-                    $selectedDiseaseKey = 'healthy';
-                    $calculatedSeverity = 'healthy';
-                    $affectedPercentage = null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 98.5);
-                    $matchedBy = 'healthy_dataset_exact_entry';
-                }
+                // Match image content only. Filenames and perceptual hashes are too
+                // easy to spoof or confuse with another green leaf image.
+                $allDatasets = [
+                    'blb' => $blbMetadata,
+                    'brown_spot' => $brownSpotMetadata,
+                    'sheath_blight' => $sheathBlightMetadata,
+                    'healthy' => $healthyMetadata,
+                    'blast' => $blastMetadata,
+                    'tungro' => $tungroMetadata,
+                ];
 
-                // ── STEP 2: EXACT DATASET MATCH BY MD5 & PERCEPTUAL DHASH ──
-                if ($matchedBy === 'fallback' && file_exists($fullPath)) {
-                    $uploadMd5 = md5_file($fullPath);
-                    $uploadDHash = $this->computeDHash($fullPath);
-
-                    $allDatasets = [
-                        'blb' => $blbMetadata,
-                        'brown_spot' => $brownSpotMetadata,
-                        'sheath_blight' => $sheathBlightMetadata,
-                        'healthy' => $healthyMetadata,
-                        'blast' => $blastMetadata,
-                        'tungro' => $tungroMetadata,
-                    ];
-
-                    $bestEntry = null;
-                    $minDistance = 999;
-                    $matchedDisease = null;
-
-                    // First check exact MD5
-                    foreach ($allDatasets as $dKey => $entries) {
-                        foreach ($entries as $fn => $entry) {
-                            if (!empty($entry['md5']) && $entry['md5'] === $uploadMd5) {
-                                $bestEntry = $entry;
-                                $minDistance = 0;
-                                $matchedDisease = $dKey;
-                                break 2;
+                $uploadMd5 = @md5_file($fullPath);
+                $matches = [];
+                if (is_string($uploadMd5)) {
+                    foreach ($allDatasets as $diseaseKey => $entries) {
+                        foreach ($entries as $entry) {
+                            $entryMd5 = strtolower((string)($entry['md5'] ?? ''));
+                            if ($entryMd5 !== '' && hash_equals($entryMd5, strtolower($uploadMd5))) {
+                                $matches[] = ['key' => $diseaseKey, 'entry' => $entry];
                             }
                         }
                     }
-
-                    // If not exact MD5, check perceptual dHash (strict distance <= 6 and non-trivial hash)
-                    $isTrivialHash = (!$uploadDHash || $uploadDHash === str_repeat('0', 64) || $uploadDHash === str_repeat('1', 64));
-                    if (!$bestEntry && !$isTrivialHash) {
-                        foreach ($allDatasets as $dKey => $entries) {
-                            foreach ($entries as $fn => $entry) {
-                                if (!empty($entry['dhash'])) {
-                                    $dist = $this->hammingDistance($uploadDHash, $entry['dhash']);
-                                    if ($dist < $minDistance) {
-                                        $minDistance = $dist;
-                                        $bestEntry = $entry;
-                                        $matchedDisease = $dKey;
-                                        if ($dist === 0) break 2;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if ($bestEntry && $minDistance <= 6 && $matchedDisease) {
-                        $matchedEntry = $bestEntry;
-                        $selectedDiseaseKey = $matchedDisease;
-                        $calculatedSeverity = $bestEntry['severity'];
-                        $affectedPercentage = $bestEntry['affected_percentage'] !== null ? (float)$bestEntry['affected_percentage'] : null;
-                        $confidence = (float)($bestEntry['confidence'] ?? 95.0);
-                        $matchedBy = "{$matchedDisease}_dataset_hash_match";
-                    }
                 }
 
-                // ── STEP 3: Check explicit disease test sample keywords in filename ──
-                if ($matchedBy === 'fallback') {
-                    $sampleKeywords = [
-                        'blast_sample'         => 'blast',
-                        'blb_sample'           => 'blb',
-                        'brown_spot_sample'    => 'brown_spot',
-                        'sheath_blight_sample' => 'sheath_blight',
-                        'tungro_sample'        => 'tungro',
-                        'healthy_sample'       => 'healthy',
-                    ];
-                    foreach ($sampleKeywords as $kw => $dk) {
-                        if (str_contains($fileNameLower, $kw)) {
-                            $selectedDiseaseKey = $dk;
-                            $confidence = 94.5;
-                            $matchedBy = 'sample_test_leaf';
-                            break;
-                        }
-                    }
+                $matchedDiseaseKeys = array_values(array_unique(array_column($matches, 'key')));
+                if (count($matchedDiseaseKeys) === 1) {
+                    $selectedDiseaseKey = $matchedDiseaseKeys[0];
+                    $matchedEntry = $matches[0]['entry'];
+                    $calculatedSeverity = $matchedEntry['severity'] ?? null;
+                    $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
+                    $affectedPercentage = $entryAffectedPercentage !== null ? (float)$entryAffectedPercentage : null;
+                    $confidence = (float)($matchedEntry['confidence'] ?? 0.0);
+                    $matchedBy = "{$selectedDiseaseKey}_dataset_exact_content_match";
                 }
 
                 // ── STRICT REJECTION: If NOT matched in active dataset, do NOT guess or fake diagnosis ──
@@ -1772,7 +1652,7 @@ class RiceScanController extends Controller
                     return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
                 }
 
-                // Severity calculation for sample test leaves if not pre-set
+                // Calculate missing severity values for exact content matches.
                 if ($calculatedSeverity === null && file_exists($fullPath)) {
                     if ($selectedDiseaseKey === 'blb') {
                         $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
@@ -1885,20 +1765,32 @@ class RiceScanController extends Controller
         try {
             $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
             if ($user) {
-                $savedPath = $base64Image ?: ($imageUrl ?: ($path ?: ('scans/' . ($originalName ?: ('scan_' . time() . '.jpg')))));
-                $scan = RiceScan::create([
-                    'user_id' => $user->id,
-                    'image_path' => $savedPath,
-                    'disease_name' => $disease['name'],
-                    'scientific_name' => $disease['scientific'],
-                    'confidence' => round($confidence, 2),
-                    'severity' => $severity,
-                    'treatment_recommendation' => $treatments,
-                ]);
-                $scanId = $scan->id;
-                $saved = true;
+                $path = $file->store('scans', 'public');
+                if ($path) {
+                    $imageUrl = Storage::disk('public')->url($path);
+                    $scan = RiceScan::create([
+                        'user_id' => $user->id,
+                        'image_path' => $path,
+                        'disease_name' => $disease['name'],
+                        'scientific_name' => $disease['scientific'],
+                        'confidence' => round($confidence, 2),
+                        'severity' => $severity,
+                        'treatment_recommendation' => $treatments,
+                    ]);
+                    $scanId = $scan->id;
+                    $saved = true;
+                }
             }
         } catch (\Throwable $e) {
+            if ($path) {
+                try {
+                    Storage::disk('public')->delete($path);
+                } catch (\Throwable $cleanupError) {
+                    Log::warning('Failed to remove unlinked scan image: ' . $cleanupError->getMessage());
+                }
+            }
+            $path = null;
+            $imageUrl = null;
             Log::error('Failed to save scan to database: ' . $e->getMessage());
         }
 
@@ -1932,13 +1824,13 @@ class RiceScanController extends Controller
     {
         $formattedScans = [];
         $stats = ['healthy' => 0, 'mild' => 0, 'moderate' => 0, 'severe' => 0, 'total' => 0];
+        $userId = auth('sanctum')->id() ?: auth()->id();
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
 
         try {
-            $userId = auth()->id();
-            $query = RiceScan::query();
-            if ($userId) {
-                $query->where('user_id', $userId);
-            }
+            $query = RiceScan::where('user_id', $userId);
 
             $scans = (clone $query)->orderBy('created_at', 'desc')
                 ->get()
@@ -1986,7 +1878,7 @@ class RiceScanController extends Controller
                         if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
                             $scanImageUrl = $scan->image_path;
                         } else {
-                            $scanImageUrl = asset('storage/' . $scan->image_path);
+                            $scanImageUrl = Storage::disk('public')->url($scan->image_path);
                         }
                     }
 
@@ -2007,7 +1899,9 @@ class RiceScanController extends Controller
                     ];
                 });
             }
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('Failed to load scan history: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load scan history.'], 500);
         }
 
         return response()->json([
@@ -2019,19 +1913,33 @@ class RiceScanController extends Controller
 
     public function destroy($id): JsonResponse
     {
-        try {
-            $userId = auth()->id();
-            $query = RiceScan::where('id', $id);
-            if ($userId) {
-                $query->where('user_id', $userId);
-            }
-            $scan = $query->firstOrFail();
+        $userId = auth('sanctum')->id() ?: auth()->id();
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
 
-            if ($scan->image_path) {
-                Storage::disk('public')->delete($scan->image_path);
+        try {
+            $scan = RiceScan::where('id', $id)
+                ->where('user_id', $userId)
+                ->first();
+            if (!$scan) {
+                return response()->json(['success' => false, 'message' => 'Scan not found.'], 404);
             }
+
+            $imagePath = $scan->image_path;
             $scan->delete();
-        } catch (Exception $e) {
+            if ($imagePath && !str_starts_with($imagePath, 'data:') && !str_starts_with($imagePath, 'http://') && !str_starts_with($imagePath, 'https://')) {
+                try {
+                    if (!Storage::disk('public')->delete($imagePath)) {
+                        Log::warning('Scan deleted but stored image could not be removed: ' . $imagePath);
+                    }
+                } catch (\Throwable $cleanupError) {
+                    Log::warning('Scan deleted but image cleanup failed: ' . $cleanupError->getMessage());
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to delete scan: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete scan.'], 500);
         }
 
         return response()->json(['success' => true]);
@@ -2053,6 +1961,37 @@ class RiceScanController extends Controller
         }
 
         return 'unsupported';
+    }
+
+    private function diseaseKeyFromName(?string $name): ?string
+    {
+        $normalized = strtolower(trim((string)$name));
+        if ($normalized === '') {
+            return null;
+        }
+
+        foreach ($this->diseases as $key => $disease) {
+            if (strtolower(trim((string)($disease['name'] ?? ''))) === $normalized) {
+                return $key;
+            }
+        }
+
+        foreach ([
+            'blast' => ['leaf blast', 'rice blast'],
+            'blb' => ['bacterial leaf blight', 'bacterial blight'],
+            'brown_spot' => ['brown spot'],
+            'sheath_blight' => ['sheath blight'],
+            'tungro' => ['tungro'],
+            'healthy' => ['healthy'],
+        ] as $key => $aliases) {
+            foreach ($aliases as $alias) {
+                if (str_contains($normalized, $alias)) {
+                    return $key;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function assessSeverity(string $diseaseKey, ?float $affectedPercentage = null): string
@@ -2090,7 +2029,7 @@ class RiceScanController extends Controller
                 'causes' => $dbItem?->causes ?: null,
                 'prevention' => $dbItem?->prevention ?: null,
                 'recommended_treatment' => $dbItem?->recommended_treatment ?: null,
-                'image_url' => $dbItem?->image_path ? asset('storage/' . $dbItem->image_path) : null,
+                'image_url' => $dbItem?->image_path ? Storage::disk('public')->url($dbItem->image_path) : null,
                 'severity_class' => $diseaseData['severity_class'] ?? 'blast-bg',
                 'severity_levels' => $diseaseData['severity_levels'] ?? null,
                 'treatments' => $diseaseData['treatments'] ?? [
@@ -2120,18 +2059,21 @@ class RiceScanController extends Controller
         $moderateCount = (clone $query)->where('severity', 'moderate')->count();
         $severeCount = (clone $query)->where('severity', 'severe')->count();
 
-        $recentScans = (clone $query)->latest()->take(5)->get()->map(function ($scan) {
+        // The public stats endpoint may show aggregate totals, but never individual
+        // scan records or uploaded image URLs.
+        $recentScans = $userId ? (clone $query)->latest()->take(5)->get()->map(function ($scan) {
             $imageUrl = null;
             if ($scan->image_path) {
                 if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
                     $imageUrl = $scan->image_path;
                 } else {
-                    $imageUrl = asset('storage/' . $scan->image_path);
+                    $imageUrl = Storage::disk('public')->url($scan->image_path);
                 }
             }
             return [
                 'id' => $scan->id,
                 'disease' => $scan->disease_name,
+                        'disease_key' => $this->diseaseKeyFromName($scan->disease_name),
                 'scientific' => $scan->scientific_name,
                 'confidence' => number_format((float) $scan->confidence, 1),
                 'severity' => $scan->severity,
@@ -2139,7 +2081,7 @@ class RiceScanController extends Controller
                 'date' => $scan->created_at->format('M j, Y'),
                 'image_url' => $imageUrl,
             ];
-        });
+        }) : collect();
 
         return response()->json([
             'success' => true,
@@ -2149,7 +2091,7 @@ class RiceScanController extends Controller
                 'mild_count' => $mildCount,
                 'moderate_count' => $moderateCount,
                 'severe_count' => $severeCount,
-                'health_index' => $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 100.0,
+                'health_index' => $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 0.0,
             ],
             'recent_scans' => $recentScans,
         ]);

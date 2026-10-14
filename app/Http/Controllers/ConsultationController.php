@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class ConsultationController extends Controller
@@ -155,25 +156,29 @@ class ConsultationController extends Controller
         ],
     ];
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $messages = [];
-        try {
-            $userId = auth()->id();
-            $query = ChatMessage::query();
-            if ($userId) {
-                $query->where('user_id', $userId);
-            }
+        $userId = $request->user()?->id;
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
 
-            $messages = $query->orderBy('created_at', 'asc')->get()->map(function ($msg) {
-                return [
-                    'role' => $msg->role,
-                    'content' => $msg->content,
-                    'language' => $msg->language,
-                    'time' => $msg->created_at->format('g:i A'),
-                ];
-            })->all();
+        try {
+            $messages = ChatMessage::where('user_id', $userId)
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function ($msg) {
+                    return [
+                        'role' => $msg->role,
+                        'content' => $msg->content,
+                        'language' => $msg->language,
+                        'time' => $msg->created_at->format('g:i A'),
+                    ];
+                })
+                ->all();
         } catch (Exception $e) {
+            Log::error('Failed to load consultation messages: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to load consultation history.'], 500);
         }
 
         return response()->json([
@@ -191,29 +196,35 @@ class ConsultationController extends Controller
 
         $userMessage = trim($request->input('message'));
         $language = $request->input('language');
-        $userId = auth()->id();
+        $userId = $request->user()?->id;
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
 
         // 1. Generate accurate agronomic response first
         $aiResponse = $this->generateResponse($userMessage, $language, $userId);
 
         // 2. Persist user message and AI response in database
         try {
-            ChatMessage::create([
-                'user_id' => $userId,
-                'role' => 'user',
-                'content' => $userMessage,
-                'language' => $language,
-            ]);
+            $aiMsg = DB::transaction(function () use ($userId, $userMessage, $language, $aiResponse) {
+                ChatMessage::create([
+                    'user_id' => $userId,
+                    'role' => 'user',
+                    'content' => $userMessage,
+                    'language' => $language,
+                ]);
 
-            $aiMsg = ChatMessage::create([
-                'user_id' => $userId,
-                'role' => 'ai',
-                'content' => $aiResponse,
-                'language' => $language,
-            ]);
+                return ChatMessage::create([
+                    'user_id' => $userId,
+                    'role' => 'ai',
+                    'content' => $aiResponse,
+                    'language' => $language,
+                ]);
+            });
             $time = $aiMsg->created_at->format('g:i A');
         } catch (Exception $e) {
-            $time = now()->format('g:i A');
+            Log::error('Failed to persist consultation messages: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to save consultation message.'], 500);
         }
 
         return response()->json([
@@ -224,16 +235,18 @@ class ConsultationController extends Controller
         ]);
     }
 
-    public function clear(): JsonResponse
+    public function clear(Request $request): JsonResponse
     {
+        $userId = $request->user()?->id;
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
         try {
-            $userId = auth()->id();
-            if ($userId) {
-                ChatMessage::where('user_id', $userId)->delete();
-            } else {
-                ChatMessage::query()->delete();
-            }
+            ChatMessage::where('user_id', $userId)->delete();
         } catch (Exception $e) {
+            Log::error('Failed to clear consultation messages: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to clear consultation history.'], 500);
         }
         return response()->json(['success' => true]);
     }

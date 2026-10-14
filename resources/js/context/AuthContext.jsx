@@ -43,8 +43,10 @@ export function AuthProvider({ children }) {
         await ensureCsrfCookie();
         const { data } = await api.post('/auth/register', { ...payload, device: payload.device || 'web' });
         if (data.success) {
-            if (data.token) setAuthToken(data.token);
-            setUser(data.user);
+            if (data.token) {
+                setAuthToken(data.token);
+                setUser(data.user);
+            }
         }
         return data;
     };

@@ -1,10 +1,11 @@
 /** Panel dataset: 4 diseases + healthy (~1k images per class). */
-export const SUPPORTED_DATASET_KEYS = ['blast', 'blb', 'brown_spot', 'tungro', 'healthy'];
+export const SUPPORTED_DATASET_KEYS = ['blast', 'blb', 'brown_spot', 'sheath_blight', 'tungro', 'healthy'];
 
 export const ALL_DISEASES = {
     blast: { key: 'blast', name: 'Leaf Blast', scientific: 'Magnaporthe oryzae', severity: 'severe' },
     blb: { key: 'blb', name: 'Bacterial Leaf Blight', scientific: 'Xanthomonas oryzae pv. oryzae', severity: 'moderate' },
     brown_spot: { key: 'brown_spot', name: 'Brown Spot', scientific: 'Bipolaris oryzae', severity: 'moderate' },
+    sheath_blight: { key: 'sheath_blight', name: 'Sheath Blight', scientific: 'Rhizoctonia solani', severity: 'moderate' },
     tungro: { key: 'tungro', name: 'Rice Tungro Disease', scientific: 'RTBV + RTSV viruses', severity: 'severe' },
     healthy: { key: 'healthy', name: 'Healthy', scientific: null, severity: 'healthy' },
 };
@@ -13,6 +14,7 @@ export const SUPPORTED_DISEASE_LABELS = [
     'Bacterial Leaf Blight (BLB)',
     'Leaf Blast',
     'Brown Spot',
+    'Sheath Blight',
     'Rice Tungro',
     'Healthy Leaf',
 ];
@@ -23,7 +25,7 @@ export function getUnsupportedScan(previewUrl, message, messageTl) {
     return {
         recognized: false,
         image_url: previewUrl,
-        message: message || 'This disease or leaf condition is not included in our trained dataset.',
+        message: message || 'This image does not match a labeled image in the current reference dataset.',
         message_tl: messageTl || 'Ang sakit o kondisyon na ito ay wala sa aming dataset.',
         supported_diseases: SUPPORTED_DISEASE_LABELS,
         date: `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`,
