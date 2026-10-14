@@ -111,6 +111,16 @@ class ScanProvider extends ChangeNotifier {
           ? await _classifier.classify(_selectedImageBytes!)
           : null;
 
+      if (prediction != null &&
+          prediction.diseaseKey == 'not_rice_leaf' &&
+          !prediction.needsReview) {
+        _errorMessage =
+            'This image does not appear to show a rice leaf. Choose a clear, close-up photo of one rice leaf.';
+        _isAnalyzing = false;
+        notifyListeners();
+        return false;
+      }
+
       if (prediction != null && prediction.needsReview) {
         _errorMessage =
             'The MobileNetV2 model is unsure (${(prediction.confidence * 100).toStringAsFixed(1)}%). Try a clearer, closer rice-leaf photo.';

@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import random
+import shutil
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -30,6 +31,7 @@ CLASSES = [
     {"key": "healthy", "name": "Healthy Rice Leaf", "folder": "Healthy Rice Leaf"},
     {"key": "sheath_blight", "name": "Sheath Blight", "folder": "Sheath Blight"},
     {"key": "tungro", "name": "Tungro", "folder": "Tungro"},
+    {"key": "not_rice_leaf", "name": "Not a Rice Leaf", "folder": "Not Rice Leaf"},
 ]
 
 
@@ -125,7 +127,7 @@ def save_manifest(output_dir: Path, split_records: list[dict[str, Any]]) -> None
 
     labels = [{"index": i, "key": row["key"], "name": row["name"]} for i, row in enumerate(CLASSES)]
     (output_dir / "class_labels.json").write_text(
-        json.dumps(labels, indent=2), encoding="utf-8"
+        json.dumps(labels, indent=2) + "\n", encoding="utf-8"
     )
 
 
@@ -239,11 +241,13 @@ def train(args: argparse.Namespace) -> None:
     test_ds = make_dataset(tf, test_records, training=False, batch_size=args.batch_size)
 
     model, base_model = build_model(tf)
+    candidate_checkpoint_path = args.output_dir / "best_mobilenetv2_candidate.keras"
+    candidate_checkpoint_path.unlink(missing_ok=True)
     callbacks = [
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True),
         tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=2, min_lr=1e-6),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=str(args.output_dir / "best_mobilenetv2.keras"),
+            filepath=str(candidate_checkpoint_path),
             monitor="val_loss",
             save_best_only=True,
         ),
@@ -283,8 +287,7 @@ def train(args: argparse.Namespace) -> None:
         callbacks=callbacks,
     )
 
-    checkpoint_path = args.output_dir / "best_mobilenetv2.keras"
-    model = tf.keras.models.load_model(checkpoint_path)
+    model = tf.keras.models.load_model(candidate_checkpoint_path)
     final_model_path = args.output_dir / "mobilenetv2_rice_leaf.keras"
     model.save(final_model_path)
 
@@ -293,6 +296,15 @@ def train(args: argparse.Namespace) -> None:
     tflite_model = converter.convert()
     tflite_path = args.output_dir / "mobilenetv2_rice_leaf.tflite"
     tflite_path.write_bytes(tflite_model)
+    shutil.copy2(candidate_checkpoint_path, args.output_dir / "best_mobilenetv2.keras")
+    candidate_checkpoint_path.unlink()
+
+    if args.output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
+        app_model_dir = PROJECT_ROOT / "oryzatix_app" / "assets" / "models"
+        app_model_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(tflite_path, app_model_dir / tflite_path.name)
+        shutil.copy2(args.output_dir / "class_labels.json", app_model_dir / "class_labels.json")
+        print(f"Synced TensorFlow Lite model and labels to {app_model_dir}")
 
     print(f"Keras model: {final_model_path}")
     print(f"TensorFlow Lite model: {tflite_path}")

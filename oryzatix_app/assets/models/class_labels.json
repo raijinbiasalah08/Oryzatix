@@ -23,5 +23,10 @@
     "index": 4,
     "key": "tungro",
     "name": "Tungro"
+  },
+  {
+    "index": 5,
+    "key": "not_rice_leaf",
+    "name": "Not a Rice Leaf"
   }
 ]

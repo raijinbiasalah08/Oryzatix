@@ -83,9 +83,7 @@ class RiceScanController extends Controller
     }
 
     /**
-     * Reject obvious non-leaf photos before trusting either server or on-device
-     * MobileNet predictions. The classifier has no "not a rice leaf" class, so
-     * its softmax always assigns unrelated images to one of the rice classes.
+     * Reject obvious non-leaf photos before trusting MobileNet predictions.
      */
     private function isPlausibleRiceLeafImage(string $imagePath): bool
     {
@@ -224,7 +222,7 @@ class RiceScanController extends Controller
         $prediction = json_decode(trim((string)$stdout), true);
         $diseaseKey = is_array($prediction) ? ($prediction['disease_key'] ?? null) : null;
         $confidence = is_array($prediction) ? ($prediction['confidence'] ?? null) : null;
-        $allowedKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro'];
+        $allowedKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro', 'not_rice_leaf'];
 
         if (!is_string($diseaseKey) || !in_array($diseaseKey, $allowedKeys, true)
             || !is_numeric($confidence) || !is_finite((float)$confidence)
@@ -1768,12 +1766,16 @@ class RiceScanController extends Controller
     {
         $validated = $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
-            'model_disease_key' => 'sometimes|required_with:model_confidence|in:blb,brown_spot,healthy,sheath_blight,tungro',
+            'model_disease_key' => 'sometimes|required_with:model_confidence|in:blb,brown_spot,healthy,sheath_blight,tungro,not_rice_leaf',
             'model_confidence' => 'sometimes|required_with:model_disease_key|numeric|between:0.55,1',
         ]);
 
         $file = $request->file('image');
         $fullPath = $file->getRealPath();
+
+        if (($validated['model_disease_key'] ?? null) === 'not_rice_leaf') {
+            return $this->unsupportedScanResponse(null, 'not_rice_leaf');
+        }
 
         if ($fullPath && is_file($fullPath) && !$this->isPlausibleRiceLeafImage($fullPath)) {
             return $this->unsupportedScanResponse(null, 'not_rice_leaf');
@@ -1804,6 +1806,10 @@ class RiceScanController extends Controller
                     : null;
 
                 if ($serverPrediction !== null && $serverPrediction['confidence'] >= 0.55) {
+                    if ($serverPrediction['key'] === 'not_rice_leaf') {
+                        return $this->unsupportedScanResponse(null, 'not_rice_leaf');
+                    }
+
                     $selectedDiseaseKey = $serverPrediction['key'];
                     $confidence = round($serverPrediction['confidence'] * 100, 1);
                     $matchedBy = 'server_side_mobilenetv2';
