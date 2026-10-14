@@ -40,6 +40,10 @@ class RiceScanController extends Controller
                 'en' => 'The rice-leaf scanner is temporarily unavailable. Please try again in a moment.',
                 'tl' => 'Pansamantalang hindi magamit ang rice-leaf scanner. Subukan muli maya-maya.',
             ],
+            'not_rice_leaf' => [
+                'en' => 'This image does not appear to show a rice leaf. Upload a clear, close-up photo of a rice leaf to get a diagnosis.',
+                'tl' => 'Mukhang walang dahon ng palay sa larawang ito. Mag-upload ng malinaw at malapit na larawan ng dahon ng palay para masuri ito.',
+            ],
         ];
         $message = $messages[$reason] ?? [
             'en' => 'This image does not match a supported rice-leaf class. Use a clear photo of a rice leaf.',
@@ -76,6 +80,99 @@ class RiceScanController extends Controller
         return is_file(base_path('inference/predict_tflite.py'))
             && is_file(base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite'))
             && is_file(base_path('oryzatix_app/assets/models/class_labels.json'));
+    }
+
+    /**
+     * Reject obvious non-leaf photos before trusting either server or on-device
+     * MobileNet predictions. The classifier has no "not a rice leaf" class, so
+     * its softmax always assigns unrelated images to one of the rice classes.
+     */
+    private function isPlausibleRiceLeafImage(string $imagePath): bool
+    {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagecreatetruecolor')
+            || !function_exists('imagecolorat') || !is_file($imagePath)) {
+            // Keep scanning available if the optional visual pre-check cannot run.
+            return true;
+        }
+
+        $bytes = @file_get_contents($imagePath);
+        $source = is_string($bytes) ? @imagecreatefromstring($bytes) : false;
+        if (!$source) {
+            return true;
+        }
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        if ($sourceWidth < 1 || $sourceHeight < 1) {
+            imagedestroy($source);
+            return true;
+        }
+
+        $sampleSize = 48;
+        $sample = imagecreatetruecolor($sampleSize, $sampleSize);
+        if (!$sample) {
+            imagedestroy($source);
+            return true;
+        }
+        imagealphablending($sample, true);
+        $background = imagecolorallocate($sample, 255, 255, 255);
+        imagefilledrectangle($sample, 0, 0, $sampleSize - 1, $sampleSize - 1, $background);
+        imagecopyresampled($sample, $source, 0, 0, 0, 0, $sampleSize, $sampleSize, $sourceWidth, $sourceHeight);
+        imagedestroy($source);
+
+        $plantPixels = 0;
+        $skinTonePixels = 0;
+        $totalPixels = $sampleSize * $sampleSize;
+
+        for ($y = 0; $y < $sampleSize; $y++) {
+            for ($x = 0; $x < $sampleSize; $x++) {
+                $rgb = imagecolorat($sample, $x, $y);
+                $red = ($rgb >> 16) & 0xFF;
+                $green = ($rgb >> 8) & 0xFF;
+                $blue = $rgb & 0xFF;
+                $max = max($red, $green, $blue);
+                $min = min($red, $green, $blue);
+                $delta = $max - $min;
+                $saturation = $max > 0 ? $delta / $max : 0.0;
+                $hue = 0.0;
+
+                if ($delta > 0) {
+                    if ($max === $red) {
+                        $hue = 60.0 * fmod(($green - $blue) / $delta, 6.0);
+                    } elseif ($max === $green) {
+                        $hue = 60.0 * ((($blue - $red) / $delta) + 2.0);
+                    } else {
+                        $hue = 60.0 * ((($red - $green) / $delta) + 4.0);
+                    }
+                    if ($hue < 0) {
+                        $hue += 360.0;
+                    }
+                }
+
+                $isGreenLeafTone = $hue >= 65.0 && $hue <= 170.0
+                    && $saturation >= 0.16 && $max >= 40;
+                $isYellowLeafTone = $hue >= 35.0 && $hue < 65.0
+                    && $saturation >= 0.30 && $max >= 51;
+                if ($isGreenLeafTone || $isYellowLeafTone) {
+                    $plantPixels++;
+                }
+
+                // Skin-colored regions help distinguish portraits from the
+                // low-green, yellowed rice leaves seen in Tungro and BLB photos.
+                if ($hue >= 10.0 && $hue < 50.0 && $saturation >= 0.12
+                    && $saturation <= 0.75 && $max >= 64 && $max <= 250) {
+                    $skinTonePixels++;
+                }
+            }
+        }
+
+        imagedestroy($sample);
+        $plantRatio = $plantPixels / $totalPixels;
+        $skinToneRatio = $skinTonePixels / $totalPixels;
+
+        // Allow low-green disease symptoms, but reject photos with virtually
+        // no leaf-colored pixels or portrait-like skin dominating the frame.
+        return $plantRatio >= 0.015 && !($plantRatio < 0.04 && $skinToneRatio > 0.15);
     }
 
     private function predictWithServerMobileNet(string $imagePath): ?array
@@ -1675,6 +1772,10 @@ class RiceScanController extends Controller
 
         $file = $request->file('image');
         $fullPath = $file->getRealPath();
+
+        if ($fullPath && is_file($fullPath) && !$this->isPlausibleRiceLeafImage($fullPath)) {
+            return $this->unsupportedScanResponse(null, 'not_rice_leaf');
+        }
 
         $path = null;
         $imageUrl = null;
