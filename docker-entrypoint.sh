@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+# Render's generateValue creates a base64-encoded 256-bit secret. Laravel
+# expects encoded APP_KEY values to carry the "base64:" prefix so it decodes
+# them to the 32-byte key required by AES-256-CBC.
+if [[ -n "${APP_KEY:-}" && "${APP_KEY}" != base64:* ]]; then
+    decoded_key_length="$(php -r '$key = base64_decode((string) getenv("APP_KEY"), true); echo $key === false ? 0 : strlen($key);')"
+    if [[ "$decoded_key_length" == "32" && "${#APP_KEY}" -ne 32 ]]; then
+        export APP_KEY="base64:${APP_KEY}"
+        echo "[Oryzatix] Normalized generated APP_KEY for Laravel."
+    fi
+fi
+
 # Render assigns a dynamic port via $PORT (defaults to 10000 on Render)
 PORT="${PORT:-10000}"
 
