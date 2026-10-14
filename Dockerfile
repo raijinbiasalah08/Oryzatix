@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libpq-dev \
+    libgomp1 \
+    python3 \
+    python3-venv \
     zip \
     unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -33,6 +36,11 @@ WORKDIR /var/www/html
 
 # Copy application files
 COPY . /var/www/html
+
+# Install the lightweight LiteRT runtime used by the web upload scanner.
+ENV ORYZATIX_PYTHON=/opt/oryzatix-ml/bin/python
+RUN python3 -m venv /opt/oryzatix-ml \
+    && /opt/oryzatix-ml/bin/python -m pip install --no-cache-dir -r /var/www/html/training/requirements-inference.txt
 
 # Exclude dev files, ensure storage directories exist and have proper permissions
 RUN mkdir -p /var/www/html/storage/framework/cache/data \

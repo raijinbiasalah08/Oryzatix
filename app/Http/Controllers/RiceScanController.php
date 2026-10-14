@@ -31,14 +31,29 @@ class RiceScanController extends Controller
 
     private function unsupportedScanResponse(?string $imageUrl, string $reason = 'not_in_dataset'): JsonResponse
     {
+        $messages = [
+            'low_confidence' => [
+                'en' => 'The scanner could not confidently identify this image. Try a clear, close-up photo of one rice leaf in natural light.',
+                'tl' => 'Hindi matiyak ng scanner ang sakit sa larawang ito. Kumuha ng malinaw at malapit na larawan ng isang dahon ng palay sa natural na liwanag.',
+            ],
+            'model_unavailable' => [
+                'en' => 'The rice-leaf scanner is temporarily unavailable. Please try again in a moment.',
+                'tl' => 'Pansamantalang hindi magamit ang rice-leaf scanner. Subukan muli maya-maya.',
+            ],
+        ];
+        $message = $messages[$reason] ?? [
+            'en' => 'This image does not match a supported rice-leaf class. Use a clear photo of a rice leaf.',
+            'tl' => 'Hindi tumutugma ang larawang ito sa mga suportadong klase ng dahon ng palay. Gumamit ng malinaw na larawan ng dahon ng palay.',
+        ];
+
         return response()->json([
             'success' => true,
             'recognized' => false,
             'saved' => false,
             'reason' => $reason,
-            'message' => 'Cannot read or diagnose this image because it is not found in the system dataset or database.',
-            'message_en' => 'Cannot read or diagnose this image because it is not found in the system dataset or database.',
-            'message_tl' => 'Hindi mabasa ang larawan dahil wala ito sa dataset o database ng system.',
+            'message' => $message['en'],
+            'message_en' => $message['en'],
+            'message_tl' => $message['tl'],
             'supported_diseases' => [
                 'Bacterial Leaf Blight (BLB) — Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)',
                 'Rice Leaf Blast (Magnaporthe oryzae)',
@@ -54,6 +69,72 @@ class RiceScanController extends Controller
                 'time' => now()->format('g:i A'),
             ],
         ]);
+    }
+
+    private function hasServerMobileNetAssets(): bool
+    {
+        return is_file(base_path('inference/predict_tflite.py'))
+            && is_file(base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite'))
+            && is_file(base_path('oryzatix_app/assets/models/class_labels.json'));
+    }
+
+    private function predictWithServerMobileNet(string $imagePath): ?array
+    {
+        $scriptPath = base_path('inference/predict_tflite.py');
+        $modelPath = base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite');
+        $labelsPath = base_path('oryzatix_app/assets/models/class_labels.json');
+        $python = env('ORYZATIX_PYTHON', PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3');
+
+        $pipes = [];
+        try {
+            $process = @proc_open(
+                [$python, $scriptPath, $modelPath, $labelsPath, $imagePath],
+                [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes,
+                base_path(),
+                null,
+                ['bypass_shell' => true]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Unable to start MobileNet server inference process.', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!is_resource($process)) {
+            Log::warning('Unable to start MobileNet server inference process.');
+            return null;
+        }
+
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+        $exitCode = proc_close($process);
+
+        if ($exitCode !== 0) {
+            Log::warning('MobileNet server inference failed.', [
+                'exit_code' => $exitCode,
+                'error' => trim((string)$stderr),
+            ]);
+            return null;
+        }
+
+        $prediction = json_decode(trim((string)$stdout), true);
+        $diseaseKey = is_array($prediction) ? ($prediction['disease_key'] ?? null) : null;
+        $confidence = is_array($prediction) ? ($prediction['confidence'] ?? null) : null;
+        $allowedKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro'];
+
+        if (!is_string($diseaseKey) || !in_array($diseaseKey, $allowedKeys, true)
+            || !is_numeric($confidence) || !is_finite((float)$confidence)
+            || (float)$confidence < 0.0 || (float)$confidence > 1.0) {
+            Log::warning('MobileNet server inference returned an invalid prediction.');
+            return null;
+        }
+
+        return ['key' => $diseaseKey, 'confidence' => (float)$confidence];
     }
 
     // ── DISEASE COLOR SIGNATURES (for visual matching) ───────────────────
@@ -1606,6 +1687,7 @@ class RiceScanController extends Controller
         $modelDiseaseKey = $validated['model_disease_key'] ?? null;
         $modelConfidence = isset($validated['model_confidence']) ? (float)$validated['model_confidence'] : null;
         $isModelPrediction = $modelDiseaseKey !== null && $modelConfidence !== null;
+        $serverModelConfigured = false;
 
         try {
             if ($isModelPrediction) {
@@ -1613,52 +1695,68 @@ class RiceScanController extends Controller
                 $confidence = round($modelConfidence * 100, 1);
                 $matchedBy = 'on_device_mobilenetv2';
             } elseif ($fullPath && file_exists($fullPath)) {
+                $serverModelConfigured = $this->hasServerMobileNetAssets();
+                $serverPrediction = $serverModelConfigured
+                    ? $this->predictWithServerMobileNet($fullPath)
+                    : null;
+
+                if ($serverPrediction !== null && $serverPrediction['confidence'] >= 0.55) {
+                    $selectedDiseaseKey = $serverPrediction['key'];
+                    $confidence = round($serverPrediction['confidence'] * 100, 1);
+                    $matchedBy = 'server_side_mobilenetv2';
+                    $isModelPrediction = true;
+                }
+
                 // Load all pre-indexed dataset metadata files
-                $blbMetadata = $this->getBlbDatasetMetadata();
-                $brownSpotMetadata = $this->getBrownSpotDatasetMetadata();
-                $sheathBlightMetadata = $this->getSheathBlightDatasetMetadata();
-                $healthyMetadata = $this->getHealthyDatasetMetadata();
-                $blastMetadata = $this->getBlastDatasetMetadata();
-                $tungroMetadata = $this->getTungroDatasetMetadata();
+                if (!$selectedDiseaseKey) {
+                    $blbMetadata = $this->getBlbDatasetMetadata();
+                    $brownSpotMetadata = $this->getBrownSpotDatasetMetadata();
+                    $sheathBlightMetadata = $this->getSheathBlightDatasetMetadata();
+                    $healthyMetadata = $this->getHealthyDatasetMetadata();
+                    $blastMetadata = $this->getBlastDatasetMetadata();
+                    $tungroMetadata = $this->getTungroDatasetMetadata();
 
-                // Match image content only. Filenames and perceptual hashes are too
-                // easy to spoof or confuse with another green leaf image.
-                $allDatasets = [
-                    'blb' => $blbMetadata,
-                    'brown_spot' => $brownSpotMetadata,
-                    'sheath_blight' => $sheathBlightMetadata,
-                    'healthy' => $healthyMetadata,
-                    'blast' => $blastMetadata,
-                    'tungro' => $tungroMetadata,
-                ];
+                    // Exact-content matching remains a fallback for known reference files.
+                    $allDatasets = [
+                        'blb' => $blbMetadata,
+                        'brown_spot' => $brownSpotMetadata,
+                        'sheath_blight' => $sheathBlightMetadata,
+                        'healthy' => $healthyMetadata,
+                        'blast' => $blastMetadata,
+                        'tungro' => $tungroMetadata,
+                    ];
 
-                $uploadMd5 = @md5_file($fullPath);
-                $matches = [];
-                if (is_string($uploadMd5)) {
-                    foreach ($allDatasets as $diseaseKey => $entries) {
-                        foreach ($entries as $entry) {
-                            $entryMd5 = strtolower((string)($entry['md5'] ?? ''));
-                            if ($entryMd5 !== '' && hash_equals($entryMd5, strtolower($uploadMd5))) {
-                                $matches[] = ['key' => $diseaseKey, 'entry' => $entry];
+                    $uploadMd5 = @md5_file($fullPath);
+                    $matches = [];
+                    if (is_string($uploadMd5)) {
+                        foreach ($allDatasets as $diseaseKey => $entries) {
+                            foreach ($entries as $entry) {
+                                $entryMd5 = strtolower((string)($entry['md5'] ?? ''));
+                                if ($entryMd5 !== '' && hash_equals($entryMd5, strtolower($uploadMd5))) {
+                                    $matches[] = ['key' => $diseaseKey, 'entry' => $entry];
+                                }
                             }
                         }
                     }
+
+                    $matchedDiseaseKeys = array_values(array_unique(array_column($matches, 'key')));
+                    if (count($matchedDiseaseKeys) === 1) {
+                        $selectedDiseaseKey = $matchedDiseaseKeys[0];
+                        $matchedEntry = $matches[0]['entry'];
+                        $calculatedSeverity = $matchedEntry['severity'] ?? null;
+                        $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
+                        $affectedPercentage = $entryAffectedPercentage !== null ? (float)$entryAffectedPercentage : null;
+                        $confidence = (float)($matchedEntry['confidence'] ?? 0.0);
+                        $matchedBy = "{$selectedDiseaseKey}_dataset_exact_content_match";
+                    }
                 }
 
-                $matchedDiseaseKeys = array_values(array_unique(array_column($matches, 'key')));
-                if (count($matchedDiseaseKeys) === 1) {
-                    $selectedDiseaseKey = $matchedDiseaseKeys[0];
-                    $matchedEntry = $matches[0]['entry'];
-                    $calculatedSeverity = $matchedEntry['severity'] ?? null;
-                    $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
-                    $affectedPercentage = $entryAffectedPercentage !== null ? (float)$entryAffectedPercentage : null;
-                    $confidence = (float)($matchedEntry['confidence'] ?? 0.0);
-                    $matchedBy = "{$selectedDiseaseKey}_dataset_exact_content_match";
-                }
-
-                // ── STRICT REJECTION: If NOT matched in active dataset, do NOT guess or fake diagnosis ──
+                // Reject low-confidence guesses; only exact reference files may bypass the model threshold.
                 if ($matchedBy === 'fallback' || !$selectedDiseaseKey) {
-                    return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
+                    $reason = $serverPrediction !== null
+                        ? 'low_confidence'
+                        : ($serverModelConfigured ? 'model_unavailable' : 'not_in_dataset');
+                    return $this->unsupportedScanResponse($imageUrl, $reason);
                 }
             } elseif (!$fullPath || !file_exists($fullPath)) {
                 return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');

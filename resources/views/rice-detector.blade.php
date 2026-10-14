@@ -852,19 +852,19 @@
       <section class="screen" id="unrecognized-result">
         <div class="unrecognized-card">
           <div class="unrec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-          <h2 id="unrecTitle" data-en="Unreadable Image" data-tl="Hindi Mabasa ang Larawan">Unreadable Image</h2>
-          <p class="unrec-subtitle" id="unrecMessage" style="font-size: 15px; font-weight: 600; color: #b91c1c;">Cannot read or diagnose this image because it is not found in the system dataset or database.</p>
+          <h2 id="unrecTitle" data-en="Image Not Recognized" data-tl="Hindi Nakilala ang Larawan">Image Not Recognized</h2>
+          <p class="unrec-subtitle" id="unrecMessage" style="font-size: 15px; font-weight: 600; color: #b91c1c;">The scanner could not confidently identify this image. Try a clear, close-up photo of one rice leaf in natural light.</p>
 
           <div class="unrec-box">
-            <h4 data-en="Active Dataset in Database:" data-tl="Aktibong Dataset sa Database:">Active Dataset in Database:</h4>
+            <h4 data-en="MobileNetV2 Model Classes:" data-tl="Mga Klase ng Modelong MobileNetV2:">MobileNetV2 Model Classes:</h4>
             <ul>
-              <li><strong>Bacterial Leaf Blight (BLB)</strong> — <em>Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)</em></li>
-              <li><strong>Rice Leaf Blast (Magnaporthe oryzae)</strong></li>
+              <li><strong>Bacterial Leaf Blight (BLB)</strong></li>
               <li><strong>Brown Spot (Bipolaris oryzae)</strong></li>
               <li><strong>Sheath Blight (Rhizoctonia solani)</strong></li>
               <li><strong>Rice Tungro Disease (RTBV/RTSV)</strong></li>
               <li><strong>Healthy Rice Leaves</strong></li>
             </ul>
+            <p style="margin: 10px 0 0; font-size: 12px; color: #475569;">Leaf Blast is not included in the current MobileNetV2 model.</p>
           </div>
 
           <div class="unrec-tips">
