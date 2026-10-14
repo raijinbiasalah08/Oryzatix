@@ -85,6 +85,19 @@ function getCsrfToken() {
 function apiBase() {
   const loc = window.location;
   const path = loc.pathname;
+
+  // The production Laravel API runs on Render, where the MobileNet inference
+  // runtime and model are installed. Vercel serves the web app but does not
+  // provide that inference runtime, so production web clients must use Render.
+  const hostname = (loc.hostname || '').toLowerCase();
+  const renderApiOrigin = 'https://oryzatix-backend.onrender.com';
+  if (hostname === 'oryzatix-backend.onrender.com') {
+    return loc.origin;
+  }
+  if (hostname.endsWith('.vercel.app')) {
+    return renderApiOrigin;
+  }
+
   // If running in subfolder like /Oryzatix/public/ or /Gregorio_Alaissa/public/
   const publicIndex = path.indexOf('/public');
   if (publicIndex !== -1) {
@@ -96,8 +109,13 @@ function apiBase() {
   if (path.startsWith('/Gregorio_Alaissa')) {
     return loc.origin + '/Gregorio_Alaissa/public';
   }
-  // Otherwise standard root URL
-  return loc.origin;
+
+  // Keep local development on its own API; use Render for deployed frontends
+  // (including custom domains) so scans reach the supported inference service.
+  if (['localhost', '127.0.0.1', '::1'].includes(hostname)) {
+    return loc.origin;
+  }
+  return renderApiOrigin;
 }
 
 function apiUrl(path) {
