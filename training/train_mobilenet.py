@@ -16,10 +16,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).absolute().parents[1]
 DEFAULT_DATA_ROOT = PROJECT_ROOT
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "storage" / "app" / "models"
 IMAGE_SIZE = 224
@@ -59,7 +59,7 @@ def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int
                 with Image.open(path) as image:
                     image.verify()
                 by_digest[image_digest(path)].append({
-                    "path": path.resolve(),
+                    "path": path.absolute(),
                     "label": class_index,
                     "class_key": class_info["key"],
                 })
@@ -140,11 +140,16 @@ def make_dataset(tf: Any, records: list[dict[str, Any]], training: bool, batch_s
         def decode_pillow(path_bytes):
             image_path = Path(os.fsdecode(path_bytes))
             with Image.open(image_path) as source:
-                return np.asarray(source.convert("RGB"), dtype=np.uint8)
+                image = ImageOps.exif_transpose(source).convert("RGB").resize(
+                    (IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.BILINEAR
+                )
+                return np.asarray(image, dtype=np.uint8)
 
         image = tf.numpy_function(decode_pillow, [path], Tout=tf.uint8)
-        image.set_shape([None, None, 3])
-        image = tf.image.resize(image, [IMAGE_SIZE, IMAGE_SIZE], antialias=True)
+        # Match the deployed Pillow RGB + EXIF + bilinear preprocessing exactly.
+        # Previously training resized with TensorFlow antialiasing, while the
+        # server and validation threshold calibration used Pillow bilinear.
+        image.set_shape([IMAGE_SIZE, IMAGE_SIZE, 3])
         image = tf.cast(image, tf.float32)
         if training:
             image = tf.image.random_flip_left_right(image, seed=SEED)
@@ -213,6 +218,15 @@ def evaluate_and_save(tf: Any, model: Any, test_ds: Any, test_records: list[dict
 
 
 def train(args: argparse.Namespace) -> None:
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if os.name == "nt":
+        # TensorFlow's checkpoint writer can fail to rename its temporary
+        # files from the restricted Windows system temp directory. Keep its
+        # intermediate files beside the selected model outputs instead.
+        training_temp_dir = str(args.output_dir.absolute())
+        for name in ("TMPDIR", "TEMP", "TMP"):
+            os.environ[name] = training_temp_dir
+
     try:
         import tensorflow as tf
     except ImportError as error:
@@ -223,9 +237,8 @@ def train(args: argparse.Namespace) -> None:
     random.seed(SEED)
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    records, counts = collect_images(args.data_root.resolve())
+    records, counts = collect_images(args.data_root.absolute())
     split_records = stratified_split(records)
     save_manifest(args.output_dir, split_records)
     print("Usable images by class:")
@@ -243,11 +256,14 @@ def train(args: argparse.Namespace) -> None:
     model, base_model = build_model(tf)
     candidate_checkpoint_path = args.output_dir / "best_mobilenetv2_candidate.keras"
     candidate_checkpoint_path.unlink(missing_ok=True)
+    # Keras formats checkpoint paths even when no replacement fields are used.
+    # Escape braces so valid Windows temp paths containing {GUID} work.
+    checkpoint_filepath = str(candidate_checkpoint_path).replace("{", "{{").replace("}", "}}")
     callbacks = [
         tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True),
         tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=2, min_lr=1e-6),
         tf.keras.callbacks.ModelCheckpoint(
-            filepath=str(candidate_checkpoint_path),
+            filepath=checkpoint_filepath,
             monitor="val_loss",
             save_best_only=True,
         ),
@@ -292,14 +308,21 @@ def train(args: argparse.Namespace) -> None:
     model.save(final_model_path)
 
     metrics = evaluate_and_save(tf, model, test_ds, test_records, args.output_dir)
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    # TensorFlow 2.20 bundles Keras 3, where from_keras_model() relies on a
+    # removed private Keras API. Export through SavedModel using the fixed
+    # single-image tensor contract expected by server inference.
+    saved_model_dir = args.output_dir / "mobilenetv2_tflite_export"
+    if saved_model_dir.exists():
+        shutil.rmtree(saved_model_dir)
+    model.export(str(saved_model_dir), verbose=False)
+    converter = tf.lite.TFLiteConverter.from_saved_model(str(saved_model_dir))
     tflite_model = converter.convert()
     tflite_path = args.output_dir / "mobilenetv2_rice_leaf.tflite"
     tflite_path.write_bytes(tflite_model)
     shutil.copy2(candidate_checkpoint_path, args.output_dir / "best_mobilenetv2.keras")
     candidate_checkpoint_path.unlink()
 
-    if args.output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
+    if args.output_dir.absolute() == DEFAULT_OUTPUT_DIR.absolute():
         app_model_dir = PROJECT_ROOT / "oryzatix_app" / "assets" / "models"
         app_model_dir.mkdir(parents=True, exist_ok=True)
         shutil.copy2(tflite_path, app_model_dir / tflite_path.name)
@@ -324,7 +347,9 @@ def predict(args: argparse.Namespace) -> None:
         raise FileNotFoundError(f"Class label file not found: {args.labels}")
     labels = json.loads(args.labels.read_text(encoding="utf-8"))
     with Image.open(args.image) as source:
-        image = source.convert("RGB").resize((IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.BILINEAR)
+        image = ImageOps.exif_transpose(source).convert("RGB").resize(
+            (IMAGE_SIZE, IMAGE_SIZE), Image.Resampling.BILINEAR
+        )
         pixels = np.asarray(image, dtype=np.float32)[None, ...]
 
     if args.model.suffix.lower() == ".tflite":

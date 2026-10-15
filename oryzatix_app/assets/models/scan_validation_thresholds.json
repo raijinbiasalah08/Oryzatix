@@ -37,53 +37,53 @@
     "target_precision": 0.95,
     "threshold_policy": "lowest predicted-class threshold reaching the target precision on the disease model validation split; maximum validation coverage",
     "thresholds": {
-      "blb": 0.5184540152549744,
-      "brown_spot": 0.9381592273712158,
-      "healthy": 0.6317788362503052,
-      "sheath_blight": 0.8715460300445557,
-      "tungro": 0.539738118648529,
+      "blb": 0.5522934198379517,
+      "brown_spot": 0.9598557949066162,
+      "healthy": 0.4767283797264099,
+      "sheath_blight": 0.5432802438735962,
+      "tungro": 0.5458976030349731,
       "blast": null
     },
     "per_class_validation": {
       "blb": {
         "validation_true_images": 147,
-        "accepted_predictions": 144,
-        "correct_accepted_predictions": 142,
-        "precision": 0.9861111111111112,
-        "recall_at_threshold": 0.9659863945578231,
-        "threshold": 0.5184540152549744
+        "accepted_predictions": 148,
+        "correct_accepted_predictions": 146,
+        "precision": 0.9864864864864865,
+        "recall_at_threshold": 0.9931972789115646,
+        "threshold": 0.5522934198379517
       },
       "brown_spot": {
         "validation_true_images": 55,
-        "accepted_predictions": 30,
-        "correct_accepted_predictions": 29,
-        "precision": 0.9666666666666667,
-        "recall_at_threshold": 0.5272727272727272,
-        "threshold": 0.9381592273712158
+        "accepted_predictions": 44,
+        "correct_accepted_predictions": 42,
+        "precision": 0.9545454545454546,
+        "recall_at_threshold": 0.7636363636363637,
+        "threshold": 0.9598557949066162
       },
       "healthy": {
         "validation_true_images": 159,
-        "accepted_predictions": 142,
-        "correct_accepted_predictions": 135,
-        "precision": 0.9507042253521126,
-        "recall_at_threshold": 0.8490566037735849,
-        "threshold": 0.6317788362503052
+        "accepted_predictions": 155,
+        "correct_accepted_predictions": 149,
+        "precision": 0.9612903225806452,
+        "recall_at_threshold": 0.9371069182389937,
+        "threshold": 0.4767283797264099
       },
       "sheath_blight": {
         "validation_true_images": 40,
-        "accepted_predictions": 36,
-        "correct_accepted_predictions": 35,
-        "precision": 0.9722222222222222,
-        "recall_at_threshold": 0.875,
-        "threshold": 0.8715460300445557
+        "accepted_predictions": 38,
+        "correct_accepted_predictions": 37,
+        "precision": 0.9736842105263158,
+        "recall_at_threshold": 0.925,
+        "threshold": 0.5432802438735962
       },
       "tungro": {
         "validation_true_images": 119,
-        "accepted_predictions": 116,
-        "correct_accepted_predictions": 111,
-        "precision": 0.9568965517241379,
-        "recall_at_threshold": 0.9327731092436975,
-        "threshold": 0.539738118648529
+        "accepted_predictions": 117,
+        "correct_accepted_predictions": 114,
+        "precision": 0.9743589743589743,
+        "recall_at_threshold": 0.957983193277311,
+        "threshold": 0.5458976030349731
       },
       "blast": {
         "validation_true_images": 0,
