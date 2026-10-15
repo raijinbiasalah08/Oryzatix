@@ -6,7 +6,6 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
 import '../models/scan_result_model.dart';
-import '../services/mobilenet_classifier.dart';
 
 class ScanProvider extends ChangeNotifier {
   Uint8List? _selectedImageBytes;
@@ -22,9 +21,7 @@ class ScanProvider extends ChangeNotifier {
   ScanResultModel? get result => _result;
 
   final ImagePicker _picker = ImagePicker();
-  final MobileNetClassifier _classifier = MobileNetClassifier.instance;
-
-  bool get usesOnDeviceModel => _classifier.supportsOnDeviceInference;
+  bool get usesServerValidation => true;
 
   Future<void> pickFromCamera() async {
     try {
@@ -107,59 +104,44 @@ class ScanProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final prediction = usesOnDeviceModel
-          ? await _classifier.classify(_selectedImageBytes!)
-          : null;
-
-      if (prediction != null &&
-          prediction.diseaseKey == 'not_rice_leaf' &&
-          !prediction.needsReview) {
-        _errorMessage =
-            'This image does not appear to show a rice leaf. Choose a clear, close-up photo of one rice leaf.';
-        _isAnalyzing = false;
-        notifyListeners();
-        return false;
-      }
-
-      if (prediction != null && prediction.needsReview) {
-        _errorMessage =
-            'The MobileNetV2 model is unsure (${(prediction.confidence * 100).toStringAsFixed(1)}%). Try a clearer, closer rice-leaf photo.';
-        _isAnalyzing = false;
-        notifyListeners();
-        return false;
-      }
-
       final res = await ApiClient.uploadFile(
         path: ApiEndpoints.uploadScan,
         fileBytes: _selectedImageBytes!,
         filename: _selectedImageName ?? 'leaf_scan.jpg',
-        extraFields: prediction == null
-            ? null
-            : {
-                'model_disease_key': prediction.diseaseKey,
-                'model_confidence': prediction.confidence.toString(),
-              },
       );
 
-      if (res is Map<String, dynamic> && res['success'] == true) {
-        if (res['recognized'] != true) {
-          _errorMessage =
-              res['message']?.toString() ??
-              'The image could not be recognized. Try another rice-leaf photo.';
+      if (res is Map<String, dynamic>) {
+        final scan = res['scan'] is Map<String, dynamic>
+            ? res['scan'] as Map<String, dynamic>
+            : <String, dynamic>{};
+        const supportedDiseaseKeys = {
+          'blast',
+          'blb',
+          'brown_spot',
+          'healthy',
+          'sheath_blight',
+          'tungro',
+        };
+        final confidence = double.tryParse(scan['confidence']?.toString() ?? '');
+        final confidenceIsValid = scan['confidence'] == null ||
+            (confidence != null && confidence.isFinite && confidence >= 0 && confidence <= 100);
+        final diagnosisIsValid = res['success'] == true &&
+            res['recognized'] == true &&
+            res['rice_leaf_validated'] == true &&
+            scan['recognized'] == true &&
+            supportedDiseaseKeys.contains(scan['disease_key']) &&
+            (scan['disease']?.toString().trim().isNotEmpty ?? false) &&
+            confidenceIsValid;
+
+        if (diagnosisIsValid) {
+          _result = ScanResultModel.fromJson(res);
           _isAnalyzing = false;
           notifyListeners();
-          return false;
+          return true;
         }
 
-        _result = ScanResultModel.fromJson(res);
-        _isAnalyzing = false;
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = res is Map<String, dynamic>
-            ? res['message']?.toString() ??
-                  'Analysis could not recognize this image.'
-            : 'Analysis could not recognize this image.';
+        _errorMessage = res['message']?.toString() ??
+            'The scanner did not confirm a clear rice-leaf image and a supported diagnosis.';
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;

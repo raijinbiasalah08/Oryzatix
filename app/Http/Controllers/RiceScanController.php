@@ -29,12 +29,21 @@ class RiceScanController extends Controller
         return in_array($key, $this->supportedDatasetKeys, true);
     }
 
-    private function unsupportedScanResponse(?string $imageUrl, string $reason = 'not_in_dataset'): JsonResponse
+    private function unsupportedScanResponse(
+        ?string $imageUrl,
+        string $reason = 'not_in_dataset',
+        array $details = [],
+        int $httpStatus = 200
+    ): JsonResponse
     {
         $messages = [
-            'low_confidence' => [
-                'en' => 'The scanner could not confidently identify this image. Try a clear, close-up photo of one rice leaf in natural light.',
-                'tl' => 'Hindi matiyak ng scanner ang sakit sa larawang ito. Kumuha ng malinaw at malapit na larawan ng isang dahon ng palay sa natural na liwanag.',
+            'uncertain_prediction' => [
+                'en' => 'A rice leaf was detected, but the disease result is uncertain. Try a clear, close-up photo of one leaf.',
+                'tl' => 'May nakitang dahon ng palay ngunit hindi tiyak ang resulta ng sakit. Subukan ang malinaw at malapit na larawan ng isang dahon.',
+            ],
+            'blurry_image' => [
+                'en' => 'This photo is too blurry to scan reliably. Retake it with the rice leaf in focus and good light.',
+                'tl' => 'Masyadong malabo ang larawang ito para masuri nang maayos. Kumuha ulit ng malinaw na larawan ng dahon ng palay sa sapat na liwanag.',
             ],
             'model_unavailable' => [
                 'en' => 'The rice-leaf scanner is temporarily unavailable. Please try again in a moment.',
@@ -50,14 +59,23 @@ class RiceScanController extends Controller
             'tl' => 'Hindi tumutugma ang larawang ito sa mga suportadong klase ng dahon ng palay. Gumamit ng malinaw na larawan ng dahon ng palay.',
         ];
 
+        $validation = $details['validation'] ?? null;
+        $quality = $details['quality'] ?? null;
+        $diagnosis = $details['diagnosis'] ?? null;
+        $riceLeafValidated = $details['rice_leaf_validated'] ?? false;
+
         return response()->json([
-            'success' => true,
+            'success' => $httpStatus < 500,
             'recognized' => false,
+            'rice_leaf_validated' => $riceLeafValidated === true,
+            'validation' => is_array($validation) ? $validation : null,
+            'quality' => is_array($quality) ? $quality : null,
             'saved' => false,
             'reason' => $reason,
             'message' => $message['en'],
             'message_en' => $message['en'],
             'message_tl' => $message['tl'],
+            'server_error' => $httpStatus >= 500,
             'supported_diseases' => [
                 'Bacterial Leaf Blight (BLB) — Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)',
                 'Rice Leaf Blast (Magnaporthe oryzae)',
@@ -71,121 +89,47 @@ class RiceScanController extends Controller
                 'image_url' => $imageUrl,
                 'date' => now()->format('M j, Y'),
                 'time' => now()->format('g:i A'),
+                'confidence' => is_array($diagnosis) && isset($diagnosis['confidence'])
+                    ? round((float) $diagnosis['confidence'] * 100, 1)
+                    : null,
+                'disease_key' => is_array($diagnosis) ? ($diagnosis['disease_key'] ?? null) : null,
             ],
-        ]);
+        ], $httpStatus);
     }
 
-    private function hasServerMobileNetAssets(): bool
+    private function hasServerScanAssets(): bool
     {
-        return is_file(base_path('inference/predict_tflite.py'))
-            && is_file(base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite'))
-            && is_file(base_path('oryzatix_app/assets/models/class_labels.json'));
-    }
+        $paths = [
+            base_path('inference/predict_scan.py'),
+            base_path('oryzatix_app/assets/models/rice_leaf_validator.tflite'),
+            base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite'),
+            base_path('oryzatix_app/assets/models/class_labels.json'),
+            base_path('oryzatix_app/assets/models/scan_validation_thresholds.json'),
+        ];
 
-    /**
-     * Reject obvious non-leaf photos before trusting MobileNet predictions.
-     */
-    private function isPlausibleRiceLeafImage(string $imagePath): bool
-    {
-        if (!function_exists('imagecreatefromstring') || !function_exists('imagecreatetruecolor')
-            || !function_exists('imagecolorat') || !is_file($imagePath)) {
-            // Keep scanning available if the optional visual pre-check cannot run.
-            return true;
-        }
-
-        $bytes = @file_get_contents($imagePath);
-        $source = is_string($bytes) ? @imagecreatefromstring($bytes) : false;
-        if (!$source) {
-            return true;
-        }
-
-        $sourceWidth = imagesx($source);
-        $sourceHeight = imagesy($source);
-        if ($sourceWidth < 1 || $sourceHeight < 1) {
-            imagedestroy($source);
-            return true;
-        }
-
-        $sampleSize = 48;
-        $sample = imagecreatetruecolor($sampleSize, $sampleSize);
-        if (!$sample) {
-            imagedestroy($source);
-            return true;
-        }
-        imagealphablending($sample, true);
-        $background = imagecolorallocate($sample, 255, 255, 255);
-        imagefilledrectangle($sample, 0, 0, $sampleSize - 1, $sampleSize - 1, $background);
-        imagecopyresampled($sample, $source, 0, 0, 0, 0, $sampleSize, $sampleSize, $sourceWidth, $sourceHeight);
-        imagedestroy($source);
-
-        $plantPixels = 0;
-        $skinTonePixels = 0;
-        $totalPixels = $sampleSize * $sampleSize;
-
-        for ($y = 0; $y < $sampleSize; $y++) {
-            for ($x = 0; $x < $sampleSize; $x++) {
-                $rgb = imagecolorat($sample, $x, $y);
-                $red = ($rgb >> 16) & 0xFF;
-                $green = ($rgb >> 8) & 0xFF;
-                $blue = $rgb & 0xFF;
-                $max = max($red, $green, $blue);
-                $min = min($red, $green, $blue);
-                $delta = $max - $min;
-                $saturation = $max > 0 ? $delta / $max : 0.0;
-                $hue = 0.0;
-
-                if ($delta > 0) {
-                    if ($max === $red) {
-                        $hue = 60.0 * fmod(($green - $blue) / $delta, 6.0);
-                    } elseif ($max === $green) {
-                        $hue = 60.0 * ((($blue - $red) / $delta) + 2.0);
-                    } else {
-                        $hue = 60.0 * ((($red - $green) / $delta) + 4.0);
-                    }
-                    if ($hue < 0) {
-                        $hue += 360.0;
-                    }
-                }
-
-                $isGreenLeafTone = $hue >= 65.0 && $hue <= 170.0
-                    && $saturation >= 0.16 && $max >= 40;
-                $isYellowLeafTone = $hue >= 35.0 && $hue < 65.0
-                    && $saturation >= 0.30 && $max >= 51;
-                if ($isGreenLeafTone || $isYellowLeafTone) {
-                    $plantPixels++;
-                }
-
-                // Skin-colored regions help distinguish portraits from the
-                // low-green, yellowed rice leaves seen in Tungro and BLB photos.
-                if ($hue >= 10.0 && $hue < 50.0 && $saturation >= 0.12
-                    && $saturation <= 0.75 && $max >= 64 && $max <= 250) {
-                    $skinTonePixels++;
-                }
+        foreach ($paths as $path) {
+            if (!is_file($path)) {
+                return false;
             }
         }
 
-        imagedestroy($sample);
-        $plantRatio = $plantPixels / $totalPixels;
-        $skinToneRatio = $skinTonePixels / $totalPixels;
-
-        // Allow low-green disease symptoms, but reject photos with virtually
-        // no leaf-colored pixels or portrait/store scenes where skin tones
-        // outweigh the leaf-colored area.
-        $portraitDominates = $skinToneRatio > 0.15 && $plantRatio < 0.20;
-        return $plantRatio >= 0.015 && !$portraitDominates;
+        return true;
     }
 
-    private function predictWithServerMobileNet(string $imagePath): ?array
+    /** Run the separate binary gate and the disease model; reject malformed outputs. */
+    private function predictScanWithServerModels(string $imagePath): ?array
     {
-        $scriptPath = base_path('inference/predict_tflite.py');
-        $modelPath = base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite');
+        $scriptPath = base_path('inference/predict_scan.py');
+        $validatorPath = base_path('oryzatix_app/assets/models/rice_leaf_validator.tflite');
+        $diseasePath = base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite');
         $labelsPath = base_path('oryzatix_app/assets/models/class_labels.json');
+        $thresholdsPath = base_path('oryzatix_app/assets/models/scan_validation_thresholds.json');
         $python = env('ORYZATIX_PYTHON', PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3');
 
         $pipes = [];
         try {
             $process = @proc_open(
-                [$python, $scriptPath, $modelPath, $labelsPath, $imagePath],
+                [$python, $scriptPath, $validatorPath, $diseasePath, $labelsPath, $thresholdsPath, $imagePath],
                 [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
                 $pipes,
                 base_path(),
@@ -193,14 +137,12 @@ class RiceScanController extends Controller
                 ['bypass_shell' => true]
             );
         } catch (\Throwable $e) {
-            Log::warning('Unable to start MobileNet server inference process.', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('Unable to start rice-scan model inference.', ['error' => $e->getMessage()]);
             return null;
         }
 
         if (!is_resource($process)) {
-            Log::warning('Unable to start MobileNet server inference process.');
+            Log::warning('Unable to start rice-scan model inference.');
             return null;
         }
 
@@ -212,26 +154,80 @@ class RiceScanController extends Controller
         $exitCode = proc_close($process);
 
         if ($exitCode !== 0) {
-            Log::warning('MobileNet server inference failed.', [
+            Log::warning('Rice-scan model inference failed.', [
                 'exit_code' => $exitCode,
-                'error' => trim((string)$stderr),
+                'error' => trim((string) $stderr),
             ]);
             return null;
         }
 
-        $prediction = json_decode(trim((string)$stdout), true);
-        $diseaseKey = is_array($prediction) ? ($prediction['disease_key'] ?? null) : null;
-        $confidence = is_array($prediction) ? ($prediction['confidence'] ?? null) : null;
-        $allowedKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro', 'not_rice_leaf'];
-
-        if (!is_string($diseaseKey) || !in_array($diseaseKey, $allowedKeys, true)
-            || !is_numeric($confidence) || !is_finite((float)$confidence)
-            || (float)$confidence < 0.0 || (float)$confidence > 1.0) {
-            Log::warning('MobileNet server inference returned an invalid prediction.');
+        $result = json_decode(trim((string) $stdout), true);
+        $statuses = ['diagnosed', 'not_rice_leaf', 'blurry_image', 'uncertain_prediction'];
+        if (!is_array($result) || !in_array($result['status'] ?? null, $statuses, true)
+            || !is_array($result['validation'] ?? null) || !is_array($result['quality'] ?? null)) {
+            Log::warning('Rice-scan model returned a malformed response.');
             return null;
         }
 
-        return ['key' => $diseaseKey, 'confidence' => (float)$confidence];
+        $status = $result['status'];
+        $validation = $result['validation'];
+        $quality = $result['quality'];
+        $riceProbability = $validation['rice_leaf_probability'] ?? null;
+        $riceThreshold = $validation['rice_leaf_threshold'] ?? null;
+        $focusScore = $quality['laplacian_variance'] ?? null;
+        $focusThreshold = $quality['minimum_laplacian_variance'] ?? null;
+        foreach ([$riceThreshold, $focusScore, $focusThreshold] as $number) {
+            if (!is_numeric($number) || !is_finite((float) $number) || (float) $number < 0.0) {
+                Log::warning('Rice-scan model returned invalid validation metrics.');
+                return null;
+            }
+        }
+        if ((float) $riceThreshold > 1.0 || ($riceProbability !== null
+            && (!is_numeric($riceProbability) || !is_finite((float) $riceProbability)
+                || (float) $riceProbability < 0.0 || (float) $riceProbability > 1.0))) {
+            Log::warning('Rice-scan model returned invalid probabilities.');
+            return null;
+        }
+
+        if ($status === 'blurry_image') {
+            return ($quality['status'] ?? null) === 'blurry' ? $result : null;
+        }
+        if ($status === 'not_rice_leaf') {
+            return ($validation['rice_leaf'] ?? null) === false && $riceProbability !== null
+                && (float) $riceProbability < (float) $riceThreshold ? $result : null;
+        }
+
+        if (($result['rice_leaf_validated'] ?? null) !== true
+            || ($validation['rice_leaf'] ?? null) !== true
+            || $riceProbability === null || (float) $riceProbability < (float) $riceThreshold
+            || ($quality['status'] ?? null) !== 'passed'
+            || (float) $focusScore < (float) $focusThreshold) {
+            Log::warning('Rice-scan model did not confirm a valid, clear rice-leaf image.');
+            return null;
+        }
+
+        $diagnosis = $result['diagnosis'] ?? null;
+        if (!is_array($diagnosis) || !is_string($diagnosis['disease_key'] ?? null)
+            || !is_numeric($diagnosis['confidence'] ?? null)
+            || !is_finite((float) $diagnosis['confidence'])
+            || (float) $diagnosis['confidence'] < 0.0 || (float) $diagnosis['confidence'] > 1.0) {
+            Log::warning('Rice-scan model returned an invalid diagnosis score.');
+            return null;
+        }
+
+        if ($status === 'diagnosed') {
+            $diseaseKey = $diagnosis['disease_key'];
+            $threshold = $diagnosis['minimum_confidence'] ?? null;
+            $supportedModelKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro'];
+            if (!in_array($diseaseKey, $supportedModelKeys, true) || !is_numeric($threshold)
+                || !is_finite((float) $threshold) || (float) $threshold < 0.0 || (float) $threshold > 1.0
+                || (float) $diagnosis['confidence'] < (float) $threshold) {
+                Log::warning('Rice-scan model returned an unsupported or below-threshold diagnosis.');
+                return null;
+            }
+        }
+
+        return $result;
     }
 
     // ── DISEASE COLOR SIGNATURES (for visual matching) ───────────────────
@@ -1766,109 +1762,95 @@ class RiceScanController extends Controller
     {
         $validated = $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
-            'model_disease_key' => 'sometimes|required_with:model_confidence|in:blb,brown_spot,healthy,sheath_blight,tungro,not_rice_leaf',
-            'model_confidence' => 'sometimes|required_with:model_disease_key|numeric|between:0.55,1',
         ]);
 
         $file = $request->file('image');
         $fullPath = $file->getRealPath();
 
-        if (($validated['model_disease_key'] ?? null) === 'not_rice_leaf') {
-            return $this->unsupportedScanResponse(null, 'not_rice_leaf');
-        }
-
-        if ($fullPath && is_file($fullPath) && !$this->isPlausibleRiceLeafImage($fullPath)) {
-            return $this->unsupportedScanResponse(null, 'not_rice_leaf');
-        }
-
         $path = null;
         $imageUrl = null;
         $selectedDiseaseKey = null;
-        $confidence = 0.0;
-        $matchedBy = 'fallback';
+        $confidence = null;
+        $matchedBy = 'reference_match';
         $affectedPercentage = null;
         $calculatedSeverity = null;
         $matchedEntry = null;
-        $modelDiseaseKey = $validated['model_disease_key'] ?? null;
-        $modelConfidence = isset($validated['model_confidence']) ? (float)$validated['model_confidence'] : null;
-        $isModelPrediction = $modelDiseaseKey !== null && $modelConfidence !== null;
-        $serverModelConfigured = false;
+        $isModelPrediction = false;
+        $scanPrediction = null;
+
+        if (!$fullPath || !is_file($fullPath)) {
+            return $this->unsupportedScanResponse(null, 'model_unavailable', [], 503);
+        }
 
         try {
-            if ($isModelPrediction) {
-                $selectedDiseaseKey = $modelDiseaseKey;
-                $confidence = round($modelConfidence * 100, 1);
-                $matchedBy = 'on_device_mobilenetv2';
-            } elseif ($fullPath && file_exists($fullPath)) {
-                $serverModelConfigured = $this->hasServerMobileNetAssets();
-                $serverPrediction = $serverModelConfigured
-                    ? $this->predictWithServerMobileNet($fullPath)
-                    : null;
+            if (!$this->hasServerScanAssets()) {
+                return $this->unsupportedScanResponse(null, 'model_unavailable', [], 503);
+            }
 
-                if ($serverPrediction !== null && $serverPrediction['confidence'] >= 0.55) {
-                    if ($serverPrediction['key'] === 'not_rice_leaf') {
-                        return $this->unsupportedScanResponse(null, 'not_rice_leaf');
-                    }
+            $scanPrediction = $this->predictScanWithServerModels($fullPath);
+            if ($scanPrediction === null) {
+                return $this->unsupportedScanResponse(null, 'model_unavailable', [], 503);
+            }
 
-                    $selectedDiseaseKey = $serverPrediction['key'];
-                    $confidence = round($serverPrediction['confidence'] * 100, 1);
-                    $matchedBy = 'server_side_mobilenetv2';
-                    $isModelPrediction = true;
-                }
+            $predictionDetails = [
+                'validation' => $scanPrediction['validation'],
+                'quality' => $scanPrediction['quality'],
+                'rice_leaf_validated' => $scanPrediction['rice_leaf_validated'] === true,
+            ];
+            if ($scanPrediction['status'] === 'blurry_image') {
+                return $this->unsupportedScanResponse(null, 'blurry_image', $predictionDetails);
+            }
+            if ($scanPrediction['status'] === 'not_rice_leaf') {
+                return $this->unsupportedScanResponse(null, 'not_rice_leaf', $predictionDetails);
+            }
 
-                // Load all pre-indexed dataset metadata files
-                if (!$selectedDiseaseKey) {
-                    $blbMetadata = $this->getBlbDatasetMetadata();
-                    $brownSpotMetadata = $this->getBrownSpotDatasetMetadata();
-                    $sheathBlightMetadata = $this->getSheathBlightDatasetMetadata();
-                    $healthyMetadata = $this->getHealthyDatasetMetadata();
-                    $blastMetadata = $this->getBlastDatasetMetadata();
-                    $tungroMetadata = $this->getTungroDatasetMetadata();
+            if ($scanPrediction['status'] === 'diagnosed') {
+                $selectedDiseaseKey = $scanPrediction['diagnosis']['disease_key'];
+                $confidence = round((float) $scanPrediction['diagnosis']['confidence'] * 100, 1);
+                $matchedBy = 'mobilenet_v2';
+                $isModelPrediction = true;
+            } else {
+                $predictionDetails['diagnosis'] = $scanPrediction['diagnosis'] ?? null;
+            }
 
-                    // Exact-content matching remains a fallback for known reference files.
-                    $allDatasets = [
-                        'blb' => $blbMetadata,
-                        'brown_spot' => $brownSpotMetadata,
-                        'sheath_blight' => $sheathBlightMetadata,
-                        'healthy' => $healthyMetadata,
-                        'blast' => $blastMetadata,
-                        'tungro' => $tungroMetadata,
-                    ];
-
-                    $uploadMd5 = @md5_file($fullPath);
-                    $matches = [];
-                    if (is_string($uploadMd5)) {
-                        foreach ($allDatasets as $diseaseKey => $entries) {
-                            foreach ($entries as $entry) {
-                                $entryMd5 = strtolower((string)($entry['md5'] ?? ''));
-                                if ($entryMd5 !== '' && hash_equals($entryMd5, strtolower($uploadMd5))) {
-                                    $matches[] = ['key' => $diseaseKey, 'entry' => $entry];
-                                }
+            // Exact-content references stay supported (including Leaf Blast),
+            // but only after the separate rice/quality gate has passed. Their
+            // disease confidence is unknown, so it must stay null.
+            if (!$selectedDiseaseKey) {
+                $allDatasets = [
+                    'blb' => $this->getBlbDatasetMetadata(),
+                    'brown_spot' => $this->getBrownSpotDatasetMetadata(),
+                    'sheath_blight' => $this->getSheathBlightDatasetMetadata(),
+                    'healthy' => $this->getHealthyDatasetMetadata(),
+                    'blast' => $this->getBlastDatasetMetadata(),
+                    'tungro' => $this->getTungroDatasetMetadata(),
+                ];
+                $uploadMd5 = @md5_file($fullPath);
+                $matches = [];
+                if (is_string($uploadMd5)) {
+                    foreach ($allDatasets as $diseaseKey => $entries) {
+                        foreach ($entries as $entry) {
+                            $entryMd5 = strtolower((string) ($entry['md5'] ?? ''));
+                            if ($entryMd5 !== '' && hash_equals($entryMd5, strtolower($uploadMd5))) {
+                                $matches[] = ['key' => $diseaseKey, 'entry' => $entry];
                             }
                         }
                     }
-
-                    $matchedDiseaseKeys = array_values(array_unique(array_column($matches, 'key')));
-                    if (count($matchedDiseaseKeys) === 1) {
-                        $selectedDiseaseKey = $matchedDiseaseKeys[0];
-                        $matchedEntry = $matches[0]['entry'];
-                        $calculatedSeverity = $matchedEntry['severity'] ?? null;
-                        $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
-                        $affectedPercentage = $entryAffectedPercentage !== null ? (float)$entryAffectedPercentage : null;
-                        $confidence = (float)($matchedEntry['confidence'] ?? 0.0);
-                        $matchedBy = "{$selectedDiseaseKey}_dataset_exact_content_match";
-                    }
                 }
 
-                // Reject low-confidence guesses; only exact reference files may bypass the model threshold.
-                if ($matchedBy === 'fallback' || !$selectedDiseaseKey) {
-                    $reason = $serverPrediction !== null
-                        ? 'low_confidence'
-                        : ($serverModelConfigured ? 'model_unavailable' : 'not_in_dataset');
-                    return $this->unsupportedScanResponse($imageUrl, $reason);
+                $matchedDiseaseKeys = array_values(array_unique(array_column($matches, 'key')));
+                if (count($matchedDiseaseKeys) === 1) {
+                    $selectedDiseaseKey = $matchedDiseaseKeys[0];
+                    $matchedEntry = $matches[0]['entry'];
+                    $calculatedSeverity = $matchedEntry['severity'] ?? null;
+                    $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
+                    $affectedPercentage = $entryAffectedPercentage !== null ? (float) $entryAffectedPercentage : null;
+                    $matchedBy = 'reference_match';
                 }
-            } elseif (!$fullPath || !file_exists($fullPath)) {
-                return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
+            }
+
+            if (!$selectedDiseaseKey) {
+                return $this->unsupportedScanResponse(null, 'uncertain_prediction', $predictionDetails);
             }
 
             // Keep severity estimation separate from the MobileNet disease prediction.
@@ -1877,48 +1859,30 @@ class RiceScanController extends Controller
                     $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
                     $calculatedSeverity = $blbAnalysis['severity'];
                     $affectedPercentage = $blbAnalysis['affected_percentage'];
-                    if (!$isModelPrediction) {
-                        $confidence = max($confidence, $blbAnalysis['confidence']);
-                    }
                 } elseif ($selectedDiseaseKey === 'sheath_blight') {
                     $sbAnalysis = $this->analyzeSheathBlightLesionPixels($fullPath);
                     $calculatedSeverity = $sbAnalysis['severity'];
                     $affectedPercentage = $sbAnalysis['affected_percentage'];
-                    if (!$isModelPrediction) {
-                        $confidence = max($confidence, $sbAnalysis['confidence']);
-                    }
                 } elseif ($selectedDiseaseKey === 'tungro') {
                     $tungroAnalysis = $this->analyzeTungroDiscolorationPixels($fullPath);
                     $calculatedSeverity = $tungroAnalysis['severity'];
                     $affectedPercentage = $tungroAnalysis['affected_percentage'];
-                    if (!$isModelPrediction) {
-                        $confidence = max($confidence, $tungroAnalysis['confidence']);
-                    }
                 } elseif ($selectedDiseaseKey === 'blast') {
                     $blastAnalysis = $this->analyzeBlastLesionPixels($fullPath);
                     $calculatedSeverity = $blastAnalysis['severity'];
                     $affectedPercentage = $blastAnalysis['affected_percentage'];
-                    if (!$isModelPrediction) {
-                        $confidence = max($confidence, $blastAnalysis['confidence']);
-                    }
                 } elseif ($selectedDiseaseKey === 'brown_spot') {
                     $brownSpotAnalysis = $this->analyzeBrownSpotLesionPixels($fullPath);
                     $calculatedSeverity = $brownSpotAnalysis['severity'];
                     $affectedPercentage = $brownSpotAnalysis['affected_percentage'];
-                    if (!$isModelPrediction) {
-                        $confidence = max($confidence, $brownSpotAnalysis['confidence']);
-                    }
                 } elseif ($selectedDiseaseKey === 'healthy') {
                     $calculatedSeverity = 'healthy';
                     $affectedPercentage = null;
-                    if (!$isModelPrediction) {
-                        $confidence = 98.5;
-                    }
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning('Scan analysis warning: ' . $e->getMessage());
-            return $this->unsupportedScanResponse($imageUrl, 'not_in_dataset');
+            Log::error('Rice scan failed unexpectedly.', ['error' => $e->getMessage()]);
+            return $this->unsupportedScanResponse(null, 'model_unavailable', [], 500);
         }
 
         $selectedDiseaseKey = $this->resolveDiseaseKey($selectedDiseaseKey);
@@ -1935,9 +1899,6 @@ class RiceScanController extends Controller
         if ($selectedDiseaseKey === 'healthy') {
             $affectedPercentage = null;
             $severity = 'healthy';
-            if (!$isModelPrediction) {
-                $confidence = 98.5;
-            }
         } elseif ($affectedPercentage === null) {
             if ($severity === 'mild') {
                 $affectedPercentage = 15.0;
@@ -2003,7 +1964,7 @@ class RiceScanController extends Controller
                         'image_path' => $path,
                         'disease_name' => $disease['name'],
                         'scientific_name' => $disease['scientific'],
-                        'confidence' => round($confidence, 2),
+                        'confidence' => $confidence !== null ? round($confidence, 2) : null,
                         'severity' => $severity,
                         'treatment_recommendation' => $treatments,
                     ]);
@@ -2027,6 +1988,9 @@ class RiceScanController extends Controller
         return response()->json([
             'success' => true,
             'recognized' => true,
+            'rice_leaf_validated' => true,
+            'validation' => $scanPrediction['validation'],
+            'quality' => $scanPrediction['quality'],
             'saved' => $saved,
             'scan' => [
                 'recognized' => true,
@@ -2035,7 +1999,8 @@ class RiceScanController extends Controller
                 'disease' => $disease['name'],
                 'scientific' => $disease['scientific'],
                 'analysis_source' => $isModelPrediction ? 'mobilenet_v2' : 'reference_match',
-                'confidence' => number_format($confidence, 1),
+                'confidence' => $confidence !== null ? number_format($confidence, 1) : null,
+                'disease_confidence' => $confidence !== null ? number_format($confidence, 1) : null,
                 'severity' => $severity,
                 'affected_percentage' => ($selectedDiseaseKey === 'healthy' || $affectedPercentage === null) ? null : number_format($affectedPercentage, 1),
                 'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : ($severity === 'severe' ? 'blast-bg' : 'blb-bg')),
@@ -2117,7 +2082,7 @@ class RiceScanController extends Controller
                         'id' => $scan->id,
                         'disease' => $scan->disease_name,
                         'scientific' => $scan->scientific_name,
-                        'confidence' => number_format((float) $scan->confidence, 1),
+                        'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
                         'time' => $scan->created_at->format('g:i A'),
                         'date' => $scan->created_at->format('M j, Y'),
                         'created_at_raw' => $scan->created_at->toISOString(),
@@ -2306,7 +2271,7 @@ class RiceScanController extends Controller
                 'disease' => $scan->disease_name,
                         'disease_key' => $this->diseaseKeyFromName($scan->disease_name),
                 'scientific' => $scan->scientific_name,
-                'confidence' => number_format((float) $scan->confidence, 1),
+                'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
                 'severity' => $scan->severity,
                 'time' => $scan->created_at->format('g:i A'),
                 'date' => $scan->created_at->format('M j, Y'),

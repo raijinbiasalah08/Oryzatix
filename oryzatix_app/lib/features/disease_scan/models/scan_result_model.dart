@@ -62,7 +62,9 @@ class ScanResultModel {
 
   factory ScanResultModel.fromJson(Map<String, dynamic> json) {
     final scan = json['scan'] as Map<String, dynamic>? ?? {};
-    final isRec = (json['recognized'] == true) || (scan['recognized'] == true);
+    final isRec = json['recognized'] == true &&
+        json['rice_leaf_validated'] == true &&
+        scan['recognized'] == true;
 
     final treatObj = scan['treatments'] as Map<String, dynamic>? ?? {};
     final chemList = (treatObj['chemical'] as List? ?? [])
@@ -80,7 +82,7 @@ class ScanResultModel {
       diseaseKey: scan['disease_key']?.toString() ?? 'healthy',
       disease: scan['disease']?.toString() ?? 'Rice Leaf',
       scientific: scan['scientific']?.toString(),
-      confidence: scan['confidence']?.toString() ?? '0.0',
+      confidence: scan['confidence']?.toString() ?? 'N/A',
       severity: scan['severity']?.toString() ?? 'healthy',
       affectedPercentage: scan['affected_percentage']?.toString(),
       imageUrl: scan['image_url']?.toString(),

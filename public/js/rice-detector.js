@@ -995,7 +995,12 @@ async function executeGoogleLogin(email, name, idToken) {
       body: JSON.stringify({ email, name, id_token: idToken, mode: currentGoogleAuthMode }),
     });
 
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (parseError) {
+      console.warn('Rice scan API returned a non-JSON response.', parseError);
+    }
 
     if (res.ok && data && data.success) {
       if (currentGoogleAuthMode === 'register' || data.requires_login) {
@@ -2009,18 +2014,33 @@ async function uploadAndAnalyze(file) {
     }
 
     setTimeout(() => {
-      if (data && data.success && data.recognized !== false && data.scan && data.scan.disease) {
+      const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
+      const supportedDiseaseKeys = new Set(['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro']);
+      const confidence = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== ''
+        ? Number(scan.confidence)
+        : null;
+      const confidenceIsValid = confidence === null || (Number.isFinite(confidence) && confidence >= 0 && confidence <= 100);
+      const diagnosisIsValid = res.ok && data && data.success === true && data.recognized === true &&
+        data.rice_leaf_validated === true && data.validation && data.validation.rice_leaf === true &&
+        data.quality && data.quality.status === 'passed' && scan && scan.recognized === true &&
+        supportedDiseaseKeys.has(scan.disease_key) && typeof scan.disease === 'string' &&
+        scan.disease.trim().length > 0 && confidenceIsValid;
+
+      if (diagnosisIsValid) {
         if (!data.scan.image_url && localFileUrl) {
           data.scan.image_url = localFileUrl;
         }
         applyScanResult(data.scan);
       } else {
-        showUnrecognizedScreen(data);
+        showUnrecognizedScreen({
+          ...data,
+          reason: data.reason || (res.ok ? 'uncertain_prediction' : 'server_error'),
+        });
       }
     }, 450);
   } catch (err) {
     console.error('Upload and scan error:', err);
-    showUnrecognizedScreen({ message: 'Network connection issue or analysis timed out. Please check your connection and retry.' });
+    showUnrecognizedScreen({ reason: 'server_error' });
   }
 }
 
@@ -2028,17 +2048,49 @@ function showUnrecognizedScreen(data) {
   const msgEl = document.getElementById('unrecMessage');
   if (msgEl) {
     const curLang = (document.getElementById('uiLanguage') || {}).value || 'english';
+    const fallbackMessages = {
+      not_rice_leaf: {
+        en: 'This image does not appear to show a rice leaf. Upload a clear, close-up photo of a rice leaf.',
+        tl: 'Mukhang walang dahon ng palay sa larawang ito. Mag-upload ng malinaw at malapit na larawan ng dahon ng palay.',
+      },
+      blurry_image: {
+        en: 'This photo is too blurry to scan reliably. Retake it with the rice leaf in focus and good light.',
+        tl: 'Masyadong malabo ang larawang ito para masuri nang maayos. Kumuha ulit ng malinaw na larawan ng dahon ng palay sa sapat na liwanag.',
+      },
+      uncertain_prediction: {
+        en: 'The rice leaf was validated, but the disease result is uncertain. Try a clear, close-up photo of one leaf.',
+        tl: 'Napatunayang dahon ito ng palay ngunit hindi tiyak ang resulta ng sakit. Subukan ang malinaw at malapit na larawan ng isang dahon.',
+      },
+      model_unavailable: {
+        en: 'The rice-leaf scanner is temporarily unavailable. Please try again later.',
+        tl: 'Pansamantalang hindi magamit ang rice-leaf scanner. Subukan muli mamaya.',
+      },
+      server_error: {
+        en: 'The scan could not be completed because of a server or network error. Please try again later.',
+        tl: 'Hindi nakumpleto ang pag-scan dahil sa problema sa server o network. Subukan muli mamaya.',
+      },
+    };
+    const fallback = fallbackMessages[data && data.reason] || fallbackMessages.uncertain_prediction;
     if (curLang === 'tagalog' && data && data.message_tl) {
       msgEl.textContent = data.message_tl;
+    } else if (curLang === 'tagalog') {
+      msgEl.textContent = fallback.tl;
     } else if (data && data.message_en) {
       msgEl.textContent = data.message_en;
     } else if (data && data.message) {
       msgEl.textContent = data.message;
     } else {
-      msgEl.textContent = 'Cannot read or diagnose this image because it is not found in the system dataset or database.';
+      msgEl.textContent = fallback.en;
     }
   }
   showScreen('unrecognized-result');
+}
+
+function formatConfidencePercent(value) {
+  if (value === null || value === undefined || value === '' || typeof value === 'boolean') return 'N/A';
+  const confidence = Number(value);
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 100) return 'N/A';
+  return confidence.toFixed(1) + '%';
 }
 
 function getDefaultTreatments(key, severity = 'moderate') {
@@ -4262,7 +4314,7 @@ function renderAdminRecentScansTable(scans) {
           <div style="font-size: 10.5px; font-style: italic; color: var(--neutral-500);">${escapeHtml(s.scientific_name)}</div>
         </td>
         <td>
-          <strong>${s.confidence ? s.confidence.toFixed(1) + '%' : 'N/A'}</strong>
+          <strong>${formatConfidencePercent(s.confidence)}</strong>
         </td>
         <td>${sevBadge}</td>
         <td><span style="font-size: 12px; color: var(--neutral-500);">${escapeHtml(s.created_at)}</span></td>
@@ -4492,7 +4544,7 @@ async function openAdminUserScansModal(userId, userName) {
             <tr>
               <td>${imgThumb}</td>
               <td><strong>${escapeHtml(s.disease_name)}</strong></td>
-              <td><strong>${s.confidence ? s.confidence.toFixed(1) + '%' : 'N/A'}</strong></td>
+              <td><strong>${formatConfidencePercent(s.confidence)}</strong></td>
               <td>${sevBadge}</td>
               <td><span style="font-size:12px; color:var(--neutral-500);">${escapeHtml(s.created_at)}</span></td>
             </tr>
@@ -5222,7 +5274,7 @@ function renderAdminScansLogsTable(scans) {
           <div style="font-weight:700; color:var(--brand-green); font-size:13.5px;">${escapeHtml(s.disease_name)}</div>
           <div style="font-size:11px; font-style:italic; color:var(--neutral-500);">${escapeHtml(s.scientific_name)}</div>
         </td>
-        <td><strong>${s.confidence ? s.confidence.toFixed(1) + '%' : 'N/A'}</strong></td>
+        <td><strong>${formatConfidencePercent(s.confidence)}</strong></td>
         <td>${sevBadge}</td>
         <td>
           <div style="font-size:12px; font-weight:600; color:var(--neutral-700);">${escapeHtml(s.created_at)}</div>
@@ -5264,7 +5316,7 @@ function openAdminScanPreview(scanId) {
         <div><strong>User:</strong> ${escapeHtml(scan.farmer_name)} (${escapeHtml(scan.farmer_email || 'No email')})</div>
         <div><strong>Location:</strong> ${escapeHtml(scan.location)}</div>
         <div><strong>Predicted Result:</strong> <span style="color:var(--brand-green); font-weight:700;">${escapeHtml(scan.disease_name)}</span></div>
-        <div><strong>Confidence / Accuracy:</strong> ${scan.confidence ? scan.confidence.toFixed(1) + '%' : 'N/A'}</div>
+        <div><strong>Confidence / Accuracy:</strong> ${formatConfidencePercent(scan.confidence)}</div>
         <div><strong>Severity Assessment:</strong> <span style="font-weight:700;">${sevDisplay}</span></div>
         <div><strong>Scan Date:</strong> ${escapeHtml(scan.created_at)}</div>
         ${scan.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--neutral-200);"><strong>Staff Advisory:</strong> ${escapeHtml(scan.notes)}</div>` : ''}

@@ -54,9 +54,9 @@ class _ScanScreenState extends State<ScanScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      scanner.usesOnDeviceModel
-                          ? 'On-device MobileNetV2 diagnosis; severity is estimated separately.'
-                          : 'Image reference matching and color-based severity estimate',
+                      scanner.usesServerValidation
+                          ? 'Server-validated rice-leaf screening with MobileNetV2 diagnosis.'
+                          : 'Rice-leaf scan unavailable',
                       style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     ),
                   ],
@@ -235,9 +235,9 @@ class _ScanScreenState extends State<ScanScreen> {
                       ],
                     )
                   : Text(
-                    scanner.usesOnDeviceModel
-                        ? 'Analyze with MobileNetV2'
-                        : 'Analyze Rice Leaf',
+                    scanner.usesServerValidation
+                        ? 'Validate and analyze rice leaf'
+                        : 'Scan unavailable',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
             ),
@@ -398,14 +398,16 @@ class _ScanScreenState extends State<ScanScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          result.analysisSource == 'mobilenet_v2'
-                              ? 'MobileNetV2 confidence'
-                              : 'Color analysis',
+                          result.confidence == 'N/A'
+                              ? 'Disease confidence'
+                              : 'MobileNetV2 confidence',
                           style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${result.confidence}%',
+                          result.confidence == 'N/A'
+                              ? 'N/A'
+                              : '${result.confidence}%',
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                         ),
                       ],
