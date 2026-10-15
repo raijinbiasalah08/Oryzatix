@@ -92,6 +92,9 @@ class RiceScanController extends Controller
                 'confidence' => is_array($diagnosis) && isset($diagnosis['confidence'])
                     ? round((float) $diagnosis['confidence'] * 100, 1)
                     : null,
+                'minimum_confidence' => is_array($diagnosis) && isset($diagnosis['minimum_confidence'])
+                    ? round((float) $diagnosis['minimum_confidence'] * 100, 1)
+                    : null,
                 'disease_key' => is_array($diagnosis) ? ($diagnosis['disease_key'] ?? null) : null,
             ],
         ], $httpStatus);

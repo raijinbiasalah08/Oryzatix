@@ -2045,9 +2045,25 @@ async function uploadAndAnalyze(file) {
 }
 
 function showUnrecognizedScreen(data) {
+  const reason = data && data.reason ? data.reason : 'uncertain_prediction';
+  const curLang = (document.getElementById('uiLanguage') || {}).value || 'english';
+  const titleEl = document.getElementById('unrecTitle');
+  const titles = {
+    not_rice_leaf: { en: 'Rice Leaf Not Detected', tl: 'Walang Nakilalang Dahon ng Palay' },
+    blurry_image: { en: 'Image Too Blurry', tl: 'Malabo ang Larawan' },
+    uncertain_prediction: { en: 'Disease Result Uncertain', tl: 'Hindi Tiyak ang Resulta ng Sakit' },
+    model_unavailable: { en: 'Scanner Temporarily Unavailable', tl: 'Pansamantalang Hindi Magamit ang Scanner' },
+    server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
+  };
+  const selectedTitle = titles[reason] || { en: 'Scan Result Needs Review', tl: 'Kailangang Suriin ang Resulta' };
+  if (titleEl) {
+    titleEl.setAttribute('data-en', selectedTitle.en);
+    titleEl.setAttribute('data-tl', selectedTitle.tl);
+    titleEl.textContent = curLang === 'tagalog' ? selectedTitle.tl : selectedTitle.en;
+  }
+
   const msgEl = document.getElementById('unrecMessage');
   if (msgEl) {
-    const curLang = (document.getElementById('uiLanguage') || {}).value || 'english';
     const fallbackMessages = {
       not_rice_leaf: {
         en: 'This image does not appear to show a rice leaf. Upload a clear, close-up photo of a rice leaf.',
@@ -2070,7 +2086,7 @@ function showUnrecognizedScreen(data) {
         tl: 'Hindi nakumpleto ang pag-scan dahil sa problema sa server o network. Subukan muli mamaya.',
       },
     };
-    const fallback = fallbackMessages[data && data.reason] || fallbackMessages.uncertain_prediction;
+    const fallback = fallbackMessages[reason] || fallbackMessages.uncertain_prediction;
     if (curLang === 'tagalog' && data && data.message_tl) {
       msgEl.textContent = data.message_tl;
     } else if (curLang === 'tagalog') {
@@ -2081,6 +2097,41 @@ function showUnrecognizedScreen(data) {
       msgEl.textContent = data.message;
     } else {
       msgEl.textContent = fallback.en;
+    }
+  }
+
+  const predictionEl = document.getElementById('unrecPrediction');
+  if (predictionEl) {
+    const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
+    const isValidatedRiceLeaf = data && (data.rice_leaf_validated === true || (data.validation && data.validation.rice_leaf === true));
+    const hasConfidenceValue = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== '';
+    const confidence = hasConfidenceValue ? Number(scan.confidence) : NaN;
+    const hasMinimumConfidenceValue = scan && scan.minimum_confidence !== null && scan.minimum_confidence !== undefined && scan.minimum_confidence !== '';
+    const minimumConfidence = hasMinimumConfidenceValue
+      ? Number(scan.minimum_confidence)
+      : NaN;
+    const diseaseNames = {
+      blb: 'Bacterial Leaf Blight',
+      brown_spot: 'Brown Spot',
+      healthy: 'Healthy Rice Leaf',
+      sheath_blight: 'Sheath Blight',
+      tungro: 'Rice Tungro Disease',
+      blast: 'Rice Leaf Blast',
+    };
+    const candidateName = scan && diseaseNames[scan.disease_key];
+    const hasActualConfidence = Number.isFinite(confidence) && confidence >= 0 && confidence <= 100;
+    if (reason === 'uncertain_prediction' && isValidatedRiceLeaf && candidateName && hasActualConfidence) {
+      const confidenceText = formatConfidencePercent(confidence);
+      const thresholdText = Number.isFinite(minimumConfidence) && minimumConfidence >= 0 && minimumConfidence <= 100
+        ? (curLang === 'tagalog' ? `; mas mababa sa itinakdang ${formatConfidencePercent(minimumConfidence)}` : `; below the validated ${formatConfidencePercent(minimumConfidence)} cutoff`)
+        : '';
+      predictionEl.textContent = curLang === 'tagalog'
+        ? `Pinakamataas na hula ng modelo: ${candidateName} (${confidenceText})${thresholdText}. Hindi ito kumpirmadong diagnosis.`
+        : `Model's top candidate: ${candidateName} (${confidenceText})${thresholdText}. This is not a confirmed diagnosis.`;
+      predictionEl.style.display = 'block';
+    } else {
+      predictionEl.textContent = '';
+      predictionEl.style.display = 'none';
     }
   }
   showScreen('unrecognized-result');

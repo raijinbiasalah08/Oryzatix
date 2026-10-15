@@ -852,8 +852,9 @@
       <section class="screen" id="unrecognized-result">
         <div class="unrecognized-card">
           <div class="unrec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-          <h2 id="unrecTitle" data-en="Image Not Recognized" data-tl="Hindi Nakilala ang Larawan">Image Not Recognized</h2>
+          <h2 id="unrecTitle" data-en="Scan Result Needs Review" data-tl="Kailangang Suriin ang Resulta">Scan Result Needs Review</h2>
           <p class="unrec-subtitle" id="unrecMessage" style="font-size: 15px; font-weight: 600; color: #b91c1c;">The scanner could not confidently identify this image. Try a clear, close-up photo of one rice leaf in natural light.</p>
+          <p id="unrecPrediction" style="display: none; margin: 12px 0 20px; padding: 12px 16px; border: 1px solid #fcd34d; border-radius: 12px; background: #fffbeb; color: #78350f; font-size: 14px; line-height: 1.5;"></p>
 
           <div class="unrec-box">
             <h4 data-en="MobileNetV2 Model Classes:" data-tl="Mga Klase ng Modelong MobileNetV2:">MobileNetV2 Model Classes:</h4>
