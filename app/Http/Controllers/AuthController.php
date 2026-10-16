@@ -286,10 +286,12 @@ class AuthController extends Controller
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            Log::error('Login error: ' . $e->getMessage());
+            Log::error('Login failed because of an unexpected server error.', [
+                'exception' => $e,
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Login error: ' . $e->getMessage(),
+                'message' => 'The login service is temporarily unavailable. Please try again later.',
             ], 500);
         }
     }
