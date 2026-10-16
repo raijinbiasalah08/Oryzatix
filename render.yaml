@@ -30,8 +30,10 @@ services:
       - key: DB_DATABASE
         value: oryzatix
       - key: DB_USERNAME
-        sync: false
+        value: ME2ewvWMas2ufbA.root
       - key: DB_PASSWORD
-        sync: false
+        value: eKumpGS5xVlylxnu
+      - key: MYSQL_ATTR_SSL_CA
+        value: /var/www/html/database/certs/ca.pem
       - key: SANCTUM_STATEFUL_DOMAINS
         value: "*.vercel.app,localhost"

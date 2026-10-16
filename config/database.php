@@ -50,8 +50,8 @@ return [
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'username' => env('DB_USERNAME', (env('DB_HOST') === 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com' ? 'ME2ewvWMas2ufbA.root' : 'root')),
+            'password' => env('DB_PASSWORD', (env('DB_HOST') === 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com' ? 'eKumpGS5xVlylxnu' : '')),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
@@ -61,6 +61,9 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', (function () {
+                    if (in_array(env('DB_HOST'), ['127.0.0.1', 'localhost', '::1'])) {
+                        return null;
+                    }
                     $candidates = [
                         '/tmp/ca.pem',
                         base_path('database/certs/ca.pem'),
