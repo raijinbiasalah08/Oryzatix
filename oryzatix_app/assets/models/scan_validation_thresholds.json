@@ -2,7 +2,7 @@
   "schema_version": 1,
   "validator": "MobileNetV2 binary rice-leaf versus non-rice-image classifier",
   "rice_leaf": {
-    "threshold": 0.6651645302772522,
+    "threshold": 0.5044519356451929,
     "threshold_policy": "midpoint between highest non-rice and lowest rice validation scores when separated; otherwise smallest threshold above highest non-rice validation score",
     "validation_rice_images": 412,
     "validation_non_rice_images": 476,
@@ -12,9 +12,9 @@
     "validation_true_negative": 476,
     "validation_rice_recall": 1.0,
     "validation_non_rice_specificity": 1.0,
-    "max_non_rice_validation_score": 0.3683655261993408,
-    "min_rice_validation_score": 0.9619635343551636,
-    "validation_score_gap": 0.5935980081558228,
+    "max_non_rice_validation_score": 0.00977094005793333,
+    "min_rice_validation_score": 0.9991329312324524,
+    "validation_score_gap": 0.9893619911745191,
     "separable_validation_scores": true,
     "operating_point_available": true,
     "calibration_split": "validation"
@@ -37,53 +37,53 @@
     "target_precision": 0.95,
     "threshold_policy": "lowest predicted-class threshold reaching the target precision on the disease model validation split; maximum validation coverage",
     "thresholds": {
-      "blb": 0.5522934198379517,
-      "brown_spot": 0.9598557949066162,
-      "healthy": 0.4767283797264099,
-      "sheath_blight": 0.5432802438735962,
-      "tungro": 0.5458976030349731,
+      "blb": 0.398781955242157,
+      "brown_spot": 0.8723044991493225,
+      "healthy": 0.5134500861167908,
+      "sheath_blight": 0.6265336275100708,
+      "tungro": 0.6675058007240295,
       "blast": null
     },
     "per_class_validation": {
       "blb": {
         "validation_true_images": 147,
-        "accepted_predictions": 148,
-        "correct_accepted_predictions": 146,
-        "precision": 0.9864864864864865,
-        "recall_at_threshold": 0.9931972789115646,
-        "threshold": 0.5522934198379517
+        "accepted_predictions": 146,
+        "correct_accepted_predictions": 145,
+        "precision": 0.9931506849315068,
+        "recall_at_threshold": 0.9863945578231292,
+        "threshold": 0.398781955242157
       },
       "brown_spot": {
         "validation_true_images": 55,
-        "accepted_predictions": 44,
-        "correct_accepted_predictions": 42,
-        "precision": 0.9545454545454546,
-        "recall_at_threshold": 0.7636363636363637,
-        "threshold": 0.9598557949066162
+        "accepted_predictions": 48,
+        "correct_accepted_predictions": 46,
+        "precision": 0.9583333333333334,
+        "recall_at_threshold": 0.8363636363636363,
+        "threshold": 0.8723044991493225
       },
       "healthy": {
         "validation_true_images": 159,
-        "accepted_predictions": 155,
-        "correct_accepted_predictions": 149,
-        "precision": 0.9612903225806452,
-        "recall_at_threshold": 0.9371069182389937,
-        "threshold": 0.4767283797264099
+        "accepted_predictions": 161,
+        "correct_accepted_predictions": 153,
+        "precision": 0.9503105590062112,
+        "recall_at_threshold": 0.9622641509433962,
+        "threshold": 0.5134500861167908
       },
       "sheath_blight": {
         "validation_true_images": 40,
-        "accepted_predictions": 38,
-        "correct_accepted_predictions": 37,
-        "precision": 0.9736842105263158,
-        "recall_at_threshold": 0.925,
-        "threshold": 0.5432802438735962
+        "accepted_predictions": 39,
+        "correct_accepted_predictions": 38,
+        "precision": 0.9743589743589743,
+        "recall_at_threshold": 0.95,
+        "threshold": 0.6265336275100708
       },
       "tungro": {
         "validation_true_images": 119,
-        "accepted_predictions": 117,
-        "correct_accepted_predictions": 114,
-        "precision": 0.9743589743589743,
-        "recall_at_threshold": 0.957983193277311,
-        "threshold": 0.5458976030349731
+        "accepted_predictions": 116,
+        "correct_accepted_predictions": 113,
+        "precision": 0.9741379310344828,
+        "recall_at_threshold": 0.9495798319327731,
+        "threshold": 0.6675058007240295
       },
       "blast": {
         "validation_true_images": 0,

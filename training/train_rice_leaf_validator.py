@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import random
 import shutil
 import sys
@@ -18,7 +19,7 @@ import numpy as np
 from PIL import Image, ImageFilter, ImageOps, UnidentifiedImageError
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).absolute().parents[1]
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "storage" / "app" / "models"
 ASSET_DIR = PROJECT_ROOT / "oryzatix_app" / "assets" / "models"
 IMAGE_SIZE = 224
@@ -57,7 +58,7 @@ def collect_records(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, in
                 with Image.open(path) as image:
                     image.verify()
                 by_hash[digest(path)].append({
-                    "path": path.resolve(), "class_key": key,
+                    "path": path.absolute(), "class_key": key,
                     "binary_label": 1, "category": "rice_leaf",
                 })
             except (OSError, UnidentifiedImageError, ValueError):
@@ -76,7 +77,7 @@ def collect_records(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, in
             with Image.open(path) as image:
                 image.verify()
             by_hash[digest(path)].append({
-                "path": path.resolve(), "class_key": "not_rice_leaf",
+                "path": path.absolute(), "class_key": "not_rice_leaf",
                 "binary_label": 0, "category": category,
             })
         except (OSError, UnidentifiedImageError, ValueError):
@@ -427,6 +428,20 @@ def make_model(tf: Any):
     return tf.keras.Model(inputs, output), base
 
 
+def export_validator_tflite(tf: Any, model: Any, path: Path) -> None:
+    """Export a fixed single-image TFLite signature without Keras SavedModel I/O."""
+    @tf.function(input_signature=[
+        tf.TensorSpec([1, IMAGE_SIZE, IMAGE_SIZE, 3], tf.float32, name="rice_scan_rgb_0_255")
+    ])
+    def serving_fn(images):
+        return {"rice_leaf_probability": model(images, training=False)}
+
+    converter = tf.lite.TFLiteConverter.from_concrete_functions(
+        [serving_fn.get_concrete_function()], model
+    )
+    path.write_bytes(converter.convert())
+
+
 def summarize_predictions(tf: Any, model_path: Path, rows: list[dict[str, Any]], batch_size: int, threshold: float) -> dict[str, Any]:
     test_rows = [row for row in rows if row["split"] == "test"]
     scores = tflite_predictions(tf, model_path, [str(row["path"]) for row in test_rows], 1, batch_size).reshape(-1)
@@ -517,9 +532,10 @@ def finalize_validation(tf: Any, output_dir: Path, split_rows: list[dict[str, An
     }
     threshold_path = output_dir / "scan_validation_thresholds.json"
     threshold_path.write_text(json.dumps(thresholds, indent=2) + "\n", encoding="utf-8")
-    ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(validator_path, ASSET_DIR / validator_path.name)
-    shutil.copy2(threshold_path, ASSET_DIR / threshold_path.name)
+    if output_dir.absolute() == DEFAULT_OUTPUT_DIR.absolute():
+        ASSET_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(validator_path, ASSET_DIR / validator_path.name)
+        shutil.copy2(threshold_path, ASSET_DIR / threshold_path.name)
     print("Rice-leaf validation metrics:", json.dumps(rice_metrics, sort_keys=True))
     print("Blur validation metrics:", json.dumps(blur_metrics, sort_keys=True))
     print("Binary held-out test:", json.dumps(test_metrics, sort_keys=True))
@@ -531,6 +547,14 @@ def finalize_validation(tf: Any, output_dir: Path, split_rows: list[dict[str, An
 
 
 def train(args: argparse.Namespace) -> None:
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if os.name == "nt":
+        # TensorFlow checkpoint temp files need a writable location beside the
+        # model outputs on restricted Windows workspaces.
+        training_temp_dir = str(args.output_dir.absolute())
+        for name in ("TMPDIR", "TEMP", "TMP"):
+            os.environ[name] = training_temp_dir
+
     try:
         import tensorflow as tf
     except ImportError as error:
@@ -539,8 +563,7 @@ def train(args: argparse.Namespace) -> None:
     random.seed(SEED)
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    rows, counts = collect_records(args.data_root.resolve())
+    rows, counts = collect_records(args.data_root.absolute())
     split_rows = split_records(rows)
     save_manifest(args.output_dir, split_rows)
     for split in ("train", "validation", "test"):
@@ -587,15 +610,13 @@ def train(args: argparse.Namespace) -> None:
     model = tf.keras.models.load_model(checkpoint)
     keras_path = args.output_dir / "rice_leaf_validator.keras"
     model.save(keras_path)
-    converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_path = args.output_dir / "rice_leaf_validator.tflite"
-    tflite_path.write_bytes(converter.convert())
+    # Direct Keras conversion uses a removed private API in TF 2.20/Keras 3,
+    # while writing a SavedModel can fail on restricted Windows temp mounts.
+    export_validator_tflite(tf, model, tflite_path)
 
     # Calibrate every cutoff against the exported TFLite models, not the Keras
-    # training model, and use those exact artifacts in the Laravel server.
-    if args.output_dir.resolve() == DEFAULT_OUTPUT_DIR.resolve():
-        ASSET_DIR.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(tflite_path, ASSET_DIR / tflite_path.name)
+    # training model. Production outputs are copied by finalize_validation().
     finalize_validation(tf, args.output_dir, split_rows, counts, args.batch_size)
     print(f"TFLite validator: {tflite_path}")
 
@@ -616,7 +637,7 @@ def main() -> None:
             import tensorflow as tf
         except ImportError as error:
             raise SystemExit("TensorFlow is required. Install training/requirements-training.txt first.") from error
-        rows, counts = collect_records(args.data_root.resolve())
+        rows, counts = collect_records(args.data_root.absolute())
         split_rows = split_records(rows)
         save_manifest(args.output_dir, split_rows)
         finalize_validation(tf, args.output_dir, split_rows, counts, args.batch_size)
