@@ -16,18 +16,18 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   final List<String> _quickTagalogQuestions = [
     'Paano gamutin ang Bacterial Leaf Blight (BLB)?',
-    'Tamang dosage ng Tricyclazole sa Leaf Blast',
+    'Paano makikilala ang Rice Blast sa ibang sintomas?',
     'Ano ang gagawin kapag naninilaw ang dahon (Tungro)?',
     'Tamang iskedyul ng patubig (AWD) sa palayan',
-    'Kailan dapat mag-abono ng Complete 14-14-14 at Urea?',
+    'Anong impormasyon ang kailangan bago magrekomenda ng abono?',
   ];
 
   final List<String> _quickEnglishQuestions = [
     'How to control Bacterial Leaf Blight (BLB)?',
-    'Recommended dosage for Rice Leaf Blast fungicides',
+    'How can I tell rice blast from similar leaf symptoms?',
     'How to manage Green Leafhopper vector in Tungro?',
-    'PhilRice Alternate Wetting and Drying (AWD) guide',
-    'Fertilizer timing for Basal, Tillering, and Panicle stages',
+    'How does Alternate Wetting and Drying work?',
+    'What information is needed before recommending fertilizer?',
   ];
 
   @override
@@ -82,7 +82,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
-                'PhilRice / IRRI Grounded',
+                'Rice farming guidance',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
@@ -197,7 +197,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                           decoration: InputDecoration(
                             hintText: isTagalog
                                 ? 'Magtanong tungkol sa sakit, gamot, o abono...'
-                                : 'Ask about rice disease, pesticide dosage, AWD...',
+                                : 'Ask about rice symptoms, crop care, or irrigation...',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
                               borderSide: const BorderSide(color: AppColors.border),
@@ -273,8 +273,8 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
             const SizedBox(height: 8),
             Text(
               isTagalog
-                  ? 'Ang inyong digital na katuwang sa palayan ayon sa pamantayan ng DA-PhilRice at IRRI. Piliin ang mga mungkahi sa ibaba o mag-type ng inyong tanong.'
-                  : 'Your intelligent rice production assistant grounded in DA-PhilRice and IRRI standards. Choose a prompt below or type your question.',
+                  ? 'Digital na katuwang para sa mga tanong tungkol sa palay. Pumili ng mungkahi sa ibaba o mag-type ng inyong tanong.'
+                  : 'Your digital assistant for rice farming questions. Choose a prompt below or type your question.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
             ),

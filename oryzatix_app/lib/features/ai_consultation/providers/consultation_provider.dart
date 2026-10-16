@@ -81,8 +81,12 @@ class ConsultationProvider extends ChangeNotifier {
       });
 
       if (res is Map<String, dynamic> && res['success'] == true) {
-        final aiContent = res['ai_response']?.toString() ?? 'Received advisory.';
+        final aiContent = res['ai_response']?.toString().trim() ?? '';
         final aiTime = res['time']?.toString() ?? nowStr;
+
+        if (aiContent.isEmpty) {
+          throw StateError('Consultation service returned no answer');
+        }
 
         _messages.add(ChatMessageModel(
           role: 'ai',
@@ -90,9 +94,19 @@ class ConsultationProvider extends ChangeNotifier {
           language: _activeLanguage,
           time: aiTime,
         ));
+      } else {
+        throw StateError('Consultation service returned an unsuccessful response');
       }
-    } catch (e) {
-      _errorMessage = 'Failed to get answer: ${e.toString()}';
+    } catch (_) {
+      _messages.add(ChatMessageModel(
+        role: 'ai',
+        content: _activeLanguage == 'tagalog'
+            ? 'Hindi ko makontak ang serbisyo ng payo sa palay kaya wala pa akong sagot. Subukan muli mamaya. Para sa agarang desisyon tungkol sa pananim o kemikal, kumonsulta sa Municipal Agriculture Office.'
+            : 'I could not reach the rice advisory service, so I do not have an answer yet. Please try again shortly. For time-sensitive crop or chemical decisions, contact your Municipal Agriculture Office.',
+        language: _activeLanguage,
+        time: nowStr,
+      ));
+      _errorMessage = null;
     }
 
     _isSending = false;

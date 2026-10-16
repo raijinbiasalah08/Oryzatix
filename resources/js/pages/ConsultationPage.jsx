@@ -119,14 +119,19 @@ export default function ConsultationPage() {
 
         try {
             const { data } = await api.post('/consultation/send', { message: msg, language });
-            const reply = data.ai_response || t('Thank you for your question!', 'Salamat sa iyong tanong!');
+            if (!data?.success || typeof data.ai_response !== 'string' || !data.ai_response.trim()) {
+                throw new Error('Consultation service returned no answer');
+            }
+            const reply = data.ai_response.trim();
             const replyLang = data.language || language;
             setMessages((prev) => [...prev, { role: 'ai', content: reply, language: replyLang }]);
             if (!isMuted) {
                 speakText(reply, replyLang);
             }
         } catch {
-            const fallback = t('Thank you! Please consult your Municipal Agriculture Office for specific advice.', 'Salamat! Kumonsulta sa inyong Municipal Agriculture Office.');
+            const fallback = language === 'english'
+                ? 'I could not reach the rice advisory service, so I do not have an answer yet. Please try again shortly. For time-sensitive crop or chemical decisions, contact your Municipal Agriculture Office.'
+                : 'Hindi ko makontak ang serbisyo ng payo sa palay kaya wala pa akong sagot. Subukan muli mamaya. Para sa agarang desisyon tungkol sa pananim o kemikal, kumonsulta sa Municipal Agriculture Office.';
             setMessages((prev) => [...prev, { role: 'ai', content: fallback, language }]);
         }
     };
@@ -193,7 +198,7 @@ export default function ConsultationPage() {
                     {messages.length === 0 && (
                         <div className="chat-bubble ai">
                             <div className="chat-text-content">
-                                <p>{t("Hello! I'm your Rice AI Assistant. Ask me about rice diseases, care, or treatments.", "Kumusta! Ako ang inyong Rice AI Assistant. Pwede ninyo akong tanungin tungkol sa mga sakit ng palay, tamang gamutan, at dosage.")}</p>
+                                <p>{t("Hello! I'm your Rice AI Assistant. Ask me about rice symptoms, crop care, or irrigation.", "Kumusta! Ako ang inyong Rice AI Assistant. Pwede ninyo akong tanungin tungkol sa mga sintomas ng palay, pangangalaga ng pananim, o patubig.")}</p>
                             </div>
                             <div className="chat-bubble-footer">
                                 <button 
