@@ -2,7 +2,7 @@
 
 Oryzatix uses two separate MobileNetV2 models during server-side scans: a binary rice-leaf versus non-rice-image validator, followed by the existing disease classifier. The disease classifier is not treated as a non-rice rejection model. The scan pipeline also applies an image-focus check and rejects malformed probabilities or predictions below validation-derived class thresholds.
 
-The disease training workflow trains a six-class rice-leaf classifier, evaluates it on a held-out test split, and exports Keras and TensorFlow Lite models. It uses exact SHA-256 deduplication, excludes identical images assigned to different labels, and writes a deterministic 70/15/15 class-stratified manifest. It does not move or rewrite source images.
+The disease training workflow trains a six-class rice-leaf classifier, evaluates it on a held-out test split, and exports Keras and TensorFlow Lite models. It uses exact SHA-256 deduplication, excludes identical images assigned to different labels, and writes a deterministic 70/15/15 class-stratified manifest. Files under the Brown Spot folder whose filename or subfolder explicitly identifies Leaf Blast are excluded from disease training and listed in `dataset_exclusions.csv`; no Leaf Blast disease output class currently exists. It does not move or rewrite source images.
 
 The rice-leaf folders are Bacterial Leaf Blight, Brown Spot, Healthy Rice Leaf, Sheath Blight, and Tungro. `Not Rice Leaf` is the negative class and may contain any number of nested folders, such as `people`, `objects`, and `other_plants`. Leaf Blast is omitted because there is no corresponding populated image folder.
 

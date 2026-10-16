@@ -43,9 +43,10 @@ def image_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
-def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
+def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int], list[dict[str, str]]]:
     by_digest: dict[str, list[dict[str, Any]]] = defaultdict(list)
     invalid: list[str] = []
+    excluded_mislabels: list[dict[str, str]] = []
 
     for class_index, class_info in enumerate(CLASSES):
         class_dir = data_root / class_info["folder"]
@@ -55,6 +56,23 @@ def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int
         for path in sorted(class_dir.rglob("*")):
             if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
                 continue
+
+            # The source Brown Spot directory also contains files explicitly
+            # named Leaf_Blast. Since Leaf Blast is not a disease output class,
+            # training those examples as Brown Spot teaches the wrong label.
+            # Keep them available to the binary rice-leaf validator, but omit
+            # them from this disease classifier until a dedicated Blast class
+            # and independently confirmed labels are supplied.
+            relative_label_path = " ".join(path.relative_to(class_dir).with_suffix("").parts)
+            normalized_label_path = relative_label_path.casefold().replace("_", " ").replace("-", " ")
+            if class_info["key"] == "brown_spot" and "blast" in normalized_label_path.split():
+                excluded_mislabels.append({
+                    "path": str(path.absolute()),
+                    "assigned_folder": class_info["key"],
+                    "reason": "filename_or_folder_identifies_leaf_blast_but_no_blast_output_class_exists",
+                })
+                continue
+
             try:
                 with Image.open(path) as image:
                     image.verify()
@@ -87,7 +105,7 @@ def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int
             f"Skipped {ambiguous_hashes} exact image(s) labeled as more than one class.",
             file=sys.stderr,
         )
-    return records, counts
+    return records, counts, excluded_mislabels
 
 
 def stratified_split(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -238,13 +256,23 @@ def train(args: argparse.Namespace) -> None:
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
 
-    records, counts = collect_images(args.data_root.absolute())
+    records, counts, excluded_mislabels = collect_images(args.data_root.absolute())
     split_records = stratified_split(records)
     save_manifest(args.output_dir, split_records)
+    exclusions_path = args.output_dir / "dataset_exclusions.csv"
+    with exclusions_path.open("w", newline="", encoding="utf-8") as exclusions_file:
+        writer = csv.DictWriter(exclusions_file, fieldnames=["path", "assigned_folder", "reason"])
+        writer.writeheader()
+        writer.writerows(excluded_mislabels)
     print("Usable images by class:")
     for class_info in CLASSES:
         print(f"  {class_info['name']}: {counts[class_info['key']]}")
     print(f"Wrote stratified split manifest to {args.output_dir / 'training_manifest.csv'}")
+    if excluded_mislabels:
+        print(
+            f"Excluded {len(excluded_mislabels)} likely mislabeled Leaf Blast image(s) from Brown Spot; "
+            f"see {exclusions_path}."
+        )
 
     train_records = [row for row in split_records if row["split"] == "train"]
     validation_records = [row for row in split_records if row["split"] == "validation"]
