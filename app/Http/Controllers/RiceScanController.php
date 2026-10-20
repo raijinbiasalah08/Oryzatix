@@ -1955,38 +1955,33 @@ class RiceScanController extends Controller
 
         $scanId = null;
         $saved = false;
+        $path = null;
+
+        $dataUrl = $this->createOptimizedDataUrl($fullPath);
 
         try {
             $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
             if ($user) {
                 $path = $file->store('scans', 'public');
-                if ($path) {
-                    $imageUrl = Storage::disk('public')->url($path);
-                    $scan = RiceScan::create([
-                        'user_id' => $user->id,
-                        'image_path' => $path,
-                        'disease_name' => $disease['name'],
-                        'scientific_name' => $disease['scientific'],
-                        'confidence' => $confidence !== null ? round($confidence, 2) : null,
-                        'severity' => $severity,
-                        'treatment_recommendation' => $treatments,
-                    ]);
-                    $scanId = $scan->id;
-                    $saved = true;
-                }
+                $savedImagePath = $dataUrl ?: $path;
+                $scan = RiceScan::create([
+                    'user_id' => $user->id,
+                    'image_path' => $savedImagePath,
+                    'disease_name' => $disease['name'],
+                    'scientific_name' => $disease['scientific'],
+                    'confidence' => $confidence !== null ? round($confidence, 2) : null,
+                    'severity' => $severity,
+                    'treatment_recommendation' => $treatments,
+                ]);
+                $scanId = $scan->id;
+                $saved = true;
             }
         } catch (\Throwable $e) {
-            if ($path) {
-                try {
-                    Storage::disk('public')->delete($path);
-                } catch (\Throwable $cleanupError) {
-                    Log::warning('Failed to remove unlinked scan image: ' . $cleanupError->getMessage());
-                }
-            }
-            $path = null;
-            $imageUrl = null;
             Log::error('Failed to save scan to database: ' . $e->getMessage());
         }
+
+        $imageUrl = $dataUrl ?: ($path ? url('storage/' . ltrim($path, '/')) : $this->getDiseaseReferenceImageUrl($disease['name']));
+
 
         return response()->json([
             'success' => true,
@@ -2072,14 +2067,7 @@ class RiceScanController extends Controller
                         $affectedStr = '> 60%';
                     }
 
-                    $scanImageUrl = null;
-                    if ($scan->image_path) {
-                        if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
-                            $scanImageUrl = $scan->image_path;
-                        } else {
-                            $scanImageUrl = Storage::disk('public')->url($scan->image_path);
-                        }
-                    }
+                    $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
 
                     return [
                         'id' => $scan->id,
@@ -2228,7 +2216,7 @@ class RiceScanController extends Controller
                 'causes' => $dbItem?->causes ?: null,
                 'prevention' => $dbItem?->prevention ?: null,
                 'recommended_treatment' => $dbItem?->recommended_treatment ?: null,
-                'image_url' => $dbItem?->image_path ? Storage::disk('public')->url($dbItem->image_path) : null,
+                'image_url' => $this->resolveScanImageUrl($dbItem?->image_path, $diseaseData['name']),
                 'severity_class' => $diseaseData['severity_class'] ?? 'blast-bg',
                 'severity_levels' => $diseaseData['severity_levels'] ?? null,
                 'treatments' => $diseaseData['treatments'] ?? [
@@ -2261,14 +2249,7 @@ class RiceScanController extends Controller
         // The public stats endpoint may show aggregate totals, but never individual
         // scan records or uploaded image URLs.
         $recentScans = $userId ? (clone $query)->latest()->take(5)->get()->map(function ($scan) {
-            $imageUrl = null;
-            if ($scan->image_path) {
-                if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
-                    $imageUrl = $scan->image_path;
-                } else {
-                    $imageUrl = Storage::disk('public')->url($scan->image_path);
-                }
-            }
+            $imageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
             return [
                 'id' => $scan->id,
                 'disease' => $scan->disease_name,
@@ -2295,5 +2276,131 @@ class RiceScanController extends Controller
             'recent_scans' => $recentScans,
         ]);
     }
+
+    /**
+     * Generate an optimized JPEG base64 Data URL (max 640px dimension, ~40-65KB).
+     * This self-contained data URL ensures scanned leaf images are permanently preserved in
+     * the database and load seamlessly across mobile, desktop, Vercel, and Render.
+     */
+    private function createOptimizedDataUrl(string $filePath, int $maxDimension = 640, int $quality = 75): ?string
+    {
+        if (!file_exists($filePath)) {
+            return null;
+        }
+
+        $imageInfo = @getimagesize($filePath);
+        if (!$imageInfo) {
+            return null;
+        }
+
+        [$origWidth, $origHeight, $imageType] = $imageInfo;
+
+        $src = match ($imageType) {
+            IMAGETYPE_JPEG => @imagecreatefromjpeg($filePath),
+            IMAGETYPE_PNG => @imagecreatefrompng($filePath),
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($filePath) : null,
+            default => null,
+        };
+
+        if (!$src) {
+            if (filesize($filePath) <= 2 * 1024 * 1024) {
+                $mime = $imageInfo['mime'] ?? 'image/jpeg';
+                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($filePath));
+            }
+            return null;
+        }
+
+        $newWidth = $origWidth;
+        $newHeight = $origHeight;
+
+        if ($origWidth > $maxDimension || $origHeight > $maxDimension) {
+            if ($origWidth > $origHeight) {
+                $newWidth = $maxDimension;
+                $newHeight = (int) round(($origHeight / $origWidth) * $maxDimension);
+            } else {
+                $newHeight = $maxDimension;
+                $newWidth = (int) round(($origWidth / $origHeight) * $maxDimension);
+            }
+        }
+
+        $dst = imagecreatetruecolor($newWidth, $newHeight);
+
+        if ($imageType === IMAGETYPE_PNG) {
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+        }
+
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+
+        ob_start();
+        imagejpeg($dst, null, $quality);
+        $data = ob_get_clean();
+
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        if (!$data) {
+            return null;
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode($data);
+    }
+
+    /**
+     * Resolve a robust, non-broken URL for any scan image.
+     * Handles Data URLs, local storage paths, and falls back to disease reference photos.
+     */
+    public function resolveScanImageUrl(?string $imagePath, ?string $diseaseName = null): string
+    {
+        if (!empty($imagePath)) {
+            if (str_starts_with($imagePath, 'data:')) {
+                return $imagePath;
+            }
+
+            if (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://')) {
+                // If it points to localhost/storage from a non-localhost client, adapt to current origin
+                if (str_contains($imagePath, 'localhost') && !in_array(request()->getHost(), ['localhost', '127.0.0.1'])) {
+                    $parsed = parse_url($imagePath);
+                    $pathPart = $parsed['path'] ?? '';
+                    if ($pathPart) {
+                        return url($pathPart);
+                    }
+                }
+                return $imagePath;
+            }
+
+            // If file exists on public disk, serve it via current request URL
+            $cleanPath = ltrim($imagePath, '/');
+            if (Storage::disk('public')->exists($cleanPath)) {
+                return url('storage/' . $cleanPath);
+            }
+        }
+
+        // Fallback to official disease sample reference photo
+        return $this->getDiseaseReferenceImageUrl($diseaseName);
+    }
+
+    public function getDiseaseReferenceImageUrl(?string $diseaseName): string
+    {
+        $name = strtolower((string) $diseaseName);
+        $filename = 'healthy.jpg';
+
+        if (str_contains($name, 'blight') || str_contains($name, 'sheath')) {
+            $filename = 'sheath_blight.jpg';
+        } elseif (str_contains($name, 'blb') || str_contains($name, 'bacterial')) {
+            $filename = 'blb.webp';
+        } elseif (str_contains($name, 'brown')) {
+            $filename = 'brown_spot.webp';
+        } elseif (str_contains($name, 'tungro')) {
+            $filename = 'tungro.jpg';
+        } elseif (str_contains($name, 'blast')) {
+            $filename = 'blast.webp';
+        } elseif (str_contains($name, 'healthy')) {
+            $filename = 'healthy.jpg';
+        }
+
+        return asset('images/diseases/' . $filename);
+    }
 }
+
 

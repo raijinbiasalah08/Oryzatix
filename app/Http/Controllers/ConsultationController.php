@@ -60,6 +60,17 @@ class ConsultationController extends Controller
 
         // 1. Generate accurate agronomic response first
         $aiResponse = $this->generateResponse($userMessage, $language, $userId);
+        if ($aiResponse === null) {
+            $message = $language === 'tagalog'
+                ? 'Hindi makasagot ang AI Consultant sa ngayon. Pakisubukan muli mamaya. Para sa agarang payo tungkol sa sakit o paggamit ng produkto, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
+                : 'The AI Consultant is temporarily unavailable. Please try again later. For urgent disease or product-use advice, contact your Municipal Agriculture Office or local agricultural technician.';
+
+            return response()->json([
+                'success' => false,
+                'code' => 'ai_unavailable',
+                'message' => $message,
+            ], 503);
+        }
 
         // 2. Persist user message and AI response in database
         try {
@@ -108,7 +119,7 @@ class ConsultationController extends Controller
         return response()->json(['success' => true]);
     }
 
-    private function generateResponse(string $message, string $language, ?int $userId = null): string
+    private function generateResponse(string $message, string $language, ?int $userId = null): ?string
     {
         $geminiResponse = $this->callGeminiApi($message, $language, $userId);
         if (!empty($geminiResponse)) {
@@ -120,12 +131,7 @@ class ConsultationController extends Controller
             return $knowledgeResponse;
         }
 
-        if ($language === 'tagalog') {
-            return "Paumanhin po, hindi ako makapagbibigay ng maaasahang sagot mula sa kasalukuyang impormasyon. " .
-                "Ilarawan ang yugto ng palay, mga sintomas, at kondisyon ng bukid; para sa desisyon tungkol sa gamot o abono, sundin ang label ng produkto at kumonsulta sa Municipal Agriculture Office o lokal na agricultural technician.";
-        }
-
-        return "I can’t give a reliable answer from the information currently available. Please include the rice growth stage, observed symptoms, and field conditions. For pesticide or fertilizer decisions, follow the product label and confirm with your Municipal Agriculture Office or local agricultural technician.";
+        return null;
     }
 
     /**
@@ -210,6 +216,17 @@ class ConsultationController extends Controller
         ) === 1;
     }
 
+    private function geminiModelCandidates(): array
+    {
+        $configuredModel = trim((string) (config('services.gemini.model') ?: 'gemini-3.8-flash'));
+
+        return array_values(array_unique(array_filter([
+            $configuredModel,
+            'gemini-3.8-flash',
+            'gemini-3.5-flash-lite',
+        ])));
+    }
+
     /**
      * Call Google Gemini REST API with conservative rice-advisory instructions.
      */
@@ -279,14 +296,12 @@ class ConsultationController extends Controller
             ]
         ];
 
-        $configuredModel = config('services.gemini.model') ?: env('GEMINI_MODEL', 'gemini-flash-lite-latest');
-        $modelsToTry = array_unique([$configuredModel, 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest']);
-
-        foreach ($modelsToTry as $mName) {
+        foreach ($this->geminiModelCandidates() as $mName) {
             try {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$mName}:generateContent?key={$apiKey}";
-
-                $response = Http::timeout(15)->post($url, $payload);
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent';
+                $response = Http::timeout(20)
+                    ->withHeaders(['x-goog-api-key' => $apiKey])
+                    ->post($url, $payload);
 
                 if ($response->successful()) {
                     $data = $response->json();
@@ -314,10 +329,23 @@ class ConsultationController extends Controller
                         }
                     }
                 } else {
-                    Log::warning("Gemini API ($mName) returned HTTP " . $response->status());
+                    $status = $response->status();
+                    Log::warning('Gemini API request failed.', ['model' => $mName, 'status' => $status]);
+
+                    $errorMessage = mb_strtolower((string) data_get($response->json(), 'error.message', ''));
+                    $modelUnavailable = $status === 404 || ($status === 400 && str_contains($errorMessage, 'model'));
+                    if ($modelUnavailable) {
+                        continue;
+                    }
+
+                    // Authentication, quota, rate-limit, and server errors are not fixed by
+                    // trying more model names; stop to avoid multiplying latency and requests.
+                    return null;
                 }
             } catch (Exception $e) {
-                Log::error("Failed calling Google Gemini API ($mName): " . $e->getMessage());
+                // Do not log exception messages: HTTP exception messages can contain request URLs.
+                Log::warning('Gemini API connection failed.', ['model' => $mName, 'exception' => get_class($e)]);
+                return null;
             }
         }
 
@@ -329,8 +357,10 @@ class ConsultationController extends Controller
      */
     private function buildGeminiSystemPrompt(string $language): string
     {
+        $responseLanguage = $language === 'tagalog' ? 'natural Filipino/Tagalog' : 'clear English';
+
         return <<<PROMPT
-You are Oryzatix AI Agronomist, an assistant for rice farming in the Philippines. Answer in {$language}, using clear, respectful language that a rice farmer can act on.
+You are Oryzatix AI Agronomist, an assistant for rice farming in the Philippines. Answer in {$responseLanguage}, using clear, respectful language that a rice farmer can act on.
 
 IMPORTANT LIMITS
 - You receive the user's message and a short chat history only. No live search, official reference documents, validated agronomic knowledge base, field measurements, or image evidence are supplied with this request. Never claim that an answer is verified by PhilRice, IRRI, DA, or another authority unless a source is explicitly included in the conversation.
@@ -415,13 +445,12 @@ PROMPT;
             ]
         ];
 
-        $configuredModel = config('services.gemini.model') ?: env('GEMINI_MODEL', 'gemini-flash-lite-latest');
-        $modelsToTry = array_unique([$configuredModel, 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest']);
-
-        foreach ($modelsToTry as $mName) {
+        foreach ($this->geminiModelCandidates() as $mName) {
             try {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$mName}:generateContent?key={$apiKey}";
-                $response = Http::timeout(15)->post($url, $payload);
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent';
+                $response = Http::timeout(20)
+                    ->withHeaders(['x-goog-api-key' => $apiKey])
+                    ->post($url, $payload);
                 if ($response->successful()) {
                     $data = $response->json();
                     $candidates = $data['candidates'] ?? [];
@@ -434,9 +463,19 @@ PROMPT;
                             }
                         }
                     }
+                } else {
+                    $status = $response->status();
+                    Log::warning('Gemini translation request failed.', ['model' => $mName, 'status' => $status]);
+
+                    $errorMessage = mb_strtolower((string) data_get($response->json(), 'error.message', ''));
+                    $modelUnavailable = $status === 404 || ($status === 400 && str_contains($errorMessage, 'model'));
+                    if (!$modelUnavailable) {
+                        return null;
+                    }
                 }
             } catch (Exception $e) {
-                Log::error("Gemini Translation ($mName) error: " . $e->getMessage());
+                Log::warning('Gemini translation connection failed.', ['model' => $mName, 'exception' => get_class($e)]);
+                return null;
             }
         }
 

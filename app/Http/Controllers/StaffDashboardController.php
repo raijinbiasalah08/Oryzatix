@@ -46,14 +46,7 @@ class StaffDashboardController extends Controller
                 ->take(50)
                 ->get()
                 ->map(function ($scan) {
-                    $imageUrl = null;
-                    if ($scan->image_path) {
-                        if (str_starts_with($scan->image_path, 'data:') || str_starts_with($scan->image_path, 'http://') || str_starts_with($scan->image_path, 'https://')) {
-                            $imageUrl = $scan->image_path;
-                        } else {
-                            $imageUrl = Storage::disk('public')->url($scan->image_path);
-                        }
-                    }
+                    $imageUrl = (new \App\Http\Controllers\RiceScanController)->resolveScanImageUrl($scan->image_path, $scan->disease_name);
 
                     return [
                         'id' => $scan->id,

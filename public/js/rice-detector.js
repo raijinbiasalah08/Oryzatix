@@ -123,6 +123,52 @@ function apiUrl(path) {
   return apiBase() + '/api/v1/' + clean;
 }
 
+let lastScannedLeafBlobUrl = null;
+
+function getDiseaseSampleImage(keyOrName) {
+  const base = (window.INITIAL_AUTH && window.INITIAL_AUTH.assetBase)
+    ? window.INITIAL_AUTH.assetBase.replace(/\/+$/, '')
+    : (apiBase() ? apiBase().replace(/\/+$/, '') : '');
+  const k = (keyOrName || '').toLowerCase();
+  let fn = 'healthy.jpg';
+  if (k.includes('sheath') || (k.includes('blight') && !k.includes('bacterial') && !k.includes('blb'))) {
+    fn = 'sheath_blight.jpg';
+  } else if (k.includes('blb') || k.includes('bacterial')) {
+    fn = 'blb.webp';
+  } else if (k.includes('brown')) {
+    fn = 'brown_spot.webp';
+  } else if (k.includes('tungro')) {
+    fn = 'tungro.jpg';
+  } else if (k.includes('blast')) {
+    fn = 'blast.webp';
+  } else if (k.includes('healthy')) {
+    fn = 'healthy.jpg';
+  }
+  return base ? (base + '/images/diseases/' + fn) : ('/images/diseases/' + fn);
+}
+
+function resolveClientImageUrl(url, keyOrName) {
+  if (!url) {
+    return getDiseaseSampleImage(keyOrName);
+  }
+  if (url.startsWith('data:')) {
+    return url;
+  }
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    const isLocalClient = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+    if (!isLocalClient) {
+      try {
+        const parsed = new URL(url);
+        const base = apiBase().replace(/\/+$/, '');
+        return base + parsed.pathname + parsed.search;
+      } catch (e) {
+        return getDiseaseSampleImage(keyOrName);
+      }
+    }
+  }
+  return url;
+}
+
 function getAuthToken() {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -1968,7 +2014,11 @@ function handleFileUpload(event) {
 
 async function uploadAndAnalyze(file) {
   showScreen('loading');
+  if (lastScannedLeafBlobUrl && lastScannedLeafBlobUrl.startsWith('blob:')) {
+    try { URL.revokeObjectURL(lastScannedLeafBlobUrl); } catch (e) {}
+  }
   const localFileUrl = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(file) : '';
+  lastScannedLeafBlobUrl = localFileUrl;
 
   ['step1', 'step2', 'step3', 'step4'].forEach(id => {
     const el = document.getElementById(id);
@@ -2027,8 +2077,8 @@ async function uploadAndAnalyze(file) {
         scan.disease.trim().length > 0 && confidenceIsValid;
 
       if (diagnosisIsValid) {
-        if (!data.scan.image_url && localFileUrl) {
-          data.scan.image_url = localFileUrl;
+        if (!data.scan.image_url || (data.scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+          data.scan.image_url = localFileUrl || data.scan.image_url;
         }
         applyScanResult(data.scan);
       } else {
@@ -2388,7 +2438,9 @@ function applyScanResult(scan) {
 
   const icon = document.getElementById('resultImageCardIcon');
   if (icon && imgCard) {
-    if (scan.image_url) {
+    const rawImageUrl = scan.image_url || lastScannedLeafBlobUrl || getDiseaseSampleImage(scan.disease_key || scan.disease);
+    const resolvedUrl = resolveClientImageUrl(rawImageUrl, scan.disease_key || scan.disease);
+    if (resolvedUrl) {
       icon.style.display = 'none';
       let img = imgCard.querySelector('img.result-uploaded-img');
       if (!img) {
@@ -2401,7 +2453,17 @@ function applyScanResult(scan) {
         img.style.objectFit = 'cover';
         imgCard.insertBefore(img, imgCard.firstChild);
       }
-      img.src = scan.image_url;
+      img.onerror = function() {
+        if (lastScannedLeafBlobUrl && this.src !== lastScannedLeafBlobUrl) {
+          this.src = lastScannedLeafBlobUrl;
+        } else {
+          const fallback = getDiseaseSampleImage(scan.disease_key || scan.disease);
+          if (this.src !== fallback) {
+            this.src = fallback;
+          }
+        }
+      };
+      img.src = resolvedUrl;
     } else {
       icon.style.display = '';
       const existing = imgCard.querySelector('img.result-uploaded-img');
@@ -3527,8 +3589,11 @@ function renderHistoryList(scans) {
       badgeText = 'Moderate (26% – 60%)';
     }
 
-    const thumb = scan.image_url
-      ? '<img src="' + escapeHtml(scan.image_url) + '" alt="' + escapeHtml(scan.disease) + '">'
+    const rawThumbUrl = scan.image_url;
+    const resolvedThumbUrl = resolveClientImageUrl(rawThumbUrl, scan.disease);
+    const fallbackThumbUrl = getDiseaseSampleImage(scan.disease);
+    const thumb = resolvedThumbUrl
+      ? '<img src="' + escapeHtml(resolvedThumbUrl) + '" alt="' + escapeHtml(scan.disease) + '" onerror="this.onerror=null;this.src=\'' + escapeHtml(fallbackThumbUrl) + '\';">'
       : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>';
 
     const sciname = scan.scientific ? '<em>' + escapeHtml(scan.scientific) + '</em>' : (sev === 'healthy' ? 'Optimal Plant Health' : 'Diagnosed via MobileNet');
@@ -3714,8 +3779,12 @@ async function loadHomeRecentScans() {
         if (s.severity === 'healthy') sevLabel = 'Healthy';
         else if (s.severity === 'mild') sevLabel = 'Mild (≤25%)';
         else if (s.severity === 'moderate') sevLabel = 'Moderate (26-60%)';
-        const thumbContent = s.image_url
-          ? '<img src="' + escapeHtml(s.image_url) + '" alt="' + escapeHtml(s.disease) + '" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">'
+
+        const rawUrl = s.image_url;
+        const resolvedUrl = resolveClientImageUrl(rawUrl, s.disease);
+        const fallbackUrl = getDiseaseSampleImage(s.disease);
+        const thumbContent = resolvedUrl
+          ? '<img src="' + escapeHtml(resolvedUrl) + '" alt="' + escapeHtml(s.disease) + '" onerror="this.onerror=null;this.src=\'' + escapeHtml(fallbackUrl) + '\';" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M7 12h10"/></svg>';
 
         return '<div class="recent-scan-card fade-in" onclick="viewHistoryScanDetail(' + (s.id || 0) + ')">' +
@@ -3761,18 +3830,23 @@ function sendQuickQuestion(text) {
 
 function confirmClearChat() {
   if (!confirm('Clear all chat conversation history?')) return;
-  fetch(apiUrl('/consultation/clear'), {
+  ensureCsrfCookie().then(() => fetch(apiUrl('/consultation/clear'), {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
-  }).finally(() => {
+  })).then(async (response) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error('Unable to clear chat history.');
     const c = document.getElementById('chatMessages');
     if (c) c.innerHTML = '<div class="chat-time">Chat history cleared</div>';
+  }).catch(() => {
+    alert('Chat history could not be cleared. Please check your connection and try again.');
   });
 }
 
 let isAiVoiceMuted = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem('oryzatix_ai_voice_muted') === 'true' : false;
 let currentSpeakingBtn = null;
+let isConsultationSending = false;
 
 function initAiVoiceMuteUI() {
   const btn = document.getElementById('aiMuteToggleBtn');
@@ -3980,7 +4054,7 @@ function formatAiMessage(rawText) {
 
 async function sendMessage() {
   const input = document.getElementById('chatInput');
-  if (!input) return;
+  if (!input || isConsultationSending) return;
   const msg = input.value.trim();
   if (!msg) return;
 
@@ -3998,31 +4072,68 @@ async function sendMessage() {
   input.value = '';
   container.scrollTop = container.scrollHeight;
 
-  await ensureCsrfCookie();
-  fetch(apiUrl('/consultation/send'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ message: msg, language: language }),
-  })
-    .then(r => r.json())
-    .then(data => {
-      let reply = 'Salamat sa iyong tanong! Para sa agarang lunas, sundin ang rekomendasyon sa Treatment Guide.';
-      let replyLang = language;
-      if (data && data.success) {
-        reply = data.ai_response || reply;
-        replyLang = data.language || language;
-      }
-      appendAIBubble(reply, replyLang, container);
-      const voiceSetting = (document.getElementById('voiceSetting') || {}).value;
-      if (voiceSetting !== 'manual' && !isAiVoiceMuted) {
-        speakText(reply, replyLang);
-      }
-    })
-    .catch(() => {
-      const fallback = 'Inirerekomenda ko ang pagkonsulta sa inyong Municipal Agriculture Office para sa tamang paggamit ng fungicide at pestisidyo.';
-      appendAIBubble(fallback, language, container);
+  isConsultationSending = true;
+  input.disabled = true;
+  const sendButton = document.querySelector('#consultation .send-btn');
+  if (sendButton) sendButton.disabled = true;
+
+  const pendingBubble = document.createElement('div');
+  pendingBubble.className = 'chat-bubble ai chat-pending';
+  pendingBubble.setAttribute('role', 'status');
+  pendingBubble.innerHTML = '<p>' + (language === 'tagalog' ? 'Sandali, naghahanda ng sagot…' : 'Preparing an answer…') + '</p>';
+  container.appendChild(pendingBubble);
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    await ensureCsrfCookie();
+    const response = await fetch(apiUrl('/consultation/send'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ message: msg, language: language }),
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success || typeof data.ai_response !== 'string' || !data.ai_response.trim()) {
+      const error = new Error(data.message || 'The consultation request failed.');
+      error.status = response.status;
+      throw error;
+    }
+
+    pendingBubble.remove();
+    const reply = data.ai_response.trim();
+    const replyLang = data.language || language;
+    appendAIBubble(reply, replyLang, container);
+    const voiceSetting = (document.getElementById('voiceSetting') || {}).value;
+    if (voiceSetting !== 'manual' && !isAiVoiceMuted) speakText(reply, replyLang);
+  } catch (error) {
+    pendingBubble.remove();
+    userBubble.remove();
+    input.value = msg;
+
+    let failureMessage;
+    if (error.status === 503) {
+      failureMessage = language === 'tagalog'
+        ? 'Hindi makakonekta ngayon sa AI Consultant. Nasa input pa rin ang tanong mo; pakisubukang muli mamaya.'
+        : 'The AI Consultant is temporarily unavailable. Your question is still in the input; please try again later.';
+    } else if (error.status === 401 || error.status === 419) {
+      failureMessage = language === 'tagalog'
+        ? 'Nag-expire ang iyong session. Mag-sign in muli bago magpadala ng tanong.'
+        : 'Your session has expired. Please sign in again before sending your question.';
+    } else if (error.status >= 500) {
+      failureMessage = language === 'tagalog'
+        ? 'Nagkaroon ng problema sa server. Nasa input pa rin ang tanong mo; pakisubukan muli mamaya.'
+        : 'The server encountered a problem. Your question is still in the input; please try again later.';
+    } else {
+      failureMessage = language === 'tagalog'
+        ? 'Hindi naipadala ang tanong. Suriin ang iyong koneksyon at subukang muli.'
+        : 'Your question could not be sent. Check your connection and try again.';
+    }
+    appendAIBubble(failureMessage, language, container);
+  } finally {
+    isConsultationSending = false;
+    input.disabled = false;
+    if (sendButton) sendButton.disabled = false;
+  }
 }
 
 function appendAIBubble(content, language, container) {
@@ -4033,7 +4144,7 @@ function appendAIBubble(content, language, container) {
   const aiBubble = document.createElement('div');
   aiBubble.className = 'chat-bubble ai fade-in';
   aiBubble.setAttribute('data-lang', currentLang);
-  aiBubble.setAttribute('data-raw-content', content);
+  aiBubble.setAttribute('data-raw-content', String(content));
   aiBubble.innerHTML =
     '<div class="chat-text-content">' + formatAiMessage(content) + '</div>' +
     '<div class="chat-bubble-footer">' +
@@ -4347,8 +4458,10 @@ function renderAdminRecentScansTable(scans) {
           ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
           : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>'));
 
-    const thumbHtml = s.image_url
-      ? `<img src="${s.image_url}" alt="Leaf Specimen" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--neutral-200); cursor: pointer;" onclick="openAdminScanPreview(${s.id})">`
+    const resolvedAdminThumb = resolveClientImageUrl(s.image_url, s.disease_name);
+    const fallbackAdminThumb = getDiseaseSampleImage(s.disease_name);
+    const thumbHtml = resolvedAdminThumb
+      ? `<img src="${resolvedAdminThumb}" alt="Leaf Specimen" onerror="this.onerror=null;this.src='${fallbackAdminThumb}';" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--neutral-200); cursor: pointer;" onclick="openAdminScanPreview(${s.id})">`
       : `<div style="width: 38px; height: 38px; border-radius: 8px; background: var(--neutral-100); display: flex; align-items: center; justify-content: center; color: var(--neutral-400); font-size: 16px;">🌿</div>`;
 
     return `
@@ -4579,8 +4692,10 @@ async function openAdminUserScansModal(userId, userName) {
           return;
         }
         tbody.innerHTML = scans.map(s => {
-          const imgThumb = s.image_url
-            ? `<img src="${s.image_url}" alt="Leaf" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
+          const resolvedUserThumb = resolveClientImageUrl(s.image_url, s.disease_name);
+          const fallbackUserThumb = getDiseaseSampleImage(s.disease_name);
+          const imgThumb = resolvedUserThumb
+            ? `<img src="${resolvedUserThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackUserThumb}';" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
             : `<div style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
           const isHealthy = s.severity === 'healthy';
           const sevBadge = isHealthy
@@ -5310,8 +5425,10 @@ function renderAdminScansLogsTable(scans) {
           ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
           : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>'));
 
-    const thumbHtml = s.image_url
-      ? `<img src="${s.image_url}" alt="Leaf Specimen" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:1px solid var(--neutral-200); cursor:pointer;" onclick="openAdminScanPreview(${s.id})">`
+    const resolvedScanThumb = resolveClientImageUrl(s.image_url, s.disease_name);
+    const fallbackScanThumb = getDiseaseSampleImage(s.disease_name);
+    const thumbHtml = resolvedScanThumb
+      ? `<img src="${resolvedScanThumb}" alt="Leaf Specimen" onerror="this.onerror=null;this.src='${fallbackScanThumb}';" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:1px solid var(--neutral-200); cursor:pointer;" onclick="openAdminScanPreview(${s.id})">`
       : `<div style="width:42px; height:42px; border-radius:8px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
 
     return `
@@ -5359,9 +5476,12 @@ function openAdminScanPreview(scanId) {
     else if (sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
     else if (sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
 
+    const resolvedScanPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
+    const fallbackScanPreview = getDiseaseSampleImage(scan.disease_name);
+
     content.innerHTML = `
       <div style="text-align:center; margin-bottom:14px;">
-        ${scan.image_url ? `<img src="${scan.image_url}" alt="Specimen" style="max-width:100%; max-height:260px; border-radius:10px; object-fit:contain; border:1px solid var(--neutral-200);">` : ''}
+        ${resolvedScanPreview ? `<img src="${resolvedScanPreview}" alt="Specimen" onerror="this.onerror=null;this.src='${fallbackScanPreview}';" style="max-width:100%; max-height:260px; border-radius:10px; object-fit:contain; border:1px solid var(--neutral-200);">` : ''}
       </div>
       <div style="background:var(--neutral-50); border-radius:8px; padding:12px; font-size:13px; line-height:1.6;">
         <div><strong>User:</strong> ${escapeHtml(scan.farmer_name)} (${escapeHtml(scan.farmer_email || 'No email')})</div>
@@ -5926,8 +6046,10 @@ function renderStaffScansTable(scans) {
     const sevLabel = sevLabels[sev] || sev.toUpperCase();
     const hasNote = Boolean(s.notes && s.notes.trim());
 
-    const imgThumb = s.image_url
-      ? `<img src="${s.image_url}" alt="Leaf" style="width:42px; height:42px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
+    const resolvedStaffThumb = resolveClientImageUrl(s.image_url, s.disease_name);
+    const fallbackStaffThumb = getDiseaseSampleImage(s.disease_name);
+    const imgThumb = resolvedStaffThumb
+      ? `<img src="${resolvedStaffThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackStaffThumb}';" style="width:42px; height:42px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
       : `<div style="width:42px; height:42px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
 
     return `
@@ -6060,9 +6182,12 @@ function openStaffAdvisoryModal(scanId) {
     else if (sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
     else if (sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
 
+    const resolvedStaffPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
+    const fallbackStaffPreview = getDiseaseSampleImage(scan.disease_name);
+
     preview.innerHTML = `
       <div style="display:flex; align-items:center; gap:12px;">
-        ${scan.image_url ? `<img src="${scan.image_url}" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : ''}
+        ${resolvedStaffPreview ? `<img src="${resolvedStaffPreview}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackStaffPreview}';" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : ''}
         <div>
           <div style="font-weight:700; font-size:14px; color:var(--neutral-900);">${escapeHtml(scan.farmer_name)} · <span style="font-weight:500; font-size:12px; color:var(--neutral-500);">${escapeHtml(scan.location)}</span></div>
           <div style="font-size:13px; font-weight:700; color:var(--brand-green); margin-top:2px;">${escapeHtml(scan.disease_name)} (${sevDisplay})</div>
