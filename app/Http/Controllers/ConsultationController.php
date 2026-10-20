@@ -58,8 +58,10 @@ class ConsultationController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        // 1. Generate accurate agronomic response first
-        $aiResponse = $this->generateResponse($userMessage, $language, $userId);
+        // Enforce the product scope before sending any message to the language model.
+        $aiResponse = $this->isProjectRelated($userMessage, $userId)
+            ? $this->generateResponse($userMessage, $language, $userId)
+            : $this->outOfScopeResponse($language);
         if ($aiResponse === null) {
             $message = $language === 'tagalog'
                 ? 'Hindi makasagot ang AI Consultant sa ngayon. Pakisubukan muli mamaya. Para sa agarang payo tungkol sa sakit o paggamit ng produkto, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
@@ -117,6 +119,68 @@ class ConsultationController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to clear consultation history.'], 500);
         }
         return response()->json(['success' => true]);
+    }
+
+    private function isProjectRelated(string $message, ?int $userId): bool
+    {
+        if ($this->hasProjectTopicMarker($message)) {
+            return true;
+        }
+
+        // Let brief follow-ups inherit a rice/app topic from the latest user turn.
+        // New standalone questions still need an explicit Oryzatix or rice context.
+        $normalized = mb_strtolower(trim($message), 'UTF-8');
+        $isBriefFollowUp = mb_strlen($normalized, 'UTF-8') <= 80 && (
+            preg_match('/\b(?:it|this|that|these|those|them|same|one|ito|iyan|iyon|nito|niyan|niyon)\b/u', $normalized) === 1 ||
+            preg_match('/^(?:yes|no|okay|ok|thanks|why|how|what|when|where|which|ano|opo|oo|hindi|sige|bakit|paano|kailan|saan|alin)[?!.,\s]*$/u', $normalized) === 1
+        );
+
+        if (!$userId || !$isBriefFollowUp) {
+            return false;
+        }
+
+        $lastUserMessage = ChatMessage::where('user_id', $userId)
+            ->where('role', 'user')
+            ->latest('created_at')
+            ->value('content');
+
+        return is_string($lastUserMessage) && $this->hasProjectTopicMarker($lastUserMessage);
+    }
+
+    private function hasProjectTopicMarker(string $message): bool
+    {
+        $normalized = mb_strtolower($message, 'UTF-8');
+
+        $appSupport = preg_match(
+            '/\b(?:oryzatix|rice[- ]leaf scanner|rice scanner|leaf scanner|rice detector|rice scan|scan results?|scan history|this app|the app|mobile app|ai consultant|chatbot)\b/u',
+            $normalized
+        ) === 1;
+        if ($appSupport) {
+            return true;
+        }
+
+        $supportedDisease = preg_match(
+            '/\b(?:blb|bacterial leaf blight|brown spot|sheath blight|tungro|rice blast|leaf blast|rice leaf disease)\b/u',
+            $normalized
+        ) === 1;
+        if ($supportedDisease) {
+            return true;
+        }
+
+        $riceContext = preg_match('/\b(?:rice|palay|paddy)\b/u', $normalized) === 1;
+        $riceFarmingTopic = preg_match(
+            '/\b(?:leaf|leaves|disease|diseases|symptom\w*|lesion\w*|pest|pests|crop|farm\w*|field|soil|fertiliz\w*|irrigat\w*|water|seed|plant\w*|cultivat\w*|production|transplant\w*|weed\w*|harvest\w*|yield|growth|stage|blight|spot|fung\w*|insect\w*|yellow\w*|discolor\w*|dahon|sakit|peste|abono|pataba|patubig|bukid|sakahan|tanim|punla|ani|damo|lupa|binhi|naninilaw|paninilaw)\b/u',
+            $normalized
+        ) === 1;
+
+        return $riceContext && $riceFarmingTopic;
+    }
+
+    private function outOfScopeResponse(string $language): string
+    {
+        return $language === 'tagalog'
+            ? 'Nakatuon lang ako sa paggamit ng Oryzatix at sa pagsasaka ng palay—kabilang ang sakit, peste, pangangalaga, lupa, at patubig. Magtanong tungkol sa palay o sa rice-leaf scanner.'
+            : 'I can help only with Oryzatix and rice farming, including rice diseases, pests, crop care, soil, and irrigation. Please ask about your rice crop or the rice-leaf scanner.';
     }
 
     private function generateResponse(string $message, string $language, ?int $userId = null): ?string
@@ -369,7 +433,7 @@ IMPORTANT LIMITS
 - Do not invent a fertilizer schedule or per-hectare rate. Explain that fertilizer recommendations depend on soil, variety, season, crop stage, and local guidance; ask for missing details or recommend a soil test/Leaf Color Chart where appropriate.
 
 ACCURACY AND DIAGNOSIS
-- Stay within rice production: rice diseases and pests, symptoms, crop management, soil and nutrients, irrigation, and post-harvest questions. Politely redirect unrelated topics.
+- Answer only questions about Oryzatix app use or rice production and health: rice diseases and pests, symptoms, crop management, soil and nutrients, irrigation, and post-harvest questions. Briefly redirect unrelated topics without answering their unrelated request.
 - A symptom description alone is not a confirmed diagnosis. Explain plausible causes as possibilities, distinguish look-alike symptoms, and ask concise follow-up questions when crop stage, symptom pattern, field conditions, or spread are missing.
 - Do not infer disease severity percentages or say a plant is healthy without reliable evidence. Explain what observations would support an assessment and when in-person inspection is needed.
 - Separate established general information from uncertainty. If you do not know or cannot verify a claim, say so plainly and give a safe next step instead of guessing.
