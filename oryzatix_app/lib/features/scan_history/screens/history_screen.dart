@@ -66,7 +66,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: sevBg, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      item.severity.toUpperCase(),
+                      AppColors.getSeverityLabel(item.severity),
                       style: TextStyle(color: sevColor, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
@@ -87,7 +87,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       child: Text('• ${t['name'] ?? ''}: ${t['desc'] ?? ''}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     )))
               else
-                const Text('Standard PhilRice cultural practices advised.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                const Text('No severity-validated treatment advice is available for this scan.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
             ],
           ),
         ),
@@ -194,6 +194,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   _buildFilterChip('mild', 'Mild (${stats.mild})'),
                   _buildFilterChip('moderate', 'Moderate (${stats.moderate})'),
                   _buildFilterChip('severe', 'Severe (${stats.severe})'),
+                  _buildFilterChip('unassessed', 'Needs review (${stats.unassessed})'),
                 ],
               ),
               const SizedBox(height: 20),
@@ -330,7 +331,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
-                                                  item.severity.toUpperCase(),
+                                                  AppColors.getSeverityLabel(item.severity),
                                                   style: TextStyle(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w800,

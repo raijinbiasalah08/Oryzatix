@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#2d6a3e">
-    <meta name="description" content="Oryzatix — rice leaf reference-image matching with color-based severity estimates and management guidance">
+    <meta name="description" content="Oryzatix — rice leaf disease reference matching with severity marked for expert assessment when leaf area has not been measured">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Oryzatix">

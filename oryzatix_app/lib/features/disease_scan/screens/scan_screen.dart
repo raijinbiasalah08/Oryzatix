@@ -331,6 +331,7 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget _buildDiagnosisResultView(ScanResultModel result) {
     final sevColor = AppColors.getSeverityColor(result.severity);
     final sevBg = AppColors.getSeverityBg(result.severity);
+    final severityNeedsReview = result.severity == 'unassessed';
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -441,7 +442,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         const Text('Severity Level', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         const SizedBox(height: 2),
                         Text(
-                          result.severity.toUpperCase(),
+                          AppColors.getSeverityLabel(result.severity),
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: sevColor),
                         ),
                       ],
@@ -473,6 +474,21 @@ class _ScanScreenState extends State<ScanScreen> {
                 ],
               ],
             ),
+            if (severityNeedsReview) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Text(
+                  'Affected leaf area was not measured. Ask an agriculturist to assess severity before using severity-based treatment advice.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
 
             // Treatment Tabs (Chemical vs Organic)

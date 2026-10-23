@@ -365,7 +365,7 @@ class DashboardScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                item.severity.toUpperCase(),
+                                AppColors.getSeverityLabel(item.severity),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,

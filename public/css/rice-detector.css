@@ -1911,6 +1911,16 @@ select {
   color: var(--red-600);
 }
 
+.severity-badge.unassessed {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+
+.unassessed-bg {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+}
+
 .severity-badge.moderate {
   background: var(--amber-100);
   color: var(--amber-700);
@@ -3239,6 +3249,11 @@ select {
 .sev-badge.severe {
   background: var(--red-100);
   color: var(--red-600);
+}
+
+.sev-badge.unassessed {
+  background: var(--neutral-100);
+  color: var(--neutral-700);
 }
 
 .ht-date {

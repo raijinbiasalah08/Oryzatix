@@ -37,7 +37,7 @@ class StaffDashboardController extends Controller
             $sheathBlightCount = RiceScan::where('disease_name', 'like', '%Sheath Blight%')->orWhere('disease_name', 'sheath_blight')->count();
             $healthyCount = RiceScan::where('disease_name', 'like', '%Healthy%')->orWhere('severity', 'healthy')->count();
 
-            $activeOutbreaks = RiceScan::whereIn('severity', ['moderate', 'severe'])->count();
+            $severityReviewsNeeded = RiceScan::where('severity', '!=', 'healthy')->count();
             $healthyRatio = $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 0.0;
 
             // Fetch recent scans with user info
@@ -57,7 +57,8 @@ class StaffDashboardController extends Controller
                         'disease_name' => $scan->disease_name ?: 'Healthy Rice Leaf',
                         'scientific_name' => $scan->scientific_name ?: 'Oryza sativa',
                         'confidence' => (float) $scan->confidence,
-                        'severity' => strtolower($scan->severity ?: 'healthy'),
+                        'severity' => $scan->severity === 'healthy' ? 'healthy' : 'unassessed',
+                        'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : 'unassessed',
                         'notes' => $scan->notes ?: '',
                         'created_at' => $scan->created_at ? $scan->created_at->format('M j, Y g:i A') : 'N/A',
                         'time_ago' => $scan->created_at ? $scan->created_at->diffForHumans() : '',
@@ -83,13 +84,13 @@ class StaffDashboardController extends Controller
                         'other' => 0,
                         'severe' => 0,
                         'moderate' => 0,
+                        'needs_assessment' => 0,
                     ];
                 }
 
                 $locationMap[$loc]['total_scans']++;
-                $sev = strtolower($scan->severity ?: 'healthy');
-                if ($sev === 'severe') $locationMap[$loc]['severe']++;
-                if ($sev === 'moderate') $locationMap[$loc]['moderate']++;
+                $sev = strtolower($scan->severity ?: 'unassessed');
+                if ($sev !== 'healthy') $locationMap[$loc]['needs_assessment']++;
 
                 $dName = strtolower($scan->disease_name ?: '');
                 if (str_contains($dName, 'sheath')) {
@@ -111,12 +112,7 @@ class StaffDashboardController extends Controller
 
             $locationSurveillance = [];
             foreach ($locationMap as $loc => $data) {
-                $status = 'normal';
-                if ($data['severe'] >= 3 || ($data['severe'] + $data['moderate']) >= 6) {
-                    $status = 'outbreak';
-                } elseif ($data['severe'] >= 1 || $data['moderate'] >= 2) {
-                    $status = 'watch';
-                }
+                $status = $data['needs_assessment'] > 0 ? 'review_required' : 'normal';
                 $data['status'] = $status;
                 $locationSurveillance[] = $data;
             }
@@ -128,7 +124,7 @@ class StaffDashboardController extends Controller
                 'data' => [
                     'stats' => [
                         'total_field_scans' => $totalScans,
-                        'active_outbreaks' => $activeOutbreaks,
+                        'severity_reviews_needed' => $severityReviewsNeeded,
                         'total_farmers' => $totalFarmers,
                         'healthy_ratio' => $healthyRatio,
                     ],

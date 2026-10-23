@@ -6,7 +6,14 @@ import '../models/history_model.dart';
 
 class HistoryProvider extends ChangeNotifier {
   Map<String, List<HistoryItem>> _scansByDate = {};
-  HistoryStats _stats = HistoryStats(total: 0, healthy: 0, mild: 0, moderate: 0, severe: 0);
+  HistoryStats _stats = HistoryStats(
+    total: 0,
+    healthy: 0,
+    mild: 0,
+    moderate: 0,
+    severe: 0,
+    unassessed: 0,
+  );
   bool _isLoading = false;
   String? _errorMessage;
 

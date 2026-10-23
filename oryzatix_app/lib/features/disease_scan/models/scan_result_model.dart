@@ -31,6 +31,7 @@ class ScanResultModel {
   final String? scientific;
   final String confidence;
   final String severity;
+  final String severityStatus;
   final String? affectedPercentage;
   final String? imageUrl;
   final String analysisSource;
@@ -50,6 +51,7 @@ class ScanResultModel {
     this.scientific,
     required this.confidence,
     required this.severity,
+    required this.severityStatus,
     this.affectedPercentage,
     this.imageUrl,
     required this.analysisSource,
@@ -65,6 +67,15 @@ class ScanResultModel {
     final isRec = json['recognized'] == true &&
         json['rice_leaf_validated'] == true &&
         scan['recognized'] == true;
+    final rawSeverity = scan['severity']?.toString().toLowerCase();
+    final diseaseKey = scan['disease_key']?.toString() ?? 'unknown';
+    final disease = scan['disease']?.toString() ?? 'Rice Leaf';
+    final isHealthy = rawSeverity == 'healthy' || diseaseKey == 'healthy' ||
+        disease.toLowerCase().contains('healthy');
+    final area = double.tryParse(scan['affected_percentage']?.toString() ?? '');
+    final hasValidatedSeverity = scan['severity_status'] == 'expert_validated' &&
+        ['mild', 'moderate', 'severe'].contains(rawSeverity) &&
+        area != null && area.isFinite && area >= 0 && area <= 100;
 
     final treatObj = scan['treatments'] as Map<String, dynamic>? ?? {};
     final chemList = (treatObj['chemical'] as List? ?? [])
@@ -79,12 +90,13 @@ class ScanResultModel {
       saved: json['saved'] == true,
       message: json['message']?.toString(),
       id: scan['id'] != null ? (scan['id'] is int ? scan['id'] : int.tryParse(scan['id'].toString())) : null,
-      diseaseKey: scan['disease_key']?.toString() ?? 'healthy',
-      disease: scan['disease']?.toString() ?? 'Rice Leaf',
+      diseaseKey: diseaseKey,
+      disease: disease,
       scientific: scan['scientific']?.toString(),
       confidence: scan['confidence']?.toString() ?? 'N/A',
-      severity: scan['severity']?.toString() ?? 'healthy',
-      affectedPercentage: scan['affected_percentage']?.toString(),
+      severity: isHealthy ? 'healthy' : (hasValidatedSeverity ? rawSeverity! : 'unassessed'),
+      severityStatus: isHealthy ? 'not_applicable' : (hasValidatedSeverity ? 'expert_validated' : 'unassessed'),
+      affectedPercentage: hasValidatedSeverity ? area.toStringAsFixed(1) : null,
       imageUrl: scan['image_url']?.toString(),
       analysisSource: scan['analysis_source']?.toString() ?? 'reference_match',
       date: scan['date']?.toString() ?? '',

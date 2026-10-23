@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Oryzatix">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Rice leaf reference-image matching with color-based severity estimates and management recommendations">
+<meta name="description" content="Rice leaf disease reference matching with severity marked for expert assessment when leaf area has not been measured">
 <link rel="manifest" href="{{ asset('manifest.json') }}">
 <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
 <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
@@ -684,7 +684,7 @@
           <img src="{{ asset('images/logo.png') }}" alt="Oryzatix Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
         </div>
         <h1>ORYZATIX</h1>
-        <p>A rice leaf reference-image matching system with color-based severity estimates and management recommendations</p>
+        <p>A rice leaf disease scanner with severity marked for expert assessment when affected area has not been measured</p>
         <div class="tap-hint">Click anywhere to continue →</div>
       </section>
 
@@ -763,7 +763,7 @@
         <div class="loading-steps">
           <div class="loading-step" id="step1"><div class="step-check"></div><span>Reading uploaded image</span></div>
           <div class="loading-step" id="step2"><div class="step-check"></div><span>Checking exact image match</span></div>
-          <div class="loading-step" id="step3"><div class="step-check"></div><span>Loading stored severity</span></div>
+          <div class="loading-step" id="step3"><div class="step-check"></div><span>Checking severity assessment status</span></div>
           <div class="loading-step" id="step4"><div class="step-check"></div><span>Preparing recommendations</span></div>
         </div>
       </section>
@@ -789,11 +789,14 @@
 
         <div class="severity-meter">
           <h4 id="resultSeverityHeading">Severity Level & Leaf Area Affected</h4>
-          <div class="severity-bar-track"><div class="severity-bar-fill severe" id="resultSeverityFill"></div></div>
+          <div class="severity-bar-track" id="resultSeverityTrack"><div class="severity-bar-fill severe" id="resultSeverityFill"></div></div>
           <div class="severity-labels" id="resultSeverityLabels">
             <span class="sev-label inactive" id="sevLabelMild">Mild (≤ 25%)</span>
             <span class="sev-label inactive" id="sevLabelMod">Moderate (26% – 60%)</span>
             <span class="sev-label active-sev" id="sevLabelSev">Severe (> 60%)</span>
+          </div>
+          <div id="resultSeverityUnavailable" style="display:none; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; font-size:13px; line-height:1.5;">
+            Severity needs assessment. The disease classifier does not measure affected leaf area. Ask an agriculturist to assess the leaf before using severity-based treatment advice.
           </div>
         </div>
 
@@ -912,6 +915,10 @@
           </div>
         </div>
 
+        <div id="treatSeverityNotice" style="display:none; margin:12px 0; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; font-size:13px; line-height:1.5;">
+          Severity has not been assessed. The guidance below is general; do not choose severity-based treatment or dosage from this scan.
+        </div>
+
         <div class="treatment-tabs" id="treatmentTabs">
           <button class="active" onclick="switchTreatment('chemical')">Chemical Controls</button>
           <button onclick="switchTreatment('organic')">Organic & Cultural</button>
@@ -960,6 +967,7 @@
                 <option value="mild">Mild (≤ 25%)</option>
                 <option value="moderate">Moderate (26% – 60%)</option>
                 <option value="severe">Severe (> 60%)</option>
+                <option value="unassessed">Needs assessment</option>
                 <option value="blast">Leaf Blast</option>
                 <option value="blb">BLB</option>
                 <option value="brown_spot">Brown Spot</option>
@@ -1090,7 +1098,7 @@
             </div>
             <div class="staff-stat-data">
               <div class="stat-value" id="staffStatActiveOutbreaks">0</div>
-              <div class="stat-label">Active Disease Alerts (Mod/Sev)</div>
+              <div class="stat-label">Scans Needing Severity Review</div>
             </div>
           </div>
 
@@ -1278,7 +1286,7 @@
             <div class="admin-stat-info">
               <div class="stat-val" id="adminDashDetectedDiseases">0</div>
               <div class="stat-lbl">Detected Diseases</div>
-              <div class="stat-sub" id="adminDashOutbreakPercent">0 Outbreaks (Mod/Sev)</div>
+              <div class="stat-sub" id="adminDashOutbreakPercent">Scans needing severity review</div>
             </div>
           </div>
 
@@ -1583,7 +1591,7 @@
             <button class="staff-chip" onclick="filterAdminScansByChip('blb', this)">BLB</button>
             <button class="staff-chip" onclick="filterAdminScansByChip('brown_spot', this)">Brown Spot</button>
             <button class="staff-chip" onclick="filterAdminScansByChip('tungro', this)">Tungro</button>
-            <button class="staff-chip warning" onclick="filterAdminScansByChip('outbreaks', this)">Severe / Outbreaks</button>
+            <button class="staff-chip warning" onclick="filterAdminScansByChip('outbreaks', this)">Needs Severity Review</button>
           </div>
         </div>
 
@@ -2320,7 +2328,7 @@
       <button class="modal-close-btn" onclick="closeModal('modalAbout')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="font-size:13.5px; line-height:1.6; color:#4b5563;">
-      <p><strong>ORYZATIX</strong> checks uploaded images against labeled rice leaf references and estimates severity from image colors. Unmatched images are not assigned a disease label.</p>
+      <p><strong>ORYZATIX</strong> classifies supported rice leaf diseases. It does not measure affected leaf area; disease severity is marked for expert assessment until a validated area measurement is available.</p>
       <p>Developed by: John Paul College · Department of Information Technology</p>
     </div>
   </div>

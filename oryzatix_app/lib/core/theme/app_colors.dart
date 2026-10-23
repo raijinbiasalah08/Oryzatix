@@ -65,4 +65,19 @@ class AppColors {
         return primaryContainer;
     }
   }
+
+  static String getSeverityLabel(String? severity) {
+    switch (severity?.toLowerCase()) {
+      case 'healthy':
+        return 'Healthy';
+      case 'mild':
+        return 'Mild';
+      case 'moderate':
+        return 'Moderate';
+      case 'severe':
+        return 'Severe';
+      default:
+        return 'Needs review';
+    }
+  }
 }

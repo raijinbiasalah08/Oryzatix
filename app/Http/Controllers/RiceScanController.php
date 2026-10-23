@@ -719,13 +719,12 @@ class RiceScanController extends Controller
                 foreach ($files as $file) {
                     $fn = basename($file);
                     if (!isset($this->blbDatasetMetadata[$fn])) {
-                        $analysis = $this->analyzeBlightLesionPixels($file);
                         $this->blbDatasetMetadata[$fn] = [
                             'filename' => $fn,
                             'disease' => 'blb',
-                            'severity' => $analysis['severity'],
-                            'affected_percentage' => $analysis['affected_percentage'],
-                            'confidence' => $analysis['confidence'],
+                            'severity' => 'unassessed',
+                            'affected_percentage' => null,
+                            'confidence' => null,
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -776,13 +775,12 @@ class RiceScanController extends Controller
                 foreach ($files as $file) {
                     $fn = basename($file);
                     if (!isset($this->tungroDatasetMetadata[$fn])) {
-                        $analysis = $this->analyzeTungroDiscolorationPixels($file);
                         $this->tungroDatasetMetadata[$fn] = [
                             'filename' => $fn,
                             'disease' => 'tungro',
-                            'severity' => $analysis['severity'],
-                            'affected_percentage' => $analysis['affected_percentage'],
-                            'confidence' => $analysis['confidence'],
+                            'severity' => 'unassessed',
+                            'affected_percentage' => null,
+                            'confidence' => null,
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -835,13 +833,12 @@ class RiceScanController extends Controller
                 foreach ($files as $file) {
                     $fn = basename($file);
                     if (!isset($this->blastDatasetMetadata[$fn])) {
-                        $analysis = $this->analyzeBlastLesionPixels($file);
                         $this->blastDatasetMetadata[$fn] = [
                             'filename' => $fn,
                             'disease' => 'blast',
-                            'severity' => $analysis['severity'],
-                            'affected_percentage' => $analysis['affected_percentage'],
-                            'confidence' => $analysis['confidence'],
+                            'severity' => 'unassessed',
+                            'affected_percentage' => null,
+                            'confidence' => null,
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -893,13 +890,12 @@ class RiceScanController extends Controller
                 foreach ($files as $file) {
                     $fn = basename($file);
                     if (!isset($this->brownSpotDatasetMetadata[$fn])) {
-                        $analysis = $this->analyzeBrownSpotLesionPixels($file);
                         $this->brownSpotDatasetMetadata[$fn] = [
                             'filename' => $fn,
                             'disease' => 'brown_spot',
-                            'severity' => $analysis['severity'],
-                            'affected_percentage' => $analysis['affected_percentage'],
-                            'confidence' => $analysis['confidence'],
+                            'severity' => 'unassessed',
+                            'affected_percentage' => null,
+                            'confidence' => null,
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -1005,13 +1001,12 @@ class RiceScanController extends Controller
                 foreach ($files as $file) {
                     $fn = basename($file);
                     if (!isset($this->sheathBlightDatasetMetadata[$fn])) {
-                        $analysis = $this->analyzeSheathBlightLesionPixels($file);
                         $this->sheathBlightDatasetMetadata[$fn] = [
                             'filename' => $fn,
                             'disease' => 'sheath_blight',
-                            'severity' => $analysis['severity'],
-                            'affected_percentage' => $analysis['affected_percentage'],
-                            'confidence' => $analysis['confidence'],
+                            'severity' => 'unassessed',
+                            'affected_percentage' => null,
+                            'confidence' => null,
                             'md5' => md5_file($file),
                             'filesize' => filesize($file),
                         ];
@@ -1039,14 +1034,16 @@ class RiceScanController extends Controller
 
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
-                'mild' => (clone $query)->where('severity', 'mild')->count(),
-                'moderate' => (clone $query)->where('severity', 'moderate')->count(),
-                'severe' => (clone $query)->where('severity', 'severe')->count(),
+                // Older disease severities came from unvalidated color rules.
+                'mild' => 0,
+                'moderate' => 0,
+                'severe' => 0,
+                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->count(),
                 'total' => (clone $query)->count(),
             ];
         } catch (Exception $e) {
             $scans = collect();
-            $stats = ['healthy' => 0, 'mild' => 0, 'moderate' => 0, 'severe' => 0, 'total' => 0];
+            $stats = ['healthy' => 0, 'mild' => 0, 'moderate' => 0, 'severe' => 0, 'unassessed' => 0, 'total' => 0];
         }
 
         return view('rice-detector', compact('scans', 'stats'));
@@ -1232,535 +1229,6 @@ class RiceScanController extends Controller
     /**
      * Determine if a pixel belongs to actual rice leaf tissue (excluding backgrounds, paper, tables, shadows).
      */
-    private function isLeafPixelComprehensive(int $r, int $g, int $b): bool
-    {
-        $max = max($r, $g, $b);
-        $min = min($r, $g, $b);
-        $brightness = ($r + $g + $b) / 3;
-        $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-        // Filter out deep shadows and black border/backgrounds
-        if ($brightness < 25) return false;
-
-        // Filter out bright neutral gray, off-white, and white backgrounds (paper, desktop, white wall)
-        if ($brightness > 125 && ($max - $min) < 26) return false;
-        if ($r > 235 && $g > 235 && $b > 235) return false;
-
-        // Filter out blue sky or blue background
-        if ($b > $r + 20 && $b > $g + 15) return false;
-
-        // Green healthy leaf tissue
-        if ($g > $r && $g > $b && $g > 40) return true;
-        if ($g >= 50 && ($g - $r) >= -18 && ($g - $b) >= 8) return true;
-
-        // Yellow / chlorotic leaf tissue (Tungro, BLB margins, halos)
-        if ($r > 95 && $g > 85 && $b < 115 && $saturation >= 0.15 && ($r + $g) > 2.0 * $b) return true;
-
-        // Brown / reddish necrotic leaf tissue (Blast, Brown spot, Blight necrosis)
-        if ($r > 55 && $g > 25 && $b < 115 && ($r - $b) >= 12 && $saturation >= 0.14) return true;
-
-        // Grayish necrotic center inside leaf lesion
-        if ($brightness >= 60 && $brightness <= 170 && $saturation < 0.18 && $g >= 45 && $r >= 45) return true;
-
-        return false;
-    }
-
-    /**
-     * Compute exact leaf lesion area ratio for Bacterial Leaf Blight (Xanthomonas oryzae pv. oryzae).
-     * Measures water-soaked yellow margins, tan dried necrosis, and straw-colored bleached stripes.
-     * Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60%
-     */
-    private function analyzeBlightLesionPixels(string $imagePath): array
-    {
-        $default = [
-            'severity' => 'mild',
-            'affected_percentage' => 15.0,
-            'confidence' => 94.0,
-            'raw_ratio' => 15.0,
-        ];
-
-        try {
-            if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return $default;
-            if (!file_exists($imagePath)) return $default;
-            $info = @getimagesize($imagePath);
-            if (!$info) return $default;
-
-            $mime = $info['mime'] ?? '';
-            $src = null;
-            if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-                $src = @imagecreatefromjpeg($imagePath);
-            } elseif ($mime === 'image/png') {
-                $src = @imagecreatefrompng($imagePath);
-            } elseif ($mime === 'image/webp') {
-                $src = @imagecreatefromwebp($imagePath);
-            }
-            if (!$src) return $default;
-
-            $w = imagesx($src);
-            $h = imagesy($src);
-            $sampleW = 100;
-            $sampleH = 100;
-            $tmp = imagecreatetruecolor($sampleW, $sampleH);
-            imagecopyresampled($tmp, $src, 0, 0, 0, 0, $sampleW, $sampleH, $w, $h);
-            imagedestroy($src);
-
-            $leafPixels = 0;
-            $blightPixels = 0;
-
-            for ($y = 0; $y < $sampleH; $y++) {
-                for ($x = 0; $x < $sampleW; $x++) {
-                    $rgb = imagecolorat($tmp, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    if (!$this->isLeafPixelComprehensive($r, $g, $b)) continue;
-                    $leafPixels++;
-
-                    $max = max($r, $g, $b);
-                    $min = min($r, $g, $b);
-                    $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-                    // Blight: Yellow-orange margins, tan/straw necrosis
-                    $isYellowBlight = ($r > 125 && $g > 105 && $b < 95 && ($r + $g) > 2.2 * $b && $saturation >= 0.20);
-                    $isTanDried = ($r > 95 && $g > 55 && $g < 135 && $b < 90 && ($r - $b) > 22 && $saturation >= 0.16);
-                    $isStrawBleached = ($r > 140 && $g > 130 && $b < 120 && $saturation >= 0.12 && $r >= $g && $g > $b);
-
-                    if ($isYellowBlight || $isTanDried || $isStrawBleached) {
-                        $blightPixels++;
-                    }
-                }
-            }
-            imagedestroy($tmp);
-
-            if ($leafPixels < 50) return $default;
-
-            $rawRatio = ($blightPixels / $leafPixels) * 100;
-
-            if ($rawRatio <= 25.0) {
-                $severity = 'mild';
-                $pct = round(max(4.0, $rawRatio), 1);
-                $confidence = round(92.0 + min(6.0, ($pct / 25.0) * 6.0), 1);
-            } elseif ($rawRatio <= 60.0) {
-                $severity = 'moderate';
-                $pct = round($rawRatio, 1);
-                $confidence = round(91.0 + min(7.0, (($pct - 25.0) / 35.0) * 7.0), 1);
-            } else {
-                $severity = 'severe';
-                $pct = round(min(96.0, $rawRatio), 1);
-                $confidence = round(93.5 + min(5.0, (($pct - 60.0) / 36.0) * 5.0), 1);
-            }
-
-            return [
-                'severity' => $severity,
-                'affected_percentage' => $pct,
-                'confidence' => $confidence,
-                'leaf_pixels' => $leafPixels,
-                'lesion_pixels' => $blightPixels,
-                'raw_ratio' => round($rawRatio, 1),
-            ];
-        } catch (\Throwable $e) {
-            return $default;
-        }
-    }
-
-    /**
-     * Compute exact leaf yellow-orange discoloration ratio for Rice Tungro Disease.
-     * Returns severity category (mild, moderate, severe) and percentage.
-     * Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60%
-     */
-    private function analyzeTungroDiscolorationPixels(string $imagePath): array
-    {
-        $default = [
-            'severity' => 'mild',
-            'affected_percentage' => 15.0,
-            'confidence' => 94.0,
-            'raw_ratio' => 15.0,
-        ];
-
-        try {
-            if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return $default;
-            if (!file_exists($imagePath)) return $default;
-            $info = @getimagesize($imagePath);
-            if (!$info) return $default;
-
-            $mime = $info['mime'] ?? '';
-            $src = null;
-            if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-                $src = @imagecreatefromjpeg($imagePath);
-            } elseif ($mime === 'image/png') {
-                $src = @imagecreatefrompng($imagePath);
-            } elseif ($mime === 'image/webp') {
-                $src = @imagecreatefromwebp($imagePath);
-            }
-            if (!$src) return $default;
-
-            $w = imagesx($src);
-            $h = imagesy($src);
-            $sampleW = 100;
-            $sampleH = 100;
-            $tmp = imagecreatetruecolor($sampleW, $sampleH);
-            imagecopyresampled($tmp, $src, 0, 0, 0, 0, $sampleW, $sampleH, $w, $h);
-            imagedestroy($src);
-
-            $leafPixels = 0;
-            $tungroPixels = 0;
-
-            for ($y = 0; $y < $sampleH; $y++) {
-                for ($x = 0; $x < $sampleW; $x++) {
-                    $rgb = imagecolorat($tmp, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    if (!$this->isLeafPixelComprehensive($r, $g, $b)) continue;
-                    $leafPixels++;
-
-                    $max = max($r, $g, $b);
-                    $min = min($r, $g, $b);
-                    $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-                    // Tungro: golden-yellow, yellow-orange chlorosis, mottled pale yellow
-                    $isYellowOrange = ($r > 145 && $g > 95 && $g < 180 && $b < 95 && $r > $b + 38 && $saturation >= 0.22);
-                    $isGoldenYellow = ($r > 135 && $g > 120 && $b < 100 && ($r + $g) > 2.2 * $b && $saturation >= 0.20);
-                    $isMottledYellow = ($r > 115 && $g > 110 && $b < 95 && $r > $b + 25 && $saturation >= 0.16);
-
-                    if ($isYellowOrange || $isGoldenYellow || $isMottledYellow) {
-                        $tungroPixels++;
-                    }
-                }
-            }
-            imagedestroy($tmp);
-
-            if ($leafPixels < 50) return $default;
-
-            $rawRatio = ($tungroPixels / $leafPixels) * 100;
-
-            if ($rawRatio <= 25.0) {
-                $severity = 'mild';
-                $pct = round(max(4.0, $rawRatio), 1);
-                $confidence = round(92.0 + min(6.0, ($pct / 25.0) * 6.0), 1);
-            } elseif ($rawRatio <= 60.0) {
-                $severity = 'moderate';
-                $pct = round($rawRatio, 1);
-                $confidence = round(91.0 + min(7.0, (($pct - 25.0) / 35.0) * 7.0), 1);
-            } else {
-                $severity = 'severe';
-                $pct = round(min(96.0, $rawRatio), 1);
-                $confidence = round(93.5 + min(5.0, (($pct - 60.0) / 36.0) * 5.0), 1);
-            }
-
-            return [
-                'severity' => $severity,
-                'affected_percentage' => $pct,
-                'confidence' => $confidence,
-                'leaf_pixels' => $leafPixels,
-                'lesion_pixels' => $tungroPixels,
-                'raw_ratio' => round($rawRatio, 1),
-            ];
-        } catch (\Throwable $e) {
-            return $default;
-        }
-    }
-
-    /**
-     * Compute exact leaf lesion area ratio for Rice Leaf Blast (Magnaporthe oryzae).
-     * Measures spindle-shaped necrotic centers (gray/white) and reddish-brown outer margins.
-     * Returns severity category (mild, moderate, severe) and percentage.
-     * Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60%
-     */
-    private function analyzeBlastLesionPixels(string $imagePath): array
-    {
-        $default = [
-            'severity' => 'mild',
-            'affected_percentage' => 15.0,
-            'confidence' => 94.0,
-            'raw_ratio' => 15.0,
-        ];
-
-        try {
-            if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return $default;
-            if (!file_exists($imagePath)) return $default;
-            $info = @getimagesize($imagePath);
-            if (!$info) return $default;
-
-            $mime = $info['mime'] ?? '';
-            $src = null;
-            if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-                $src = @imagecreatefromjpeg($imagePath);
-            } elseif ($mime === 'image/png') {
-                $src = @imagecreatefrompng($imagePath);
-            } elseif ($mime === 'image/webp') {
-                $src = @imagecreatefromwebp($imagePath);
-            }
-            if (!$src) return $default;
-
-            $w = imagesx($src);
-            $h = imagesy($src);
-            $sampleW = 100;
-            $sampleH = 100;
-            $tmp = imagecreatetruecolor($sampleW, $sampleH);
-            imagecopyresampled($tmp, $src, 0, 0, 0, 0, $sampleW, $sampleH, $w, $h);
-            imagedestroy($src);
-
-            $leafPixels = 0;
-            $blastLesionPixels = 0;
-
-            for ($y = 0; $y < $sampleH; $y++) {
-                for ($x = 0; $x < $sampleW; $x++) {
-                    $rgb = imagecolorat($tmp, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    if (!$this->isLeafPixelComprehensive($r, $g, $b)) continue;
-                    $leafPixels++;
-
-                    $max = max($r, $g, $b);
-                    $min = min($r, $g, $b);
-                    $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-                    // Spindle-shaped reddish-brown margin, grayish necrotic center, chlorotic halo
-                    $isBrownMargin = ($r > 70 && $r < 175 && $g > 30 && $g < 125 && $b < 95 && ($r - $g) >= 16 && ($r - $b) >= 18);
-                    $isNecroticCenter = ($r > 105 && $r < 195 && $g > 105 && $g < 195 && $b > 95 && $b < 185 && abs($r - $g) < 18 && abs($g - $b) < 18);
-                    $isChloroticHalo = ($r > 130 && $g > 115 && $b < 95 && ($r + $g) > 2.1 * $b && $saturation >= 0.18);
-
-                    if ($isBrownMargin || $isNecroticCenter || $isChloroticHalo) {
-                        $blastLesionPixels++;
-                    }
-                }
-            }
-            imagedestroy($tmp);
-
-            if ($leafPixels < 50) return $default;
-
-            $rawRatio = ($blastLesionPixels / $leafPixels) * 100;
-
-            if ($rawRatio <= 25.0) {
-                $severity = 'mild';
-                $pct = round(max(4.0, $rawRatio), 1);
-                $confidence = round(92.0 + min(6.0, ($pct / 25.0) * 6.0), 1);
-            } elseif ($rawRatio <= 60.0) {
-                $severity = 'moderate';
-                $pct = round($rawRatio, 1);
-                $confidence = round(91.0 + min(7.0, (($pct - 25.0) / 35.0) * 7.0), 1);
-            } else {
-                $severity = 'severe';
-                $pct = round(min(96.0, $rawRatio), 1);
-                $confidence = round(93.5 + min(5.0, (($pct - 60.0) / 36.0) * 5.0), 1);
-            }
-
-            return [
-                'severity' => $severity,
-                'affected_percentage' => $pct,
-                'confidence' => $confidence,
-                'leaf_pixels' => $leafPixels,
-                'lesion_pixels' => $blastLesionPixels,
-                'raw_ratio' => round($rawRatio, 1),
-            ];
-        } catch (\Throwable $e) {
-            return $default;
-        }
-    }
-
-    /**
-     * Compute exact leaf lesion area ratio for Rice Brown Spot (Bipolaris oryzae).
-     * Measures dark circular/oval spots and yellowish chlorotic halos.
-     * Returns severity category (mild, moderate, severe) and percentage.
-     * Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60%
-     */
-    private function analyzeBrownSpotLesionPixels(string $imagePath): array
-    {
-        $default = [
-            'severity' => 'mild',
-            'affected_percentage' => 15.0,
-            'confidence' => 94.0,
-            'raw_ratio' => 15.0,
-        ];
-
-        try {
-            if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return $default;
-            if (!file_exists($imagePath)) return $default;
-            $info = @getimagesize($imagePath);
-            if (!$info) return $default;
-
-            $mime = $info['mime'] ?? '';
-            $src = null;
-            if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-                $src = @imagecreatefromjpeg($imagePath);
-            } elseif ($mime === 'image/png') {
-                $src = @imagecreatefrompng($imagePath);
-            } elseif ($mime === 'image/webp') {
-                $src = @imagecreatefromwebp($imagePath);
-            }
-            if (!$src) return $default;
-
-            $w = imagesx($src);
-            $h = imagesy($src);
-            $sampleW = 100;
-            $sampleH = 100;
-            $tmp = imagecreatetruecolor($sampleW, $sampleH);
-            imagecopyresampled($tmp, $src, 0, 0, 0, 0, $sampleW, $sampleH, $w, $h);
-            imagedestroy($src);
-
-            $leafPixels = 0;
-            $brownSpotPixels = 0;
-
-            for ($y = 0; $y < $sampleH; $y++) {
-                for ($x = 0; $x < $sampleW; $x++) {
-                    $rgb = imagecolorat($tmp, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    if (!$this->isLeafPixelComprehensive($r, $g, $b)) continue;
-                    $leafPixels++;
-
-                    $max = max($r, $g, $b);
-                    $min = min($r, $g, $b);
-                    $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-                    // Chocolate brown spots, dark brown centers, yellowish halos
-                    $isDarkSpot = ($r > 55 && $r < 165 && $g > 25 && $g < 115 && $b < 85 && ($r - $g) >= 14 && ($r - $b) >= 20);
-                    $isBrownHalo = ($r > 125 && $g > 110 && $b < 90 && ($r + $g) > 2.2 * $b && $saturation >= 0.20);
-
-                    if ($isDarkSpot || $isBrownHalo) {
-                        $brownSpotPixels++;
-                    }
-                }
-            }
-            imagedestroy($tmp);
-
-            if ($leafPixels < 50) return $default;
-
-            $rawRatio = ($brownSpotPixels / $leafPixels) * 100;
-
-            if ($rawRatio <= 25.0) {
-                $severity = 'mild';
-                $pct = round(max(4.0, $rawRatio), 1);
-                $confidence = round(92.0 + min(6.0, ($pct / 25.0) * 6.0), 1);
-            } elseif ($rawRatio <= 60.0) {
-                $severity = 'moderate';
-                $pct = round($rawRatio, 1);
-                $confidence = round(91.0 + min(7.0, (($pct - 25.0) / 35.0) * 7.0), 1);
-            } else {
-                $severity = 'severe';
-                $pct = round(min(96.0, $rawRatio), 1);
-                $confidence = round(93.5 + min(5.0, (($pct - 60.0) / 36.0) * 5.0), 1);
-            }
-
-            return [
-                'severity' => $severity,
-                'affected_percentage' => $pct,
-                'confidence' => $confidence,
-                'leaf_pixels' => $leafPixels,
-                'lesion_pixels' => $brownSpotPixels,
-                'raw_ratio' => round($rawRatio, 1),
-            ];
-        } catch (\Throwable $e) {
-            return $default;
-        }
-    }
-
-    /**
-     * Compute exact sheath lesion area ratio for Rice Sheath Blight (Rhizoctonia solani).
-     * Measures water-soaked greenish-gray oval lesions and dark reddish-brown margins.
-     * Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60%
-     */
-    private function analyzeSheathBlightLesionPixels(string $imagePath): array
-    {
-        $default = [
-            'severity' => 'mild',
-            'affected_percentage' => 15.0,
-            'confidence' => 94.0,
-            'raw_ratio' => 15.0,
-        ];
-
-        try {
-            if (!function_exists('imagecreatetruecolor') || !function_exists('imagecolorat') || !function_exists('imagesx')) return $default;
-            if (!file_exists($imagePath)) return $default;
-            $info = @getimagesize($imagePath);
-            if (!$info) return $default;
-
-            $mime = $info['mime'] ?? '';
-            $src = null;
-            if ($mime === 'image/jpeg' || $mime === 'image/jpg') {
-                $src = @imagecreatefromjpeg($imagePath);
-            } elseif ($mime === 'image/png') {
-                $src = @imagecreatefrompng($imagePath);
-            } elseif ($mime === 'image/webp') {
-                $src = @imagecreatefromwebp($imagePath);
-            }
-            if (!$src) return $default;
-
-            $w = imagesx($src);
-            $h = imagesy($src);
-            $sampleW = 100;
-            $sampleH = 100;
-            $tmp = imagecreatetruecolor($sampleW, $sampleH);
-            imagecopyresampled($tmp, $src, 0, 0, 0, 0, $sampleW, $sampleH, $w, $h);
-            imagedestroy($src);
-
-            $leafPixels = 0;
-            $sheathBlightPixels = 0;
-
-            for ($y = 0; $y < $sampleH; $y++) {
-                for ($x = 0; $x < $sampleW; $x++) {
-                    $rgb = imagecolorat($tmp, $x, $y);
-                    $r = ($rgb >> 16) & 0xFF;
-                    $g = ($rgb >> 8) & 0xFF;
-                    $b = $rgb & 0xFF;
-
-                    if (!$this->isLeafPixelComprehensive($r, $g, $b)) continue;
-                    $leafPixels++;
-
-                    $max = max($r, $g, $b);
-                    $min = min($r, $g, $b);
-                    $brightness = ($r + $g + $b) / 3;
-                    $saturation = $max > 0 ? ($max - $min) / $max : 0;
-
-                    // Sheath blight: grayish-white bleached centers and dark brown perimeter rings
-                    $isBleachedCenter = ($brightness >= 90 && $brightness <= 180 && $saturation <= 0.22 && $r >= 65 && $g >= 65);
-                    $isDarkSheathRing = ($r > 70 && $r < 170 && $g > 35 && $g < 120 && $b < 90 && $r > $b + 20);
-
-                    if ($isBleachedCenter || $isDarkSheathRing) {
-                        $sheathBlightPixels++;
-                    }
-                }
-            }
-            imagedestroy($tmp);
-
-            if ($leafPixels < 50) return $default;
-
-            $rawRatio = ($sheathBlightPixels / $leafPixels) * 100;
-
-            if ($rawRatio <= 25.0) {
-                $severity = 'mild';
-                $pct = round(max(4.0, $rawRatio), 1);
-                $confidence = round(92.0 + min(6.0, ($pct / 25.0) * 6.0), 1);
-            } elseif ($rawRatio <= 60.0) {
-                $severity = 'moderate';
-                $pct = round($rawRatio, 1);
-                $confidence = round(91.0 + min(7.0, (($pct - 25.0) / 35.0) * 7.0), 1);
-            } else {
-                $severity = 'severe';
-                $pct = round(min(96.0, $rawRatio), 1);
-                $confidence = round(93.5 + min(5.0, (($pct - 60.0) / 36.0) * 5.0), 1);
-            }
-
-            return [
-                'severity' => $severity,
-                'affected_percentage' => $pct,
-                'confidence' => $confidence,
-                'leaf_pixels' => $leafPixels,
-                'lesion_pixels' => $sheathBlightPixels,
-                'raw_ratio' => round($rawRatio, 1),
-            ];
-        } catch (\Throwable $e) {
-            return $default;
-        }
-    }
-
     public function upload(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -1775,8 +1243,6 @@ class RiceScanController extends Controller
         $selectedDiseaseKey = null;
         $confidence = null;
         $matchedBy = 'reference_match';
-        $affectedPercentage = null;
-        $calculatedSeverity = null;
         $matchedEntry = null;
         $isModelPrediction = false;
         $scanPrediction = null;
@@ -1845,9 +1311,6 @@ class RiceScanController extends Controller
                 if (count($matchedDiseaseKeys) === 1) {
                     $selectedDiseaseKey = $matchedDiseaseKeys[0];
                     $matchedEntry = $matches[0]['entry'];
-                    $calculatedSeverity = $matchedEntry['severity'] ?? null;
-                    $entryAffectedPercentage = $matchedEntry['affected_percentage'] ?? null;
-                    $affectedPercentage = $entryAffectedPercentage !== null ? (float) $entryAffectedPercentage : null;
                     $matchedBy = 'reference_match';
                 }
             }
@@ -1856,33 +1319,6 @@ class RiceScanController extends Controller
                 return $this->unsupportedScanResponse(null, 'uncertain_prediction', $predictionDetails);
             }
 
-            // Keep severity estimation separate from the MobileNet disease prediction.
-            if ($calculatedSeverity === null && $fullPath && file_exists($fullPath)) {
-                if ($selectedDiseaseKey === 'blb') {
-                    $blbAnalysis = $this->analyzeBlightLesionPixels($fullPath);
-                    $calculatedSeverity = $blbAnalysis['severity'];
-                    $affectedPercentage = $blbAnalysis['affected_percentage'];
-                } elseif ($selectedDiseaseKey === 'sheath_blight') {
-                    $sbAnalysis = $this->analyzeSheathBlightLesionPixels($fullPath);
-                    $calculatedSeverity = $sbAnalysis['severity'];
-                    $affectedPercentage = $sbAnalysis['affected_percentage'];
-                } elseif ($selectedDiseaseKey === 'tungro') {
-                    $tungroAnalysis = $this->analyzeTungroDiscolorationPixels($fullPath);
-                    $calculatedSeverity = $tungroAnalysis['severity'];
-                    $affectedPercentage = $tungroAnalysis['affected_percentage'];
-                } elseif ($selectedDiseaseKey === 'blast') {
-                    $blastAnalysis = $this->analyzeBlastLesionPixels($fullPath);
-                    $calculatedSeverity = $blastAnalysis['severity'];
-                    $affectedPercentage = $blastAnalysis['affected_percentage'];
-                } elseif ($selectedDiseaseKey === 'brown_spot') {
-                    $brownSpotAnalysis = $this->analyzeBrownSpotLesionPixels($fullPath);
-                    $calculatedSeverity = $brownSpotAnalysis['severity'];
-                    $affectedPercentage = $brownSpotAnalysis['affected_percentage'];
-                } elseif ($selectedDiseaseKey === 'healthy') {
-                    $calculatedSeverity = 'healthy';
-                    $affectedPercentage = null;
-                }
-            }
         } catch (\Throwable $e) {
             Log::error('Rice scan failed unexpectedly.', ['error' => $e->getMessage()]);
             return $this->unsupportedScanResponse(null, 'model_unavailable', [], 500);
@@ -1895,33 +1331,16 @@ class RiceScanController extends Controller
         }
 
         $disease = $this->diseases[$selectedDiseaseKey];
-        $severity = $calculatedSeverity ?? $this->assessSeverity($selectedDiseaseKey, $affectedPercentage);
+        // The classifier predicts disease class, not lesion area. Do not turn
+        // color heuristics or dataset defaults into a severity measurement.
+        $severity = $selectedDiseaseKey === 'healthy' ? 'healthy' : 'unassessed';
+        $severityStatus = $selectedDiseaseKey === 'healthy' ? 'not_applicable' : 'unassessed';
 
-        // Strictly synchronize severity category to the physical affected percentage:
-        // Mild: <= 25% | Moderate: 26% - 60% | Severe: > 60% | Healthy: None (null)
-        if ($selectedDiseaseKey === 'healthy') {
-            $affectedPercentage = null;
-            $severity = 'healthy';
-        } elseif ($affectedPercentage === null) {
-            if ($severity === 'mild') {
-                $affectedPercentage = 15.0;
-            } elseif ($severity === 'moderate') {
-                $affectedPercentage = 42.0;
-            } else {
-                $affectedPercentage = 75.0;
-            }
-        } else {
-            if ($affectedPercentage <= 25.0) {
-                $severity = 'mild';
-            } elseif ($affectedPercentage <= 60.0) {
-                $severity = 'moderate';
-            } else {
-                $severity = 'severe';
-            }
-        }
-
-        // Get severity-specific treatments for BLB, Sheath Blight, Tungro, Leaf Blast, and Brown Spot
-        $treatments = $disease['treatments'];
+        // This classifier does not measure lesion area. Suppress disease-specific
+        // dosage suggestions until severity is independently assessed.
+        $treatments = $selectedDiseaseKey === 'healthy'
+            ? ($disease['treatments'] ?? ['chemical' => [], 'organic' => []])
+            : ['chemical' => [], 'organic' => []];
         $managementPractices = null;
         $agriculturalStrategies = null;
         $productivityImpact = null;
@@ -1937,7 +1356,7 @@ class RiceScanController extends Controller
             $productivityImpact = $disease['severity_levels'][$severity]['productivity_harvest_impact'] ?? null;
         }
 
-        if ($matchedEntry) {
+        if ($matchedEntry && $selectedDiseaseKey === 'healthy') {
             if (!empty($matchedEntry['recommended_treatments'])) {
                 $treatments['chemical'] = $matchedEntry['recommended_treatments']['chemical'] ?? $treatments['chemical'];
                 $treatments['organic'] = $matchedEntry['recommended_treatments']['biological'] ?? ($treatments['organic'] ?? []);
@@ -2000,14 +1419,20 @@ class RiceScanController extends Controller
                 'confidence' => $confidence !== null ? number_format($confidence, 1) : null,
                 'disease_confidence' => $confidence !== null ? number_format($confidence, 1) : null,
                 'severity' => $severity,
-                'affected_percentage' => ($selectedDiseaseKey === 'healthy' || $affectedPercentage === null) ? null : number_format($affectedPercentage, 1),
-                'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : ($severity === 'severe' ? 'blast-bg' : 'blb-bg')),
+                'severity_status' => $severityStatus,
+                'severity_message' => $severityStatus === 'unassessed'
+                    ? 'Affected leaf area was not measured. Severity needs a visual assessment by a trained agriculturist.'
+                    : null,
+                'affected_percentage' => null,
+                'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : 'unassessed-bg'),
                 'image_url' => $imageUrl,
                 'treatments' => $treatments,
                 'management_practices' => $managementPractices,
                 'agricultural_strategies' => $agriculturalStrategies,
                 'productivity_harvest_impact' => $productivityImpact,
-                'all_severity_treatments' => $disease['severity_levels'] ?? null,
+                // Severity guide options are available in the guide flow, but
+                // this scan has no validated severity level to select from.
+                'all_severity_treatments' => null,
                 'date' => now()->format('M j, Y'),
                 'time' => now()->format('g:i A'),
             ],
@@ -2017,7 +1442,7 @@ class RiceScanController extends Controller
     public function history(): JsonResponse
     {
         $formattedScans = [];
-        $stats = ['healthy' => 0, 'mild' => 0, 'moderate' => 0, 'severe' => 0, 'total' => 0];
+        $stats = ['healthy' => 0, 'mild' => 0, 'moderate' => 0, 'severe' => 0, 'unassessed' => 0, 'total' => 0];
         $userId = auth('sanctum')->id() ?: auth()->id();
         if (!$userId) {
             return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
@@ -2038,34 +1463,19 @@ class RiceScanController extends Controller
 
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
-                'mild' => (clone $query)->where('severity', 'mild')->count(),
-                'moderate' => (clone $query)->where('severity', 'moderate')->count(),
-                'severe' => (clone $query)->where('severity', 'severe')->count(),
+                'mild' => 0,
+                'moderate' => 0,
+                'severe' => 0,
+                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->count(),
                 'total' => (clone $query)->count(),
             ];
 
             foreach ($scans as $date => $dateScans) {
                 $formattedScans[$date] = $dateScans->map(function ($scan) {
                     $diseaseLower = strtolower($scan->disease_name);
-                    $severityClass = 'blast-bg';
-                    if ($diseaseLower === 'healthy' || $scan->severity === 'healthy') {
-                        $severityClass = 'healthy-bg';
-                    } elseif ($scan->severity === 'mild') {
-                        $severityClass = 'healthy-bg';
-                    } elseif ($scan->severity === 'moderate') {
-                        $severityClass = 'blb-bg';
-                    } else {
-                        $severityClass = 'blast-bg';
-                    }
-
-                    $affectedStr = null;
-                    if ($scan->severity === 'mild') {
-                        $affectedStr = '≤ 25%';
-                    } elseif ($scan->severity === 'moderate') {
-                        $affectedStr = '26% – 60%';
-                    } elseif ($scan->severity === 'severe') {
-                        $affectedStr = '> 60%';
-                    }
+                    $isHealthy = $scan->severity === 'healthy' || str_contains($diseaseLower, 'healthy');
+                    $displaySeverity = $isHealthy ? 'healthy' : 'unassessed';
+                    $severityClass = $isHealthy ? 'healthy-bg' : 'unassessed-bg';
 
                     $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
 
@@ -2077,12 +1487,15 @@ class RiceScanController extends Controller
                         'time' => $scan->created_at->format('g:i A'),
                         'date' => $scan->created_at->format('M j, Y'),
                         'created_at_raw' => $scan->created_at->toISOString(),
-                        'severity' => $scan->severity,
-                        'severity_label' => ucfirst($scan->severity),
-                        'affected_percentage' => $affectedStr,
+                        'severity' => $displaySeverity,
+                        'severity_status' => $isHealthy ? 'not_applicable' : 'unassessed',
+                        'severity_label' => $isHealthy ? 'Healthy' : 'Needs assessment',
+                        'affected_percentage' => null,
                         'severity_class' => $severityClass,
                         'image_url' => $scanImageUrl,
-                        'treatments' => $scan->treatment_recommendation,
+                        // Legacy records may contain dosage suggestions selected
+                        // from guessed severity. Do not replay those as measured advice.
+                        'treatments' => $isHealthy ? $scan->treatment_recommendation : null,
                     ];
                 });
             }
@@ -2181,25 +1594,6 @@ class RiceScanController extends Controller
         return null;
     }
 
-    private function assessSeverity(string $diseaseKey, ?float $affectedPercentage = null): string
-    {
-        if ($diseaseKey === 'healthy') {
-            return 'healthy';
-        }
-
-        if ($affectedPercentage !== null) {
-            if ($affectedPercentage <= 25.0) {
-                return 'mild';
-            } elseif ($affectedPercentage <= 60.0) {
-                return 'moderate';
-            } else {
-                return 'severe';
-            }
-        }
-
-        return 'mild';
-    }
-
     public function treatmentGuides(): JsonResponse
     {
         $dbDiseases = \App\Models\Disease::where('status', 'active')->get()->keyBy('code');
@@ -2242,9 +1636,11 @@ class RiceScanController extends Controller
 
         $totalScans = (clone $query)->count();
         $healthyCount = (clone $query)->where('severity', 'healthy')->count();
-        $mildCount = (clone $query)->where('severity', 'mild')->count();
-        $moderateCount = (clone $query)->where('severity', 'moderate')->count();
-        $severeCount = (clone $query)->where('severity', 'severe')->count();
+        // No disease-area model has been validated against expert labels.
+        $mildCount = 0;
+        $moderateCount = 0;
+        $severeCount = 0;
+        $unassessedCount = (clone $query)->where('severity', '!=', 'healthy')->count();
 
         // The public stats endpoint may show aggregate totals, but never individual
         // scan records or uploaded image URLs.
@@ -2256,7 +1652,8 @@ class RiceScanController extends Controller
                         'disease_key' => $this->diseaseKeyFromName($scan->disease_name),
                 'scientific' => $scan->scientific_name,
                 'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
-                'severity' => $scan->severity,
+                'severity' => $scan->severity === 'healthy' ? 'healthy' : 'unassessed',
+                'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : 'unassessed',
                 'time' => $scan->created_at->format('g:i A'),
                 'date' => $scan->created_at->format('M j, Y'),
                 'image_url' => $imageUrl,
@@ -2271,6 +1668,7 @@ class RiceScanController extends Controller
                 'mild_count' => $mildCount,
                 'moderate_count' => $moderateCount,
                 'severe_count' => $severeCount,
+                'unassessed_count' => $unassessedCount,
                 'health_index' => $totalScans > 0 ? round(($healthyCount / $totalScans) * 100, 1) : 0.0,
             ],
             'recent_scans' => $recentScans,

@@ -11,7 +11,7 @@ const ALL_DISEASES = {
     key: 'blast',
     name: 'Leaf Blast',
     scientific: 'Magnaporthe oryzae',
-    severity: 'severe',
+    severity: 'unassessed',
     cls: 'disease-blast',
     thumb: 'blast',
     symptoms: 'Spindle-shaped lesions with reddish-brown margins and gray centers. Attacks leaves, nodes, and panicles.',
@@ -20,7 +20,7 @@ const ALL_DISEASES = {
     key: 'blb',
     name: 'Bacterial Leaf Blight',
     scientific: 'Xanthomonas oryzae pv. oryzae',
-    severity: 'moderate',
+    severity: 'unassessed',
     cls: 'disease-blb',
     thumb: 'blb',
     symptoms: 'Wavy water-soaked yellowing stripes drying from the leaf margins down toward the base.',
@@ -29,7 +29,7 @@ const ALL_DISEASES = {
     key: 'brown_spot',
     name: 'Brown Spot',
     scientific: 'Bipolaris oryzae',
-    severity: 'moderate',
+    severity: 'unassessed',
     cls: 'disease-blb',
     thumb: 'blb',
     symptoms: 'Numerous small oval or circular brown spots scattered across leaf blades, common in poor/potassium-deficient soils.',
@@ -38,7 +38,7 @@ const ALL_DISEASES = {
     key: 'tungro',
     name: 'Rice Tungro Disease',
     scientific: 'RTBV + RTSV (Viral)',
-    severity: 'severe',
+    severity: 'unassessed',
     cls: 'disease-blast',
     thumb: 'blast',
     symptoms: 'Stunted plant growth, reduced tillering, and pronounced yellow-orange discoloration of upper leaves.',
@@ -47,7 +47,7 @@ const ALL_DISEASES = {
     key: 'sheath_blight',
     name: 'Sheath Blight',
     scientific: 'Rhizoctonia solani',
-    severity: 'moderate',
+    severity: 'unassessed',
     cls: 'disease-blb',
     thumb: 'blb',
     symptoms: 'Irregular oval or snake-skin lesions with grayish-white centers and dark reddish-brown margins ascending from lower sheaths.',
@@ -2516,6 +2516,9 @@ function applyScanResult(scan) {
   }
 
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
+  const measuredArea = Number(scan.affected_percentage);
+  const hasMeasuredSeverity = !isHealthy && scan.severity_status === 'expert_validated' &&
+    ['mild', 'moderate', 'severe'].includes(scan.severity) && Number.isFinite(measuredArea) && measuredArea >= 0 && measuredArea <= 100;
 
   const conf = document.getElementById('resultConfidence');
   if (conf) {
@@ -2538,18 +2541,27 @@ function applyScanResult(scan) {
     }
   }
 
-  // Hide severity meter completely for Healthy Rice Leaf
+  // Only render a severity scale when an expert-validated area measurement exists.
   const sevMeter = document.querySelector('.severity-meter');
   if (sevMeter) {
     sevMeter.style.display = isHealthy ? 'none' : 'block';
   }
 
-  if (!isHealthy) {
+  const severityTrack = document.getElementById('resultSeverityTrack');
+  const severityLabels = document.getElementById('resultSeverityLabels');
+  const severityUnavailable = document.getElementById('resultSeverityUnavailable');
+  if (severityTrack) severityTrack.style.display = hasMeasuredSeverity ? 'block' : 'none';
+  if (severityLabels) severityLabels.style.display = hasMeasuredSeverity ? 'flex' : 'none';
+  if (severityUnavailable) {
+    severityUnavailable.style.display = isHealthy || hasMeasuredSeverity ? 'none' : 'block';
+    severityUnavailable.textContent = scan.severity_message || 'Severity needs assessment. The disease classifier does not measure affected leaf area. Ask an agriculturist to assess the leaf before using severity-based treatment advice.';
+  }
+
+  if (hasMeasuredSeverity) {
     const fill = document.getElementById('resultSeverityFill');
     if (fill) {
       fill.classList.remove('severe', 'moderate', 'mild', 'healthy');
-      const pct = parseFloat(scan.affected_percentage) || (scan.severity === 'severe' ? 80 : (scan.severity === 'moderate' ? 45 : 15));
-      fill.style.width = Math.min(100, Math.max(10, pct)) + '%';
+      fill.style.width = measuredArea + '%';
 
       if (scan.severity === 'severe') fill.classList.add('severe');
       else if (scan.severity === 'moderate') fill.classList.add('moderate');
@@ -2710,6 +2722,7 @@ function renderResultLanguage() {
   const scan = currentScanResult;
   const lang = currentResultLang || 'english';
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
+  const severityNeedsAssessment = !isHealthy && scan.severity_status !== 'expert_validated';
   const key = scan.disease_key || (isHealthy ? 'healthy' : 'blast');
   const diseaseData = RESULT_TRANSLATIONS.diseases[key] || (isHealthy ? RESULT_TRANSLATIONS.diseases.healthy : RESULT_TRANSLATIONS.diseases.blast);
   const localized = diseaseData[lang] || diseaseData.english;
@@ -2727,12 +2740,16 @@ function renderResultLanguage() {
   const symptomsText = document.getElementById('resultSymptomsText');
   if (symptomsText) {
     let symp = '';
-    const pct = scan.affected_percentage || (scan.severity === 'severe' ? '80' : (scan.severity === 'moderate' ? '45' : '15'));
     if (isHealthy) {
       symp = localized.symptoms;
+    } else if (severityNeedsAssessment) {
+      symp = lang === 'tagalog'
+        ? 'Natukoy ng disease classifier ang ' + (scan.disease || 'sakit sa palay') + ', ngunit hindi nasukat ang bahaging apektado ng dahon. Ipasuri ang dahon sa agriculturist bago pumili ng lunas ayon sa tindi.'
+        : (scan.disease || 'The disease classifier') + ' was detected, but the affected leaf area was not measured. Ask an agriculturist to assess severity before choosing a severity-based treatment.';
     } else if (localized.symptoms) {
-      const sevKey = scan.severity || 'moderate';
-      symp = (localized.symptoms[sevKey] || localized.symptoms.moderate || '').replace('{pct}', pct);
+      const pct = scan.affected_percentage;
+      const sevKey = scan.severity;
+      symp = (localized.symptoms[sevKey] || localized.symptoms.moderate || '').replace('{pct}', pct ?? '');
     }
     symptomsText.textContent = symp || scan.symptoms || '';
   }
@@ -2807,10 +2824,15 @@ function renderResultTreatments(scan, lang) {
   }
 
   const key = scan.disease_key || 'blast';
-  const severity = scan.severity || 'moderate';
-  const data = getLocalizedTreatmentsData(key, severity, lang);
+  const severityNeedsAssessment = !isHealthy && scan.severity_status !== 'expert_validated';
+  const severity = scan.severity || 'unassessed';
+  const data = severityNeedsAssessment
+    ? (scan.treatments || { chemical: [], organic: [] })
+    : getLocalizedTreatmentsData(key, severity, lang);
 
-  let html = '';
+  let html = severityNeedsAssessment
+    ? `<div style="margin-bottom:10px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; font-size:12px; line-height:1.5;">${lang === 'tagalog' ? 'Hindi nasukat ang bahaging apektado ng dahon, kaya walang piniling gamot o dosis batay sa tindi. Ipasuri muna ang dahon sa agriculturist.' : 'Affected leaf area was not measured, so this scan cannot select severity-based treatment or dosage. Have the leaf assessed by an agriculturist first.'}</div>`
+    : '';
 
   // Chemical Treatments / Recommended Sprays
   if (data.chemical && data.chemical.length) {
@@ -3394,15 +3416,20 @@ function speakResultSymptoms(btn) {
 }
 
 /* ═══════════ TREATMENT GUIDE & DOSAGE CALCULATOR ═══════════ */
-function switchTreatmentDisease(diseaseKey, severity = 'moderate') {
+function switchTreatmentDisease(diseaseKey, severity = 'unassessed') {
   const d = ALL_DISEASES[diseaseKey] || ALL_DISEASES.blast;
   const isMultiSev = (diseaseKey === 'blb' || diseaseKey === 'tungro' || diseaseKey === 'blast' || diseaseKey === 'brown_spot' || diseaseKey === 'sheath_blight');
+  const selectedSeverity = isMultiSev ? severity : d.severity;
   currentScanResult = {
     disease_key: diseaseKey,
     disease: d.name,
     scientific: d.scientific,
-    severity: (isMultiSev ? severity : d.severity),
-    treatments: getDefaultTreatments(diseaseKey, (isMultiSev ? severity : d.severity)),
+    severity: selectedSeverity,
+    severity_status: selectedSeverity === 'healthy' ? 'not_applicable' : (selectedSeverity === 'unassessed' ? 'unassessed' : 'user_selected'),
+    treatment_source: 'manual_guide',
+    treatments: selectedSeverity === 'unassessed'
+      ? { chemical: [], organic: [] }
+      : getDefaultTreatments(diseaseKey, selectedSeverity),
   };
 
   // Update disease pills
@@ -3428,6 +3455,8 @@ function switchDiseaseSeverity(sevLevel) {
     disease: d.name,
     scientific: d.scientific,
     severity: sevLevel,
+    severity_status: 'user_selected',
+    treatment_source: 'manual_guide',
     treatments: getDefaultTreatments(targetKey, sevLevel),
   };
 
@@ -3450,25 +3479,44 @@ function loadCurrentTreatment() {
   }
   const s = currentScanResult;
   const key = s.disease_key || 'blast';
-  const curSeverity = s.severity || 'moderate';
+  const manualGuide = s.treatment_source === 'manual_guide';
+  const severityNeedsAssessment = !['expert_validated', 'user_selected', 'not_applicable'].includes(s.severity_status) && s.severity !== 'healthy';
+  const curSeverity = severityNeedsAssessment ? 'unassessed' : (s.severity || 'moderate');
   const isMultiSev = (key === 'blb' || key === 'tungro' || key === 'blast' || key === 'brown_spot' || key === 'sheath_blight');
 
   const name = document.getElementById('treatDiseaseName');
   if (name) name.textContent = s.disease;
   const sub = document.getElementById('treatDiseaseSub');
   if (sub) {
-    const rangeText = isMultiSev ? (curSeverity === 'mild' ? ' (≤ 25%)' : (curSeverity === 'moderate' ? ' (26% – 60%)' : ' (> 60%)')) : '';
-    sub.textContent = (s.scientific || s.disease) + ' · Severity: ' + curSeverity.toUpperCase() + rangeText;
+    const rangeText = isMultiSev && !severityNeedsAssessment ? (curSeverity === 'mild' ? ' (≤ 25%)' : (curSeverity === 'moderate' ? ' (26% – 60%)' : ' (> 60%)')) : '';
+    const severityText = severityNeedsAssessment
+      ? (manualGuide ? 'Select a level' : 'Needs assessment')
+      : curSeverity.toUpperCase() + rangeText;
+    sub.textContent = (s.scientific || s.disease) + ' · Severity: ' + severityText;
+  }
+
+  const severityNotice = document.getElementById('treatSeverityNotice');
+  if (severityNotice) {
+    severityNotice.style.display = severityNeedsAssessment || (manualGuide && s.severity_status === 'user_selected') ? 'block' : 'none';
+    if (manualGuide) {
+      severityNotice.textContent = severityNeedsAssessment
+        ? 'Choose a level only after visually assessing the leaf. The scanner does not measure affected leaf area.'
+        : 'These guide suggestions use the level you selected manually; the scanner has not verified the affected leaf area.';
+    } else {
+      severityNotice.textContent = 'Severity has not been assessed. The guidance below is general; do not choose severity-based treatment or dosage from this scan.';
+    }
   }
 
   // Show or hide severity selector pills for BLB, Tungro, Blast, and Brown Spot
   const blbPillsBar = document.getElementById('blbSeverityPillsBar');
   if (blbPillsBar) {
-    if (isMultiSev) {
+    if (isMultiSev && (manualGuide || !severityNeedsAssessment)) {
       blbPillsBar.style.display = 'flex';
       document.querySelectorAll('.blb-sev-pill').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById('blbSev' + curSeverity.charAt(0).toUpperCase() + curSeverity.slice(1) + 'Btn');
-      if (activeBtn) activeBtn.classList.add('active');
+      if (!severityNeedsAssessment) {
+        const activeBtn = document.getElementById('blbSev' + curSeverity.charAt(0).toUpperCase() + curSeverity.slice(1) + 'Btn');
+        if (activeBtn) activeBtn.classList.add('active');
+      }
     } else {
       blbPillsBar.style.display = 'none';
     }
@@ -3485,7 +3533,9 @@ function loadCurrentTreatment() {
     treatIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22v-9"/><path d="M12 13C8 13 4 9 4 4c5 0 9 4 9 9z"/><path d="M12 8c2-3 5-4 8-4 0 5-4 9-8 9"/></svg>';
   }
 
-  const treat = s.treatments || getDefaultTreatments(key, curSeverity);
+  const treat = severityNeedsAssessment
+    ? (s.treatments || { chemical: [], organic: [] })
+    : (s.treatments || getDefaultTreatments(key, curSeverity));
   const chemList = document.getElementById('chemicalList');
   const orgList = document.getElementById('organicList');
   if (chemList) chemList.innerHTML = renderTreatmentItems(treat.chemical || []);
@@ -3619,9 +3669,12 @@ function renderHistoryList(scans) {
 
   let html = '';
   pageItems.forEach(scan => {
-    const sev = (scan.severity || 'severe').toLowerCase();
-    let badgeCls = 'sev-badge severe';
-    let badgeText = 'Severe (> 60%)';
+    const rawSeverity = (scan.severity || '').toLowerCase();
+    const isHealthyScan = rawSeverity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy');
+    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(rawSeverity);
+    const sev = isHealthyScan ? 'healthy' : (hasExpertSeverity ? rawSeverity : 'unassessed');
+    let badgeCls = 'sev-badge unassessed';
+    let badgeText = 'Needs assessment';
     if (sev === 'healthy') {
       badgeCls = 'sev-badge healthy';
       badgeText = 'Healthy Leaf';
@@ -3738,6 +3791,7 @@ function filterHistoryList() {
       const sev = (s.severity || '').toLowerCase();
       const dis = (s.disease || '').toLowerCase();
       if (activeHistoryFilter === 'severe') return sev === 'severe';
+      if (activeHistoryFilter === 'unassessed') return sev === 'unassessed';
       if (activeHistoryFilter === 'moderate') return sev === 'moderate';
       if (activeHistoryFilter === 'mild') return sev === 'mild';
       if (activeHistoryFilter === 'healthy') return sev === 'healthy' || dis.includes('healthy');
@@ -3814,15 +3868,17 @@ async function loadHomeRecentScans() {
         let thumbCls = 'blast';
         if (lower.includes('healthy')) thumbCls = 'healthy';
         else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) thumbCls = 'blb';
-        let sevCls = 'severe';
-        if (s.severity === 'healthy') sevCls = 'healthy';
-        else if (s.severity === 'mild') sevCls = 'mild';
-        else if (s.severity === 'moderate') sevCls = 'moderate';
+        const rawSeverity = (s.severity || '').toLowerCase();
+        const isHealthyScan = rawSeverity === 'healthy' || lower.includes('healthy');
+        const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(rawSeverity);
+        const displaySeverity = isHealthyScan ? 'healthy' : (hasExpertSeverity ? rawSeverity : 'unassessed');
+        let sevCls = displaySeverity;
 
-        let sevLabel = 'Severe (>60%)';
-        if (s.severity === 'healthy') sevLabel = 'Healthy';
-        else if (s.severity === 'mild') sevLabel = 'Mild (≤25%)';
-        else if (s.severity === 'moderate') sevLabel = 'Moderate (26-60%)';
+        let sevLabel = 'Needs assessment';
+        if (displaySeverity === 'healthy') sevLabel = 'Healthy';
+        else if (displaySeverity === 'mild') sevLabel = 'Mild (≤25%)';
+        else if (displaySeverity === 'moderate') sevLabel = 'Moderate (26-60%)';
+        else if (displaySeverity === 'severe') sevLabel = 'Severe (>60%)';
 
         const rawUrl = s.image_url;
         const resolvedUrl = resolveClientImageUrl(rawUrl, s.disease);
@@ -4396,12 +4452,10 @@ async function loadAdminDashboard() {
         if (sToday) sToday.textContent = stats.today_scans || 0;
 
         const outCount = document.getElementById('adminDashOutbreakCount');
-        if (outCount) outCount.textContent = stats.active_outbreaks || 0;
+        const severityReviewsNeeded = stats.severity_reviews_needed || 0;
+        if (outCount) outCount.textContent = severityReviewsNeeded;
         const outPct = document.getElementById('adminDashOutbreakPercent');
-        if (outPct) {
-          const pct = stats.total_scans > 0 ? Math.round((stats.active_outbreaks / stats.total_scans) * 100) : 0;
-          outPct.textContent = `${pct}% of total scans`;
-        }
+        if (outPct) outPct.textContent = `${severityReviewsNeeded} disease scans need severity review`;
 
         const advCount = document.getElementById('adminDashAdvisoriesCount');
         if (advCount) advCount.textContent = stats.advisories_count || 0;
@@ -4494,13 +4548,16 @@ function renderAdminRecentScansTable(scans) {
 
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
+    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
     const sevBadge = isHealthy
       ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-      : (s.severity === 'severe'
+      : (!hasExpertSeverity
+        ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
+        : (s.severity === 'severe'
         ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe (>60%)</span>'
         : (s.severity === 'mild'
           ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
-          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>'));
+          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>')));
 
     const resolvedAdminThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackAdminThumb = getDiseaseSampleImage(s.disease_name);
@@ -4742,13 +4799,16 @@ async function openAdminUserScansModal(userId, userName) {
             ? `<img src="${resolvedUserThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackUserThumb}';" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
             : `<div style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
           const isHealthy = s.severity === 'healthy';
+          const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
           const sevBadge = isHealthy
             ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-            : (s.severity === 'severe'
+            : (!hasExpertSeverity
+              ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
+              : (s.severity === 'severe'
               ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe</span>'
               : (s.severity === 'mild'
                 ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild</span>'
-                : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate</span>'));
+                : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate</span>')));
 
           return `
             <tr>
@@ -5431,7 +5491,7 @@ function filterAdminScansLogs() {
   if (adminActiveScanChip === 'healthy') {
     list = list.filter(s => s.severity === 'healthy');
   } else if (adminActiveScanChip === 'outbreaks') {
-    list = list.filter(s => s.severity === 'severe' || s.severity === 'moderate');
+    list = list.filter(s => s.severity === 'unassessed' && s.disease_name !== 'Healthy Rice Leaf');
   } else if (adminActiveScanChip !== 'all') {
     const chipKey = adminActiveScanChip.toLowerCase();
     list = list.filter(s => (s.disease_name || '').toLowerCase().includes(chipKey) || (s.scientific_name || '').toLowerCase().includes(chipKey));
@@ -5461,13 +5521,16 @@ function renderAdminScansLogsTable(scans) {
 
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
+    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
     const sevBadge = isHealthy
       ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-      : (s.severity === 'severe'
+      : (!hasExpertSeverity
+        ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
+        : (s.severity === 'severe'
         ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe (>60%)</span>'
         : (s.severity === 'mild'
           ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
-          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>'));
+          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>')));
 
     const resolvedScanThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackScanThumb = getDiseaseSampleImage(s.disease_name);
@@ -5514,11 +5577,12 @@ function openAdminScanPreview(scanId) {
   const content = document.getElementById('adminScanPreviewContent');
   if (content) {
     const isHealthy = scan.severity === 'healthy';
-    const sev = (scan.severity || 'healthy').toLowerCase();
-    let sevDisplay = 'HEALTHY';
-    if (sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
-    else if (sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
-    else if (sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
+    const sev = (scan.severity || 'unassessed').toLowerCase();
+    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
+    let sevDisplay = isHealthy ? 'HEALTHY' : 'NEEDS ASSESSMENT';
+    if (hasExpertSeverity && sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
+    else if (hasExpertSeverity && sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
+    else if (hasExpertSeverity && sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
 
     const resolvedScanPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
     const fallbackScanPreview = getDiseaseSampleImage(scan.disease_name);
@@ -6032,7 +6096,7 @@ async function loadStaffDashboard() {
         if (elScans) elScans.textContent = stats.total_field_scans || 0;
 
         const elOutbreaks = document.getElementById('staffStatActiveOutbreaks');
-        if (elOutbreaks) elOutbreaks.textContent = stats.active_outbreaks || 0;
+        if (elOutbreaks) elOutbreaks.textContent = stats.severity_reviews_needed || 0;
 
         const elFarmers = document.getElementById('staffStatTotalFarmers');
         if (elFarmers) elFarmers.textContent = stats.total_farmers || 0;
@@ -6080,14 +6144,16 @@ function renderStaffScansTable(scans) {
   }
 
   tbody.innerHTML = scans.map(s => {
-    const sev = s.severity || 'healthy';
+    const sev = s.severity || 'unassessed';
+    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
     const sevLabels = {
       healthy: 'Healthy',
       mild: 'Mild (≤ 25%)',
       moderate: 'Moderate (26%–60%)',
       severe: 'Severe (> 60%)',
+      unassessed: 'Needs assessment',
     };
-    const sevLabel = sevLabels[sev] || sev.toUpperCase();
+    const sevLabel = sev === 'healthy' ? 'Healthy' : (hasExpertSeverity ? sevLabels[sev] : 'Needs assessment');
     const hasNote = Boolean(s.notes && s.notes.trim());
 
     const resolvedStaffThumb = resolveClientImageUrl(s.image_url, s.disease_name);
@@ -6143,7 +6209,7 @@ function filterStaffScans() {
     if (!matchQuery) return false;
 
     if (staffActiveDiseaseFilter === 'all') return true;
-    if (staffActiveDiseaseFilter === 'urgent') return s.severity === 'severe' || s.severity === 'moderate';
+    if (staffActiveDiseaseFilter === 'urgent') return s.severity === 'unassessed' && !(s.disease_name || '').toLowerCase().includes('healthy');
     if (staffActiveDiseaseFilter === 'healthy') return s.severity === 'healthy';
 
     const dName = (s.disease_name || '').toLowerCase();
@@ -6178,12 +6244,13 @@ function renderBarangayCards(barangays) {
     const statusMap = {
       outbreak: { label: 'OUTBREAK ALERT', class: 'outbreak' },
       watch: { label: 'UNDER SURVEILLANCE', class: 'watch' },
+      review_required: { label: 'SEVERITY NEEDS REVIEW', class: 'watch' },
       normal: { label: 'NORMAL / STABLE', class: 'normal' },
     };
     const st = statusMap[b.status] || statusMap.normal;
 
     return `
-      <div class="barangay-card ${b.status}">
+      <div class="barangay-card ${st.class}">
         <div class="b-card-header">
           <div>
             <h4 class="b-name">📍 ${escapeHtml(b.location)}</h4>
@@ -6220,11 +6287,13 @@ function openStaffAdvisoryModal(scanId) {
 
   const preview = document.getElementById('staffAdvisoryPreview');
   if (preview) {
-    const sev = (scan.severity || 'healthy').toLowerCase();
-    let sevDisplay = 'HEALTHY';
-    if (sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
-    else if (sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
-    else if (sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
+    const sev = (scan.severity || 'unassessed').toLowerCase();
+    const isHealthy = sev === 'healthy' || (scan.disease_name || '').toLowerCase().includes('healthy');
+    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
+    let sevDisplay = isHealthy ? 'HEALTHY' : 'NEEDS ASSESSMENT';
+    if (hasExpertSeverity && sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
+    else if (hasExpertSeverity && sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
+    else if (hasExpertSeverity && sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
 
     const resolvedStaffPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
     const fallbackStaffPreview = getDiseaseSampleImage(scan.disease_name);
