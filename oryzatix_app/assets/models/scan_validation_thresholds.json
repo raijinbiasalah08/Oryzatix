@@ -2,34 +2,34 @@
   "schema_version": 1,
   "validator": "MobileNetV2 binary rice-leaf versus non-rice-image classifier",
   "rice_leaf": {
-    "threshold": 0.5044519356451929,
+    "threshold": 0.5739767625927925,
     "threshold_policy": "midpoint between highest non-rice and lowest rice validation scores when separated; otherwise smallest threshold above highest non-rice validation score",
-    "validation_rice_images": 412,
+    "validation_rice_images": 490,
     "validation_non_rice_images": 476,
-    "validation_true_positive": 412,
+    "validation_true_positive": 490,
     "validation_false_positive": 0,
     "validation_false_negative": 0,
     "validation_true_negative": 476,
     "validation_rice_recall": 1.0,
     "validation_non_rice_specificity": 1.0,
-    "max_non_rice_validation_score": 0.00977094005793333,
-    "min_rice_validation_score": 0.9991329312324524,
-    "validation_score_gap": 0.9893619911745191,
+    "max_non_rice_validation_score": 0.14805032312870026,
+    "min_rice_validation_score": 0.9999032020568848,
+    "validation_score_gap": 0.8518528789281845,
     "separable_validation_scores": true,
     "operating_point_available": true,
     "calibration_split": "validation"
   },
   "blur": {
     "method": "variance of 4-neighbor Laplacian on 224x224 grayscale input",
-    "threshold": 35.55008425712585,
+    "threshold": 33.442461371421814,
     "threshold_source": "midpoint between 95th percentile synthetic blur and 5th percentile sharp validation score",
-    "validation_sharp_images": 888,
+    "validation_sharp_images": 966,
     "synthetic_blur_radius_at_model_input": 2.0,
-    "synthetic_blurred_images": 888,
-    "sharp_acceptance_rate": 0.9898648648648649,
+    "synthetic_blurred_images": 966,
+    "sharp_acceptance_rate": 0.989648033126294,
     "synthetic_blur_rejection_rate": 1.0,
-    "sharp_score_5th_percentile": 61.40594654083252,
-    "synthetic_blur_score_95th_percentile": 9.694221973419188,
+    "sharp_score_5th_percentile": 57.14884853363037,
+    "synthetic_blur_score_95th_percentile": 9.736074209213257,
     "calibration_split": "validation",
     "synthetic_test_only": "Gaussian blur radius 2.0 applied after 224px resize; no real blurry-photo set is present."
   },
@@ -37,70 +37,69 @@
     "target_precision": 0.95,
     "threshold_policy": "lowest predicted-class threshold reaching the target precision on the disease model validation split; maximum validation coverage",
     "thresholds": {
-      "blb": 0.5893621444702148,
-      "brown_spot": 0.6520220637321472,
-      "healthy": 0.5402588844299316,
-      "sheath_blight": 0.6340742111206055,
-      "tungro": 0.5811558365821838,
-      "blast": null
+      "blb": 0.8802294731140137,
+      "brown_spot": 0.7810452580451965,
+      "healthy": 0.7840480208396912,
+      "sheath_blight": 0.5108264684677124,
+      "tungro": 0.43210506439208984,
+      "blast": 0.6331720948219299
     },
     "per_class_validation": {
       "blb": {
-        "validation_true_images": 147,
-        "accepted_predictions": 146,
-        "correct_accepted_predictions": 146,
-        "precision": 1.0,
-        "recall_at_threshold": 0.9931972789115646,
-        "threshold": 0.5893621444702148
+        "validation_true_images": 39,
+        "accepted_predictions": 37,
+        "correct_accepted_predictions": 36,
+        "precision": 0.972972972972973,
+        "recall_at_threshold": 0.9230769230769231,
+        "threshold": 0.8802294731140137
       },
       "brown_spot": {
         "validation_true_images": 53,
-        "accepted_predictions": 53,
-        "correct_accepted_predictions": 51,
-        "precision": 0.9622641509433962,
-        "recall_at_threshold": 0.9622641509433962,
-        "threshold": 0.6520220637321472
+        "accepted_predictions": 50,
+        "correct_accepted_predictions": 48,
+        "precision": 0.96,
+        "recall_at_threshold": 0.9056603773584906,
+        "threshold": 0.7810452580451965
       },
       "healthy": {
         "validation_true_images": 159,
-        "accepted_predictions": 154,
-        "correct_accepted_predictions": 150,
-        "precision": 0.974025974025974,
-        "recall_at_threshold": 0.9433962264150944,
-        "threshold": 0.5402588844299316
+        "accepted_predictions": 144,
+        "correct_accepted_predictions": 137,
+        "precision": 0.9513888888888888,
+        "recall_at_threshold": 0.8616352201257862,
+        "threshold": 0.7840480208396912
       },
       "sheath_blight": {
         "validation_true_images": 40,
-        "accepted_predictions": 41,
-        "correct_accepted_predictions": 39,
-        "precision": 0.9512195121951219,
-        "recall_at_threshold": 0.975,
-        "threshold": 0.6340742111206055
+        "accepted_predictions": 38,
+        "correct_accepted_predictions": 37,
+        "precision": 0.9736842105263158,
+        "recall_at_threshold": 0.925,
+        "threshold": 0.5108264684677124
       },
       "tungro": {
         "validation_true_images": 119,
-        "accepted_predictions": 121,
-        "correct_accepted_predictions": 115,
-        "precision": 0.9504132231404959,
-        "recall_at_threshold": 0.9663865546218487,
-        "threshold": 0.5811558365821838
+        "accepted_predictions": 114,
+        "correct_accepted_predictions": 110,
+        "precision": 0.9649122807017544,
+        "recall_at_threshold": 0.9243697478991597,
+        "threshold": 0.43210506439208984
       },
       "blast": {
-        "validation_true_images": 0,
-        "accepted_predictions": 0,
-        "correct_accepted_predictions": 0,
-        "precision": null,
-        "recall_at_threshold": null,
-        "threshold": null,
-        "note": "Leaf Blast is not an output class of the current MobileNet model; exact reference matches remain supported."
+        "validation_true_images": 78,
+        "accepted_predictions": 76,
+        "correct_accepted_predictions": 73,
+        "precision": 0.9605263157894737,
+        "recall_at_threshold": 0.9358974358974359,
+        "threshold": 0.6331720948219299
       }
     },
-    "validation_image_count": 993
+    "validation_image_count": 963
   },
   "binary_test": {
     "overall": {
-      "test_images": 887,
-      "true_rice_images": 412,
+      "test_images": 965,
+      "true_rice_images": 490,
       "true_non_rice_images": 475,
       "rice_recall": 1.0,
       "non_rice_specificity": 1.0,
@@ -115,9 +114,9 @@
         "false_rice_accepts": 0
       },
       "rice_leaf": {
-        "images": 412,
-        "true_rice": 412,
-        "accepted_as_rice": 412,
+        "images": 490,
+        "true_rice": 490,
+        "accepted_as_rice": 490,
         "rejected_or_inconclusive": 0,
         "false_rice_accepts": 0
       }
@@ -156,7 +155,7 @@
     "note": "Training-fit diagnostic only; these examples are not an independent evaluation set."
   },
   "data_counts": {
-    "rice_leaf": 2747,
+    "rice_leaf": 3268,
     "not_rice_leaf": 3167,
     "people": 2,
     "objects": 1,
@@ -165,15 +164,15 @@
   },
   "split_counts": {
     "train": {
-      "rice_leaf": 1923,
+      "rice_leaf": 2288,
       "not_rice_leaf": 2216
     },
     "validation": {
-      "rice_leaf": 412,
+      "rice_leaf": 490,
       "not_rice_leaf": 476
     },
     "test": {
-      "rice_leaf": 412,
+      "rice_leaf": 490,
       "not_rice_leaf": 475
     }
   }

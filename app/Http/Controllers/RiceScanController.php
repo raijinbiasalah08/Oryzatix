@@ -221,7 +221,7 @@ class RiceScanController extends Controller
         if ($status === 'diagnosed') {
             $diseaseKey = $diagnosis['disease_key'];
             $threshold = $diagnosis['minimum_confidence'] ?? null;
-            $supportedModelKeys = ['blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro'];
+            $supportedModelKeys = ['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro'];
             if (!in_array($diseaseKey, $supportedModelKeys, true) || !is_numeric($threshold)
                 || !is_finite((float) $threshold) || (float) $threshold < 0.0 || (float) $threshold > 1.0
                 || (float) $diagnosis['confidence'] < (float) $threshold) {

@@ -293,7 +293,7 @@ class _ScanScreenState extends State<ScanScreen> {
             _buildGuidelineItem(
               icon: Icons.verified_user_outlined,
               title: 'MobileNetV2 classes (Android/iOS)',
-              desc: 'Recognizes Bacterial Leaf Blight (BLB), Brown Spot, Sheath Blight, Tungro, and Healthy leaves. Leaf Blast is not included in this model.',
+              desc: 'Recognizes Leaf Blast, Bacterial Leaf Blight (BLB), Brown Spot, Sheath Blight, Tungro, and Healthy leaves.',
             ),
           ],
         ),

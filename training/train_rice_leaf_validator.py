@@ -31,6 +31,7 @@ RICE_CLASSES = {
     "healthy": "Healthy Rice Leaf",
     "sheath_blight": "Sheath Blight",
     "tungro": "Tungro",
+    "blast": "leaf_blast",
 }
 
 

@@ -26,6 +26,11 @@
   },
   {
     "index": 5,
+    "key": "blast",
+    "name": "Leaf Blast"
+  },
+  {
+    "index": 6,
     "key": "not_rice_leaf",
     "name": "Not a Rice Leaf"
   }
