@@ -34,6 +34,10 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Set working directory
 WORKDIR /var/www/html
 
+# Keep PHP upload limits above Laravel's 10 MB image validation limit so
+# gallery photos reach the scanner instead of failing at the web server layer.
+COPY php-scanner.ini /usr/local/etc/php/conf.d/zz-oryzatix-scanner.ini
+
 # Copy application files
 COPY . /var/www/html
 

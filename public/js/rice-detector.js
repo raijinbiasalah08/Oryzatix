@@ -2013,6 +2013,11 @@ function handleFileUpload(event) {
 }
 
 async function uploadAndAnalyze(file) {
+  if (file && file.size > 10 * 1024 * 1024) {
+    showUnrecognizedScreen({ reason: 'upload_too_large' });
+    return;
+  }
+
   showScreen('loading');
   if (lastScannedLeafBlobUrl && lastScannedLeafBlobUrl.startsWith('blob:')) {
     try { URL.revokeObjectURL(lastScannedLeafBlobUrl); } catch (e) {}
@@ -2053,7 +2058,31 @@ async function uploadAndAnalyze(file) {
       body: formData,
     });
 
-    const data = await res.json();
+    const responseText = await res.text();
+    let data = {};
+    try {
+      const parsedResponse = responseText ? JSON.parse(responseText) : {};
+      data = parsedResponse && typeof parsedResponse === 'object' ? parsedResponse : {};
+    } catch (parseError) {
+      console.error('Rice scan API returned a non-JSON response:', res.status, res.headers.get('content-type'));
+    }
+
+    if (!res.ok) {
+      const validationErrors = data && data.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors).flat().join(' ')
+        : '';
+      const errorText = `${data.message || ''} ${validationErrors} ${responseText}`;
+      let reason = data.reason || 'server_error';
+      if (res.status === 413 || /post_max_size|file.{0,20}too large|maximum.{0,20}(size|kilobyte)/i.test(errorText)) {
+        reason = 'upload_too_large';
+      } else if (res.status === 422) {
+        reason = 'unsupported_image';
+      } else if (res.status === 401 || res.status === 403) {
+        reason = 'authentication_required';
+      }
+      showUnrecognizedScreen({ reason });
+      return;
+    }
 
     // Mark step 4 as complete
     const step4 = document.getElementById('step4');
@@ -2084,7 +2113,7 @@ async function uploadAndAnalyze(file) {
       } else {
         showUnrecognizedScreen({
           ...data,
-          reason: data.reason || (res.ok ? 'uncertain_prediction' : 'server_error'),
+          reason: data.reason || 'uncertain_prediction',
         });
       }
     }, 450);
@@ -2103,6 +2132,9 @@ function showUnrecognizedScreen(data) {
     blurry_image: { en: 'Image Too Blurry', tl: 'Malabo ang Larawan' },
     uncertain_prediction: { en: 'Disease Result Uncertain', tl: 'Hindi Tiyak ang Resulta ng Sakit' },
     model_unavailable: { en: 'Scanner Temporarily Unavailable', tl: 'Pansamantalang Hindi Magamit ang Scanner' },
+    upload_too_large: { en: 'Image File Too Large', tl: 'Masyadong Malaki ang Larawan' },
+    unsupported_image: { en: 'Unsupported Image', tl: 'Hindi Suportadong Uri ng Larawan' },
+    authentication_required: { en: 'Sign-in Required', tl: 'Kailangang Mag-sign In' },
     server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
   };
   const selectedTitle = titles[reason] || { en: 'Scan Result Needs Review', tl: 'Kailangang Suriin ang Resulta' };
@@ -2130,6 +2162,18 @@ function showUnrecognizedScreen(data) {
       model_unavailable: {
         en: 'The rice-leaf scanner is temporarily unavailable. Please try again later.',
         tl: 'Pansamantalang hindi magamit ang rice-leaf scanner. Subukan muli mamaya.',
+      },
+      upload_too_large: {
+        en: 'This image is larger than the 10 MB upload limit. Choose a smaller photo and try again.',
+        tl: 'Lampas sa 10 MB na limit ang larawang ito. Pumili ng mas maliit na larawan at subukan muli.',
+      },
+      unsupported_image: {
+        en: 'Use a JPEG, PNG, or WebP image of a rice leaf.',
+        tl: 'Gumamit ng JPEG, PNG, o WebP na larawan ng dahon ng palay.',
+      },
+      authentication_required: {
+        en: 'Your session may have expired. Sign in again, then retry the scan.',
+        tl: 'Maaaring nag-expire ang iyong session. Mag-sign in muli at subukan ang pag-scan.',
       },
       server_error: {
         en: 'The scan could not be completed because of a server or network error. Please try again later.',
