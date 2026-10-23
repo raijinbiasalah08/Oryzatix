@@ -2795,15 +2795,15 @@
 
 <!-- Mobile Phone Connect (Wi-Fi LAN QR Code) Modal -->
 <div class="modal-backdrop" id="modalMobileConnect">
-  <div class="modal-box edit-profile-modal-box mobile-connect-modal" style="max-width: 580px;">
+  <div class="modal-box edit-profile-modal-box mobile-connect-modal">
     <div class="modal-header">
-      <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="mobile-connect-heading">
         <div class="modal-header-icon green">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         </div>
-        <div>
-          <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Open & Install on Mobile Device</h3>
-          <p style="font-size: 11.5px; color: var(--neutral-500); margin: 2px 0 0;">Connect your smartphone over local Wi-Fi and install as an App</p>
+        <div class="mobile-connect-heading-copy">
+          <h3>Open &amp; Install on Mobile Device</h3>
+          <p class="mobile-connect-subtitle">Connect your smartphone over local Wi-Fi and install as an App</p>
         </div>
       </div>
       <button class="modal-close-btn" onclick="closeModal('modalMobileConnect')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -2861,13 +2861,13 @@
       </div>
     </div>
 
-    <div style="margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid var(--neutral-200); padding-top: 14px;">
-      <a href="{{ asset('downloads/oryzatix.apk') }}" download="oryzatix-release.apk" class="btn-copy-url" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; background: #047857; color: #fff; border: 1px solid #047857; border-radius: 8px; font-weight: 700; font-size: 13px;">
+    <div class="mobile-connect-actions">
+      <a href="{{ asset('downloads/oryzatix.apk') }}" download="oryzatix-release.apk" class="btn-copy-url mobile-download-apk">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Android APK
       </a>
       <button type="button" class="btn-modal-cancel" onclick="closeModal('modalMobileConnect')">Close</button>
-      <button type="button" class="auth-btn" onclick="triggerPwaInstall(); closeModal('modalMobileConnect');" style="margin-top: 0; min-width: 160px;">Install on this Device</button>
+      <button type="button" class="auth-btn mobile-install-action" onclick="triggerPwaInstall(); closeModal('modalMobileConnect');">Install on this Device</button>
     </div>
   </div>
 </div>

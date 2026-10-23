@@ -3887,7 +3887,7 @@ select {
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
-  z-index: 200;
+  z-index: 2100;
   display: none;
   align-items: center;
   justify-content: center;
@@ -5232,12 +5232,16 @@ select {
   background: #ffffff;
   border-radius: var(--radius-lg);
   border: 1px solid var(--neutral-200);
-  overflow: hidden;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
   box-shadow: var(--shadow-xs);
 }
 
 .admin-table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   text-align: left;
   font-size: 13.5px;
@@ -5622,7 +5626,10 @@ select {
   border-radius: var(--radius-lg);
   border: 1px solid var(--neutral-200);
   box-shadow: var(--shadow-xs);
-  overflow: hidden;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .staff-data-table {
@@ -7496,5 +7503,194 @@ select {
     flex: 1;
     min-height: 48px;
     font-size: 14.5px;
+  }
+}
+
+/* Make the mobile-connect dialog and its children fit narrow viewports. */
+#modalMobileConnect .mobile-connect-modal {
+  width: min(100%, 580px);
+  max-width: 580px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#modalMobileConnect .mobile-connect-heading .modal-header-icon {
+  flex: 0 0 auto;
+}
+
+#modalMobileConnect .mobile-connect-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#modalMobileConnect .mobile-connect-heading-copy {
+  min-width: 0;
+}
+
+#modalMobileConnect .mobile-connect-heading-copy h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+#modalMobileConnect .mobile-connect-subtitle {
+  margin: 3px 0 0;
+  color: var(--neutral-500);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+#modalMobileConnect .mobile-connect-body,
+#modalMobileConnect .mobile-qr-card,
+#modalMobileConnect .mobile-url-box,
+#modalMobileConnect .step-card {
+  min-width: 0;
+}
+
+#modalMobileConnect .url-input-action-row {
+  align-items: stretch;
+  min-width: 0;
+}
+
+#modalMobileConnect .url-input-action-row input {
+  width: 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#modalMobileConnect .mobile-connect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--neutral-200);
+}
+
+#modalMobileConnect .mobile-download-apk {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #047857;
+  border-radius: 8px;
+  background: #047857;
+  color: #fff;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: normal;
+  text-align: center;
+}
+
+#modalMobileConnect .mobile-connect-actions button {
+  min-height: 44px;
+}
+
+#modalMobileConnect .mobile-install-action {
+  min-width: 160px;
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  #modalMobileConnect {
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: max(12px, env(safe-area-inset-top, 0px))
+      12px max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  #modalMobileConnect .mobile-connect-modal {
+    width: 100% !important;
+    max-width: 580px !important;
+    max-height: calc(100vh - 24px) !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+    margin: 0 auto;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  #modalMobileConnect .modal-header {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  #modalMobileConnect .mobile-connect-heading-copy h3 {
+    font-size: clamp(15px, 4vw, 17px);
+  }
+
+  #modalMobileConnect .modal-close-btn {
+    flex: 0 0 34px;
+  }
+
+  #modalMobileConnect .mobile-connect-body {
+    gap: 12px;
+    padding: 4px 0;
+  }
+
+  #modalMobileConnect .mobile-qr-card {
+    padding: 12px;
+  }
+
+  #modalMobileConnect .qr-canvas-wrapper {
+    max-width: 100%;
+    padding: 10px;
+  }
+
+  #modalMobileConnect .qr-canvas-wrapper canvas {
+    width: min(200px, 62vw);
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  #modalMobileConnect .mobile-instructions-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #modalMobileConnect .mobile-connect-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  #modalMobileConnect .mobile-connect-actions > * {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-content: center;
+    margin: 0;
+  }
+
+  #modalMobileConnect .mobile-download-apk {
+    grid-column: 1 / -1;
+  }
+
+  #modalMobileConnect .mobile-install-action {
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #modalMobileConnect .url-input-action-row {
+    flex-direction: column;
+  }
+
+  #modalMobileConnect .url-input-action-row input,
+  #modalMobileConnect .url-input-action-row .btn-copy-url {
+    width: 100%;
   }
 }

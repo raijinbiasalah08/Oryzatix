@@ -27,6 +27,7 @@ class _ScanScreenState extends State<ScanScreen> {
     final result = scanner.result;
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
+    final isCompact = width < 420;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -41,32 +42,44 @@ class _ScanScreenState extends State<ScanScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Rice Disease Scan Studio',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rice Disease Scan Studio',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: width < 420 ? 19 : 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      scanner.usesServerValidation
-                          ? 'Server-validated rice-leaf screening with MobileNetV2 diagnosis.'
-                          : 'Rice-leaf scan unavailable',
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
+                      SizedBox(height: 4),
+                      Text(
+                        scanner.usesServerValidation
+                            ? 'Server-validated rice-leaf screening with MobileNetV2 diagnosis.'
+                            : 'Rice-leaf scan unavailable',
+                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
                 if (scanner.selectedImageBytes != null || result != null)
-                  TextButton.icon(
-                    onPressed: () => scanner.clear(),
-                    icon: const Icon(Icons.refresh, color: AppColors.primary),
-                    label: const Text('Reset Scanner'),
-                  ),
+                  isCompact
+                      ? IconButton(
+                          tooltip: 'Reset Scanner',
+                          onPressed: () => scanner.clear(),
+                          icon: const Icon(Icons.refresh, color: AppColors.primary),
+                        )
+                      : TextButton.icon(
+                          onPressed: () => scanner.clear(),
+                          icon: const Icon(Icons.refresh, color: AppColors.primary),
+                          label: const Text('Reset Scanner'),
+                        ),
               ],
             ),
             const SizedBox(height: 20),

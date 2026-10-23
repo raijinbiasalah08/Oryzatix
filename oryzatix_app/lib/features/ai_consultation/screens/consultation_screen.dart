@@ -66,6 +66,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     final quickQuestions = isTagalog ? _quickTagalogQuestions : _quickEnglishQuestions;
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
+    final isCompact = width < 520;
 
     return Scaffold(
       appBar: AppBar(
@@ -73,36 +74,74 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
           children: [
             const Icon(Icons.psychology, color: Colors.white),
             const SizedBox(width: 8),
-            const Text('AI Consultation'),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Rice farming guidance',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            const Flexible(
+              child: Text(
+                'AI Consultation',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (width >= 600) ...[
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Rice farming guidance',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
           // Language Switcher
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                _buildLangBtn('tagalog', 'Tagalog', isTagalog),
-                _buildLangBtn('english', 'English', !isTagalog),
+          if (!isCompact)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  _buildLangBtn('tagalog', 'Tagalog', isTagalog),
+                  _buildLangBtn('english', 'English', !isTagalog),
+                ],
+              ),
+            )
+          else
+            PopupMenuButton<String>(
+              tooltip: 'Choose language',
+              initialValue: consultation.activeLanguage,
+              onSelected: (language) => consultation.setLanguage(language),
+              icon: const Icon(Icons.translate),
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'tagalog',
+                  child: Row(
+                    children: [
+                      if (isTagalog) const Icon(Icons.check, size: 18),
+                      if (isTagalog) const SizedBox(width: 8),
+                      const Text('Tagalog'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'english',
+                  child: Row(
+                    children: [
+                      if (!isTagalog) const Icon(Icons.check, size: 18),
+                      if (!isTagalog) const SizedBox(width: 8),
+                      const Text('English'),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
             tooltip: 'Clear Chat History',
