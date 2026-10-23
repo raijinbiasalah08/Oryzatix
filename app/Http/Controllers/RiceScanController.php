@@ -2295,19 +2295,24 @@ class RiceScanController extends Controller
 
         [$origWidth, $origHeight, $imageType] = $imageInfo;
 
+        // Some deployment images may have GD enabled without every codec.
+        // Never call an unavailable decoder: retain a small original image as
+        // a data URL, or let the caller use its stored-file URL for larger files.
+        if (!function_exists('imagecreatetruecolor')
+            || !function_exists('imagecopyresampled')
+            || !function_exists('imagejpeg')) {
+            return $this->originalImageDataUrl($filePath, $imageInfo);
+        }
+
         $src = match ($imageType) {
-            IMAGETYPE_JPEG => @imagecreatefromjpeg($filePath),
-            IMAGETYPE_PNG => @imagecreatefrompng($filePath),
+            IMAGETYPE_JPEG => function_exists('imagecreatefromjpeg') ? @imagecreatefromjpeg($filePath) : null,
+            IMAGETYPE_PNG => function_exists('imagecreatefrompng') ? @imagecreatefrompng($filePath) : null,
             IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($filePath) : null,
             default => null,
         };
 
         if (!$src) {
-            if (filesize($filePath) <= 2 * 1024 * 1024) {
-                $mime = $imageInfo['mime'] ?? 'image/jpeg';
-                return 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($filePath));
-            }
-            return null;
+            return $this->originalImageDataUrl($filePath, $imageInfo);
         }
 
         $newWidth = $origWidth;
@@ -2344,6 +2349,23 @@ class RiceScanController extends Controller
         }
 
         return 'data:image/jpeg;base64,' . base64_encode($data);
+    }
+
+    /** Keep small original uploads viewable when GD or an image codec is unavailable. */
+    private function originalImageDataUrl(string $filePath, array $imageInfo): ?string
+    {
+        $fileSize = @filesize($filePath);
+        if ($fileSize === false || $fileSize > 2 * 1024 * 1024) {
+            return null;
+        }
+
+        $contents = @file_get_contents($filePath);
+        if (!is_string($contents)) {
+            return null;
+        }
+
+        $mime = $imageInfo['mime'] ?? 'application/octet-stream';
+        return 'data:' . $mime . ';base64,' . base64_encode($contents);
     }
 
     /**

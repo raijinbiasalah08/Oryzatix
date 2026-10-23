@@ -5,7 +5,10 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     git \
     curl \
+    libjpeg62-turbo-dev \
     libpng-dev \
+    libwebp-dev \
+    libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
@@ -18,7 +21,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip opcache sockets
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip opcache sockets \
+    && php -r 'foreach (["imagecreatefromjpeg", "imagecreatefrompng", "imagecreatefromwebp", "imagecreatetruecolor"] as $function) { if (!function_exists($function)) { fwrite(STDERR, "Required GD function missing: {$function}" . PHP_EOL); exit(1); } }'
 
 # Get Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
