@@ -4197,6 +4197,7 @@ async function sendMessage() {
     if (!response.ok || !data.success || typeof data.ai_response !== 'string' || !data.ai_response.trim()) {
       const error = new Error(data.message || 'The consultation request failed.');
       error.status = response.status;
+      error.code = data.code || null;
       throw error;
     }
 
@@ -4212,7 +4213,11 @@ async function sendMessage() {
     input.value = msg;
 
     let failureMessage;
-    if (error.status === 503) {
+    if (error.code === 'ai_not_configured') {
+      failureMessage = language === 'tagalog'
+        ? 'Hindi pa naka-configure ang AI Consultant. Nasa input pa rin ang tanong mo; ipaalam ito sa system administrator.'
+        : 'The AI Consultant is not configured yet. Your question is still in the input; please notify the system administrator.';
+    } else if (error.status === 503) {
       failureMessage = language === 'tagalog'
         ? 'Hindi makakonekta ngayon sa AI Consultant. Nasa input pa rin ang tanong mo; pakisubukang muli mamaya.'
         : 'The AI Consultant is temporarily unavailable. Your question is still in the input; please try again later.';
@@ -4319,9 +4324,15 @@ async function translateAiBubble(btn) {
 }
 
 function detectLanguage(text, defaultLang) {
-  const t = text.toLowerCase();
-  if (/hello|hi|what|how|why|when|where|please|thank|yes|no|rice|disease|treatment|fungicide|dosage/.test(t)) return 'english';
-  return defaultLang || 'tagalog';
+  const t = String(text || '').toLowerCase();
+  const tagalogWords = /\b(?:ako|ikaw|siya|kami|tayo|kayo|sila|ko|mo|ang|ng|mga|sa|na|po|opo|naman|ba|ito|iyan|iyon|dahil|kasi|paano|bakit|ano|saan|kailan|alin|may|wala|gusto|pwede|maaari|hindi|huwag|sakit|dahon|palay|tanim|gamot|lupa|pataba|tubig|ulan|bukid|peste)\b/u;
+  const englishWords = /\b(?:hello|hi|what|how|why|when|where|please|thank(?:s| you)?|yes|no|rice|disease|treatment|fungicide|dosage|can|could|should|would|is|are|the|my|your)\b/u;
+
+  // Prefer clear Filipino cues in mixed Taglish messages. Use word boundaries
+  // so short fragments such as "hi" inside another word cannot change language.
+  if (tagalogWords.test(t)) return 'tagalog';
+  if (englishWords.test(t)) return 'english';
+  return defaultLang === 'tagalog' ? 'tagalog' : 'english';
 }
 
 function languageLabel(lang) {

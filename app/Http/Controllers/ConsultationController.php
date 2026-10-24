@@ -63,13 +63,22 @@ class ConsultationController extends Controller
             ? $this->generateResponse($userMessage, $language, $userId)
             : $this->outOfScopeResponse($language);
         if ($aiResponse === null) {
-            $message = $language === 'tagalog'
-                ? 'Hindi makasagot ang AI Consultant sa ngayon. Pakisubukan muli mamaya. Para sa agarang payo tungkol sa sakit o paggamit ng produkto, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
-                : 'The AI Consultant is temporarily unavailable. Please try again later. For urgent disease or product-use advice, contact your Municipal Agriculture Office or local agricultural technician.';
+            $notConfigured = $this->geminiApiKey() === '';
+            $message = $notConfigured
+                ? ($language === 'tagalog'
+                    ? 'Hindi pa naka-configure ang AI Consultant. Pakisabi sa system administrator na idagdag ang AI service key sa server.'
+                    : 'The AI Consultant is not configured yet. Please ask the system administrator to add its AI service key on the server.')
+                : ($language === 'tagalog'
+                    ? 'Hindi makasagot ang AI Consultant sa ngayon. Pakisubukan muli mamaya. Para sa agarang payo tungkol sa sakit o paggamit ng produkto, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
+                    : 'The AI Consultant is temporarily unavailable. Please try again later. For urgent disease or product-use advice, contact your Municipal Agriculture Office or local agricultural technician.');
+
+            if ($notConfigured) {
+                Log::warning('AI consultation is unavailable because GEMINI_API_KEY is not configured.');
+            }
 
             return response()->json([
                 'success' => false,
-                'code' => 'ai_unavailable',
+                'code' => $notConfigured ? 'ai_not_configured' : 'ai_unavailable',
                 'message' => $message,
             ], 503);
         }
@@ -130,9 +139,10 @@ class ConsultationController extends Controller
         // Let brief follow-ups inherit a rice/app topic from the latest user turn.
         // New standalone questions still need an explicit Oryzatix or rice context.
         $normalized = mb_strtolower(trim($message), 'UTF-8');
-        $isBriefFollowUp = mb_strlen($normalized, 'UTF-8') <= 80 && (
-            preg_match('/\b(?:it|this|that|these|those|them|same|one|ito|iyan|iyon|nito|niyan|niyon)\b/u', $normalized) === 1 ||
-            preg_match('/^(?:yes|no|okay|ok|thanks|why|how|what|when|where|which|ano|opo|oo|hindi|sige|bakit|paano|kailan|saan|alin)[?!.,\s]*$/u', $normalized) === 1
+        $isBriefFollowUp = mb_strlen($normalized, 'UTF-8') <= 160 && (
+            preg_match('/\b(?:it|this|that|these|those|them|same|one|ito|iyan|iyon|nito|niyan|niyon|dito|diyan|doon|ganito|ganoon|siya|niya|nila)\b/u', $normalized) === 1 ||
+            preg_match('/^(?:yes|no|okay|ok|thanks|why|how|what|when|where|which|ano|opo|oo|hindi|sige|bakit|paano|kailan|saan|alin)[?!.,\s]*$/u', $normalized) === 1 ||
+            preg_match('/^(?:should|can|could|would|will|is|are|do|does|ano|paano|bakit|kailan|saan|alin)\b.{0,140}$/u', $normalized) === 1
         );
 
         if (!$userId || !$isBriefFollowUp) {
@@ -169,7 +179,7 @@ class ConsultationController extends Controller
 
         $riceContext = preg_match('/\b(?:rice|palay|paddy)\b/u', $normalized) === 1;
         $riceFarmingTopic = preg_match(
-            '/\b(?:leaf|leaves|disease|diseases|symptom\w*|lesion\w*|pest|pests|crop|farm\w*|field|soil|fertiliz\w*|irrigat\w*|water|seed|plant\w*|cultivat\w*|production|transplant\w*|weed\w*|harvest\w*|yield|growth|stage|blight|spot|fung\w*|insect\w*|yellow\w*|discolor\w*|dahon|sakit|peste|abono|pataba|patubig|bukid|sakahan|tanim|punla|ani|damo|lupa|binhi|naninilaw|paninilaw)\b/u',
+            '/\b(?:leaf|leaves|disease|diseases|symptom\w*|lesion\w*|pest|pests|crop|farm\w*|field|soil|fertiliz\w*|irrigat\w*|water|seed|plant\w*|cultivat\w*|production|transplant\w*|weed\w*|harvest\w*|yield|growth|stage|blight|spot|fung\w*|insect\w*|yellow\w*|discolor\w*|dahon|sakit|peste|gamot|gamutin|paggamot|lunas|pangangalaga|abono|pataba|patubig|dilig|bukid|sakahan|tanim|punla|ani|damo|lupa|binhi|naninilaw|paninilaw)\b/u',
             $normalized
         ) === 1;
 
@@ -196,6 +206,11 @@ class ConsultationController extends Controller
         }
 
         return null;
+    }
+
+    private function geminiApiKey(): string
+    {
+        return trim((string) config('services.gemini.api_key', ''));
     }
 
     /**
@@ -296,7 +311,7 @@ class ConsultationController extends Controller
      */
     private function callGeminiApi(string $userMessage, string $language, ?int $userId = null): ?string
     {
-        $apiKey = config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
+        $apiKey = $this->geminiApiKey();
         if (empty($apiKey)) {
             return null;
         }
@@ -353,9 +368,6 @@ class ConsultationController extends Controller
             ],
             'contents' => $contents,
             'generationConfig' => [
-                'temperature' => 0.2,
-                'topP' => 0.85,
-                'topK' => 40,
                 'maxOutputTokens' => 2048,
             ]
         ];
@@ -434,6 +446,7 @@ IMPORTANT LIMITS
 
 ACCURACY AND DIAGNOSIS
 - Answer only questions about Oryzatix app use or rice production and health: rice diseases and pests, symptoms, crop management, soil and nutrients, irrigation, and post-harvest questions. Briefly redirect unrelated topics without answering their unrelated request.
+- Oryzatix's rice-leaf scanner supports Bacterial Leaf Blight, Brown Spot, Sheath Blight, Rice Tungro, Leaf Blast, and Healthy Rice Leaf. A scanner result is a model prediction, not a confirmed field diagnosis; do not claim the app can identify diseases outside these classes.
 - A symptom description alone is not a confirmed diagnosis. Explain plausible causes as possibilities, distinguish look-alike symptoms, and ask concise follow-up questions when crop stage, symptom pattern, field conditions, or spread are missing.
 - Do not infer disease severity percentages or say a plant is healthy without reliable evidence. Explain what observations would support an assessment and when in-person inspection is needed.
 - Separate established general information from uncertainty. If you do not know or cannot verify a claim, say so plainly and give a safe next step instead of guessing.
@@ -481,7 +494,7 @@ PROMPT;
      */
     private function callGeminiTranslation(string $text, string $targetLang): ?string
     {
-        $apiKey = config('services.gemini.api_key') ?: env('GEMINI_API_KEY');
+        $apiKey = $this->geminiApiKey();
         if (empty($apiKey)) {
             return null;
         }
