@@ -152,10 +152,6 @@
           <span data-en="Reports & Analytics" data-tl="Ulat at Analytics">Reports & Analytics</span>
         </button>
 
-        <button class="sidebar-nav-btn" data-screen="admin-chatbot" onclick="showScreen('admin-chatbot'); loadAdminChatbot();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          <span data-en="Chatbot FAQ / AI" data-tl="Chatbot at FAQ">Chatbot Manager</span>
-        </button>
       </div>
     </nav>
   </aside>
@@ -249,10 +245,6 @@
           <span data-en="Reports & Analytics" data-tl="Ulat at Analytics">Reports & Analytics</span>
         </button>
 
-        <button class="sidebar-nav-btn" data-screen="admin-chatbot" onclick="showScreen('admin-chatbot'); loadAdminChatbot(); closeMobileDrawer();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          <span data-en="Chatbot FAQ / AI" data-tl="Chatbot at FAQ">Chatbot Manager</span>
-        </button>
       </div>
     </nav>
   </aside>
@@ -1397,16 +1389,6 @@
             <div class="quick-hub-arrow">→</div>
           </div>
 
-          <div class="quick-hub-card" onclick="showScreen('admin-chatbot'); loadAdminChatbot();">
-            <div class="quick-hub-icon purple">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            </div>
-            <div class="quick-hub-info">
-              <h4>5. Chatbot Management</h4>
-              <p>View conversations, manage FAQs, add disease Q&A knowledge</p>
-            </div>
-            <div class="quick-hub-arrow">→</div>
-          </div>
         </div>
 
         <!-- Full Width: Recent Detections Table -->
@@ -1681,77 +1663,6 @@
               <div class="admin-chart-container" id="adminReportTrendChart">
                 <!-- Injected dynamically -->
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ═══════════ SCREEN 11E: CHATBOT MANAGEMENT ═══════════ -->
-      <section class="screen" id="admin-chatbot">
-        <div class="admin-header-row">
-          <div class="admin-title">
-            <h2>Chatbot & FAQ Management</h2>
-            <p>Monitor user conversation logs, manage FAQ knowledge entries, and add disease question-and-answer rules</p>
-          </div>
-          <button class="admin-add-btn" onclick="openModal('modalAdminAddFaq')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>Add Q&A Knowledge</span>
-          </button>
-        </div>
-
-        <!-- Chatbot Sub-Tabs -->
-        <div class="admin-tabs-bar">
-          <button class="admin-tab-btn active" id="adminChatbotTabFaq" onclick="switchAdminChatbotTab('faq')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <span>Manage FAQ & Knowledge Base (<span id="adminFaqCountBadge">0</span>)</span>
-          </button>
-          <button class="admin-tab-btn" id="adminChatbotTabLogs" onclick="switchAdminChatbotTab('logs')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>User Conversation Logs (<span id="adminChatLogsCountBadge">0</span>)</span>
-          </button>
-        </div>
-
-        <!-- TAB 1: FAQ & KNOWLEDGE BASE -->
-        <div id="adminChatbotFaqView">
-          <div class="admin-table-card">
-            <div class="table-responsive">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Question / Prompt</th>
-                    <th>AI Agronomist Answer</th>
-                    <th>Language</th>
-                    <th>Status</th>
-                    <th style="text-align: right; width: 120px;">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="adminFaqTableBody">
-                  <tr><td colspan="6" class="empty-table-msg">Loading FAQ knowledge items...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB 2: LIVE CONVERSATION LOGS -->
-        <div id="adminChatbotLogsView" style="display: none;">
-          <div class="admin-table-card">
-            <div class="table-responsive">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Speaker</th>
-                    <th>Message Content</th>
-                    <th>Language</th>
-                    <th>Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody id="adminChatLogsTableBody">
-                  <tr><td colspan="5" class="empty-table-msg">Loading conversation history...</td></tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
@@ -2624,149 +2535,6 @@
     <div class="delete-modal-actions">
       <button type="button" class="btn-modal-cancel" onclick="closeModal('modalAdminDeleteScan')">Cancel</button>
       <button type="button" class="btn-modal-danger" id="confirmDeleteScanBtn" onclick="confirmAdminDeleteScan()">Yes, Delete Record</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ ADMIN CHATBOT FAQ / KNOWLEDGE MODALS ═══════════ -->
-
-<!-- Admin: Add FAQ Modal -->
-<div class="modal-backdrop" id="modalAdminAddFaq">
-  <div class="modal-box edit-profile-modal-box" style="max-width: 600px;">
-    <div class="modal-header">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div class="modal-header-icon green">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div>
-          <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Add Chatbot Knowledge Rule</h3>
-          <p style="font-size: 11.5px; color: var(--neutral-500); margin: 2px 0 0;">Teach the AI Agronomist chatbot new rice-farming answers and FAQs</p>
-        </div>
-      </div>
-      <button class="modal-close-btn" onclick="closeModal('modalAdminAddFaq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div class="error-banner" id="adminAddFaqError"></div>
-    <div class="success-banner" id="adminAddFaqSuccess"></div>
-    <form class="auth-form edit-profile-form" id="adminAddFaqForm" onsubmit="handleAdminAddFaq(event)">
-      <div class="form-group">
-        <label><span>Category / Tag</span></label>
-        <select id="adminAddFaqCategory" class="form-input-styled" required>
-          <option value="general">General Rice Farming</option>
-          <option value="bacterial_leaf_blight">Bacterial Leaf Blight</option>
-          <option value="rice_blast">Rice Blast</option>
-          <option value="brown_spot">Brown Spot</option>
-          <option value="tungro">Rice Tungro</option>
-          <option value="prevention">Pest & Disease Prevention</option>
-          <option value="fertilizer">Fertilizer & Nutrition</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label><span>User Question / Trigger Words</span></label>
-        <input type="text" id="adminAddFaqQuestion" class="form-input-styled" placeholder="e.g. Paano maiiwasan ang bacterial leaf blight?" required>
-      </div>
-      <div class="form-group">
-        <label><span>AI Agronomist Answer</span></label>
-        <textarea id="adminAddFaqAnswer" rows="4" class="form-input-styled" placeholder="Detailed agronomic response to give the farmer..." required></textarea>
-      </div>
-      <div class="form-group">
-        <label><span>Language</span></label>
-        <select id="adminAddFaqLang" class="form-input-styled">
-          <option value="both">Both Tagalog & English</option>
-          <option value="tl">Tagalog (Filipino)</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label><span>Status</span></label>
-        <select id="adminAddFaqStatus" class="form-input-styled">
-          <option value="1">Active (Available to Chatbot)</option>
-          <option value="0">Inactive</option>
-        </select>
-      </div>
-      <div style="display: flex; gap: 10px; margin-top: 14px;">
-        <button type="button" class="btn-modal-cancel" onclick="closeModal('modalAdminAddFaq')">Cancel</button>
-        <button type="submit" class="auth-btn" id="adminAddFaqBtn" style="margin-top: 0; flex: 1;">Save Q&A Rule</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Admin: Edit FAQ Modal -->
-<div class="modal-backdrop" id="modalAdminEditFaq">
-  <div class="modal-box edit-profile-modal-box" style="max-width: 600px;">
-    <div class="modal-header">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div class="modal-header-icon blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </div>
-        <div>
-          <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Edit Chatbot Knowledge Rule</h3>
-          <p style="font-size: 11.5px; color: var(--neutral-500); margin: 2px 0 0;">Update agronomic answer or trigger question</p>
-        </div>
-      </div>
-      <button class="modal-close-btn" onclick="closeModal('modalAdminEditFaq')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div class="error-banner" id="adminEditFaqError"></div>
-    <div class="success-banner" id="adminEditFaqSuccess"></div>
-    <form class="auth-form edit-profile-form" id="adminEditFaqForm" onsubmit="handleAdminEditFaq(event)">
-      <input type="hidden" id="adminEditFaqId">
-      <div class="form-group">
-        <label><span>Category / Tag</span></label>
-        <select id="adminEditFaqCategory" class="form-input-styled" required>
-          <option value="general">General Rice Farming</option>
-          <option value="bacterial_leaf_blight">Bacterial Leaf Blight</option>
-          <option value="rice_blast">Rice Blast</option>
-          <option value="brown_spot">Brown Spot</option>
-          <option value="tungro">Rice Tungro</option>
-          <option value="prevention">Pest & Disease Prevention</option>
-          <option value="fertilizer">Fertilizer & Nutrition</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label><span>User Question / Trigger Words</span></label>
-        <input type="text" id="adminEditFaqQuestion" class="form-input-styled" required>
-      </div>
-      <div class="form-group">
-        <label><span>AI Agronomist Answer</span></label>
-        <textarea id="adminEditFaqAnswer" rows="4" class="form-input-styled" required></textarea>
-      </div>
-      <div class="form-group">
-        <label><span>Language</span></label>
-        <select id="adminEditFaqLang" class="form-input-styled">
-          <option value="both">Both Tagalog & English</option>
-          <option value="tl">Tagalog (Filipino)</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label><span>Status</span></label>
-        <select id="adminEditFaqStatus" class="form-input-styled">
-          <option value="1">Active</option>
-          <option value="0">Inactive</option>
-        </select>
-      </div>
-      <div style="display: flex; gap: 10px; margin-top: 14px;">
-        <button type="button" class="btn-modal-cancel" onclick="closeModal('modalAdminEditFaq')">Cancel</button>
-        <button type="submit" class="auth-btn" id="adminEditFaqBtn" style="margin-top: 0; flex: 1;">Update Rule</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Admin: Delete FAQ Modal -->
-<div class="modal-backdrop" id="modalAdminDeleteFaq">
-  <div class="modal-box delete-confirm-modal-box">
-    <div class="delete-modal-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-      </svg>
-    </div>
-    <h3 class="delete-modal-title">Delete Knowledge Rule?</h3>
-    <p class="delete-modal-desc">Are you sure you want to delete <strong id="adminDeleteFaqQuestion" style="color: var(--neutral-900);">this Q&A entry</strong> from the chatbot database?</p>
-    <div class="error-banner" id="adminDeleteFaqError" style="margin-bottom: 14px;"></div>
-    <div class="delete-modal-actions">
-      <button type="button" class="btn-modal-cancel" onclick="closeModal('modalAdminDeleteFaq')">Cancel</button>
-      <button type="button" class="btn-modal-danger" id="confirmDeleteFaqBtn" onclick="confirmAdminDeleteFaq()">Yes, Delete Entry</button>
     </div>
   </div>
 </div>
