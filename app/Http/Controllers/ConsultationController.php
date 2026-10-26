@@ -58,29 +58,13 @@ class ConsultationController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        // Enforce the product scope before sending any message to the language model.
-        $aiResponse = $this->isProjectRelated($userMessage, $userId)
-            ? $this->generateResponse($userMessage, $language, $userId)
-            : $this->outOfScopeResponse($language);
-        if ($aiResponse === null) {
-            $notConfigured = $this->geminiApiKey() === '';
-            $message = $notConfigured
-                ? ($language === 'tagalog'
-                    ? 'Hindi pa naka-configure ang AI Consultant. Pakisabi sa system administrator na idagdag ang AI service key sa server.'
-                    : 'The AI Consultant is not configured yet. Please ask the system administrator to add its AI service key on the server.')
-                : ($language === 'tagalog'
-                    ? 'Hindi makasagot ang AI Consultant sa ngayon. Pakisubukan muli mamaya. Para sa agarang payo tungkol sa sakit o paggamit ng produkto, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
-                    : 'The AI Consultant is temporarily unavailable. Please try again later. For urgent disease or product-use advice, contact your Municipal Agriculture Office or local agricultural technician.');
+        // Generate AI response using Gemini with domain-restricted system prompt
+        $aiResponse = $this->generateResponse($userMessage, $language, $userId);
 
-            if ($notConfigured) {
-                Log::warning('AI consultation is unavailable because GEMINI_API_KEY is not configured.');
-            }
-
-            return response()->json([
-                'success' => false,
-                'code' => $notConfigured ? 'ai_not_configured' : 'ai_unavailable',
-                'message' => $message,
-            ], 503);
+        if (empty($aiResponse)) {
+            $aiResponse = $language === 'tagalog'
+                ? 'Paumanhin, pansamantalang hindi maabot ang AI service sa ngayon. Pakisubukan muli maya-maya. Para sa agarang payo sa bukid, kumonsulta sa inyong Municipal Agriculture Office o lokal na agricultural technician.'
+                : 'The AI Consultant is momentarily unavailable. Please check your connection or try again shortly. For urgent crop advice, please consult your local Municipal Agriculture Office.';
         }
 
         // 2. Persist user message and AI response in database
@@ -297,13 +281,32 @@ class ConsultationController extends Controller
 
     private function geminiModelCandidates(): array
     {
-        $configuredModel = trim((string) (config('services.gemini.model') ?: 'gemini-3.8-flash'));
+        $configuredModel = trim((string) (config('services.gemini.model') ?: 'gemini-3.5-flash-lite'));
 
         return array_values(array_unique(array_filter([
             $configuredModel,
-            'gemini-3.8-flash',
             'gemini-3.5-flash-lite',
+            'gemini-3.5-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-flash-latest',
         ])));
+    }
+
+    private function geminiHttpClient(int $timeout = 25)
+    {
+        $caPath = storage_path('cacert.pem');
+        $verify = file_exists($caPath) ? $caPath : (app()->isLocal() ? false : true);
+
+        return Http::withOptions([
+            'verify' => $verify,
+            'curl' => [
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            ],
+        ])
+        ->timeout($timeout)
+        ->withHeaders([
+            'x-goog-api-key' => $this->geminiApiKey(),
+        ]);
     }
 
     /**
@@ -347,8 +350,13 @@ class ConsultationController extends Controller
             }
         }
 
+        // Gemini conversation history MUST start with a user turn
+        while (!empty($contents) && $contents[0]['role'] === 'model') {
+            array_shift($contents);
+        }
+
         // Ensure history doesn't end with a user turn before adding current message
-        if (!empty($contents) && end($contents)['role'] === 'user') {
+        while (!empty($contents) && end($contents)['role'] === 'user') {
             array_pop($contents);
         }
 
@@ -368,16 +376,15 @@ class ConsultationController extends Controller
             ],
             'contents' => $contents,
             'generationConfig' => [
+                'temperature' => 0.4,
                 'maxOutputTokens' => 2048,
             ]
         ];
 
         foreach ($this->geminiModelCandidates() as $mName) {
             try {
-                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent';
-                $response = Http::timeout(20)
-                    ->withHeaders(['x-goog-api-key' => $apiKey])
-                    ->post($url, $payload);
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent?key=' . urlencode($apiKey);
+                $response = $this->geminiHttpClient(25)->post($url, $payload);
 
                 if ($response->successful()) {
                     $data = $response->json();
@@ -408,20 +415,18 @@ class ConsultationController extends Controller
                     $status = $response->status();
                     Log::warning('Gemini API request failed.', ['model' => $mName, 'status' => $status]);
 
-                    $errorMessage = mb_strtolower((string) data_get($response->json(), 'error.message', ''));
-                    $modelUnavailable = $status === 404 || ($status === 400 && str_contains($errorMessage, 'model'));
-                    if ($modelUnavailable) {
-                        continue;
+                    // Stop immediately only on permanent authentication failures (invalid key)
+                    if ($status === 401 || $status === 403) {
+                        return null;
                     }
 
-                    // Authentication, quota, rate-limit, and server errors are not fixed by
-                    // trying more model names; stop to avoid multiplying latency and requests.
-                    return null;
+                    // For demand spikes (503), rate limits (429), or missing models (404), cascade to next candidate
+                    continue;
                 }
             } catch (Exception $e) {
                 // Do not log exception messages: HTTP exception messages can contain request URLs.
                 Log::warning('Gemini API connection failed.', ['model' => $mName, 'exception' => get_class($e)]);
-                return null;
+                continue;
             }
         }
 
@@ -524,10 +529,8 @@ PROMPT;
 
         foreach ($this->geminiModelCandidates() as $mName) {
             try {
-                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent';
-                $response = Http::timeout(20)
-                    ->withHeaders(['x-goog-api-key' => $apiKey])
-                    ->post($url, $payload);
+                $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent?key=' . urlencode($apiKey);
+                $response = $this->geminiHttpClient(25)->post($url, $payload);
                 if ($response->successful()) {
                     $data = $response->json();
                     $candidates = $data['candidates'] ?? [];
@@ -544,15 +547,16 @@ PROMPT;
                     $status = $response->status();
                     Log::warning('Gemini translation request failed.', ['model' => $mName, 'status' => $status]);
 
-                    $errorMessage = mb_strtolower((string) data_get($response->json(), 'error.message', ''));
-                    $modelUnavailable = $status === 404 || ($status === 400 && str_contains($errorMessage, 'model'));
-                    if (!$modelUnavailable) {
+                    // Stop immediately only on permanent authentication failures (invalid key)
+                    if ($status === 401 || $status === 403) {
                         return null;
                     }
+
+                    continue;
                 }
             } catch (Exception $e) {
                 Log::warning('Gemini translation connection failed.', ['model' => $mName, 'exception' => get_class($e)]);
-                return null;
+                continue;
             }
         }
 
