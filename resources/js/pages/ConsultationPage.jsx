@@ -45,6 +45,7 @@ export default function ConsultationPage() {
         return typeof window !== 'undefined' && localStorage.getItem('oryzatix_ai_voice_muted') === 'true';
     });
     const [speakingIndex, setSpeakingIndex] = useState(null);
+    const [translatingIndex, setTranslatingIndex] = useState(null);
     const recognitionRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -136,6 +137,56 @@ export default function ConsultationPage() {
         }
     };
 
+    const translateMessage = async (index) => {
+        const msg = messages[index];
+        if (!msg || msg.role !== 'ai') return;
+        const currentLang = (msg.language || 'tagalog').toLowerCase();
+        const targetLang = currentLang === 'tagalog' ? 'english' : 'tagalog';
+
+        if (msg.translations && msg.translations[targetLang]) {
+            setMessages((prev) => prev.map((item, idx) => {
+                if (idx === index) {
+                    return {
+                        ...item,
+                        content: item.translations[targetLang],
+                        language: targetLang,
+                    };
+                }
+                return item;
+            }));
+            return;
+        }
+
+        setTranslatingIndex(index);
+        try {
+            const { data } = await api.post('/consultation/translate', {
+                text: msg.content,
+                target_language: targetLang,
+            });
+            if (data?.success && data.translated_text) {
+                const translated = data.translated_text.trim();
+                setMessages((prev) => prev.map((item, idx) => {
+                    if (idx === index) {
+                        const translations = item.translations || {};
+                        translations[currentLang] = item.content;
+                        translations[targetLang] = translated;
+                        return {
+                            ...item,
+                            content: translated,
+                            language: targetLang,
+                            translations,
+                        };
+                    }
+                    return item;
+                }));
+            }
+        } catch (e) {
+            console.error('Translation error:', e);
+        } finally {
+            setTranslatingIndex(null);
+        }
+    };
+
     const toggleVoice = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
@@ -221,6 +272,20 @@ export default function ConsultationPage() {
                                         {formatAiText(m.content)}
                                     </div>
                                     <div className="chat-bubble-footer">
+                                        <button 
+                                            type="button"
+                                            className={`translate-bubble-btn ${translatingIndex === i ? 'translating' : ''}`}
+                                            onClick={() => translateMessage(i)}
+                                            disabled={translatingIndex === i}
+                                            title="Translate message"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+                                            <span>
+                                                {translatingIndex === i 
+                                                    ? 'Translating...' 
+                                                    : ((m.language || 'tagalog').toLowerCase() === 'tagalog' ? 'Translate to English' : 'Translate to Tagalog')}
+                                            </span>
+                                        </button>
                                         <button 
                                             className={`audio-speaker-btn ${speakingIndex === i ? 'speaking' : ''}`}
                                             onClick={() => speakText(m.content, m.language || 'tagalog', i)}

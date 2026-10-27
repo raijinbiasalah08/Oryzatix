@@ -4251,6 +4251,7 @@ function appendAIBubble(content, language, container) {
   aiBubble.className = 'chat-bubble ai fade-in';
   aiBubble.setAttribute('data-lang', currentLang);
   aiBubble.setAttribute('data-raw-content', String(content));
+  aiBubble.setAttribute('data-text-' + currentLang, String(content));
   aiBubble.innerHTML =
     '<div class="chat-text-content">' + formatAiMessage(content) + '</div>' +
     '<div class="chat-bubble-footer">' +
@@ -4276,18 +4277,37 @@ async function translateAiBubble(btn) {
   const currentLang = (bubble.getAttribute('data-lang') || 'tagalog').toLowerCase();
   const targetLang = (currentLang === 'tagalog') ? 'english' : 'tagalog';
 
-  const rawContent = bubble.getAttribute('data-raw-content') || contentEl.innerText || contentEl.textContent;
+  // Ensure current text is saved for current language
+  if (!bubble.getAttribute('data-text-' + currentLang)) {
+    const existing = bubble.getAttribute('data-raw-content') || contentEl.innerText || contentEl.textContent;
+    bubble.setAttribute('data-text-' + currentLang, (existing || '').trim());
+  }
+
+  const labelSpan = btn.querySelector('span');
+  const originalLabel = labelSpan ? labelSpan.textContent : '';
+
+  // 1. Instant swap if translation was already loaded before
+  const cachedTranslation = bubble.getAttribute('data-text-' + targetLang);
+  if (cachedTranslation && cachedTranslation.trim()) {
+    if (typeof stopAiSpeech === 'function') stopAiSpeech();
+    contentEl.innerHTML = formatAiMessage(cachedTranslation);
+    bubble.setAttribute('data-lang', targetLang);
+    bubble.setAttribute('data-raw-content', cachedTranslation);
+    if (labelSpan) {
+      labelSpan.textContent = (targetLang === 'english') ? 'Translate to Tagalog' : 'Translate to English';
+    }
+    return;
+  }
+
+  const rawContent = bubble.getAttribute('data-text-' + currentLang) || bubble.getAttribute('data-raw-content') || contentEl.innerText || contentEl.textContent;
   if (!rawContent || !rawContent.trim()) return;
 
   // Set loading state on button
   btn.disabled = true;
   btn.classList.add('translating');
-  const labelSpan = btn.querySelector('span');
-  const originalLabel = labelSpan ? labelSpan.textContent : '';
   if (labelSpan) labelSpan.textContent = 'Translating...';
 
   try {
-    await ensureCsrfCookie();
     const res = await fetch(apiUrl('/consultation/translate'), {
       method: 'POST',
       credentials: 'include',
@@ -4298,25 +4318,30 @@ async function translateAiBubble(btn) {
       })
     });
 
-    const data = await res.json();
-    if (data && data.success && data.translated_text) {
-      // Update bubble content and speech language
-      contentEl.innerHTML = formatAiMessage(data.translated_text);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && data.success && data.translated_text) {
+      const translated = data.translated_text.trim();
+      if (typeof stopAiSpeech === 'function') stopAiSpeech();
+      bubble.setAttribute('data-text-' + targetLang, translated);
+      contentEl.innerHTML = formatAiMessage(translated);
       bubble.setAttribute('data-lang', targetLang);
-      bubble.setAttribute('data-raw-content', data.translated_text);
+      bubble.setAttribute('data-raw-content', translated);
 
-      // Flip button label to the other language
-      const newTargetLang = (targetLang === 'english') ? 'tagalog' : 'english';
-      const newLabel = (newTargetLang === 'english') ? 'Translate to English' : 'Translate to Tagalog';
-      if (labelSpan) labelSpan.textContent = newLabel;
+      const nextLang = (targetLang === 'english') ? 'tagalog' : 'english';
+      const nextLabel = (nextLang === 'english') ? 'Translate to English' : 'Translate to Tagalog';
+      if (labelSpan) labelSpan.textContent = nextLabel;
     } else {
-      alert('Hindi ma-proseso ang translation sa ngayon. Pakisubukan muli.');
-      if (labelSpan) labelSpan.textContent = originalLabel;
+      if (labelSpan) {
+        labelSpan.textContent = (targetLang === 'english') ? 'Translation unavailable' : 'Hindi maisalin';
+        setTimeout(() => { if (labelSpan) labelSpan.textContent = originalLabel; }, 2500);
+      }
     }
   } catch (err) {
     console.error('Translation error:', err);
-    alert('Translation error. Please check your internet connection.');
-    if (labelSpan) labelSpan.textContent = originalLabel;
+    if (labelSpan) {
+      labelSpan.textContent = (targetLang === 'english') ? 'Network error' : 'May problema sa koneksyon';
+      setTimeout(() => { if (labelSpan) labelSpan.textContent = originalLabel; }, 2500);
+    }
   } finally {
     btn.disabled = false;
     btn.classList.remove('translating');

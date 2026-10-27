@@ -304,6 +304,7 @@ class ConsultationController extends Controller
 
         return Http::withOptions([
             'verify' => $verify,
+            'connect_timeout' => 5,
             'curl' => [
                 CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
             ],
@@ -473,13 +474,19 @@ PROMPT;
      */
     public function translate(Request $request): JsonResponse
     {
+        @set_time_limit(60);
+
         $request->validate([
-            'text' => 'required|string',
+            'text' => 'required|string|max:10000',
             'target_language' => 'required|in:tagalog,english',
         ]);
 
         $text = trim($request->input('text'));
         $targetLang = $request->input('target_language');
+
+        if ($text === '') {
+            return response()->json(['success' => false, 'message' => 'Text cannot be empty.'], 422);
+        }
 
         $translated = $this->callGeminiTranslation($text, $targetLang);
 
@@ -492,11 +499,11 @@ PROMPT;
         }
 
         return response()->json([
-            'success' => true,
+            'success' => false,
             'translated_text' => $text,
             'target_language' => $targetLang,
             'message' => 'Translation unavailable, showing original message.',
-        ]);
+        ], 503);
     }
 
     /**
@@ -535,7 +542,7 @@ PROMPT;
         foreach ($this->geminiModelCandidates() as $mName) {
             try {
                 $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($mName) . ':generateContent?key=' . urlencode($apiKey);
-                $response = $this->geminiHttpClient(15)->post($url, $payload);
+                $response = $this->geminiHttpClient(8)->post($url, $payload);
                 if ($response->successful()) {
                     $data = $response->json();
                     $candidates = $data['candidates'] ?? [];

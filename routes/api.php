@@ -106,7 +106,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('consultation')->group(function () {
         Route::get('/messages', [ConsultationController::class, 'index'])->name('consultation.messages');
         Route::post('/send', [ConsultationController::class, 'send'])->name('consultation.send');
-        Route::post('/translate', [ConsultationController::class, 'translate'])->name('consultation.translate');
         Route::delete('/clear', [ConsultationController::class, 'clear'])->name('consultation.clear');
     });
 
@@ -116,6 +115,9 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public endpoints accessible across all devices
 Route::get('/treatment-guides', [RiceScanController::class, 'treatmentGuides'])->name('treatment-guides.index');
 Route::get('/dashboard/public-stats', [RiceScanController::class, 'dashboardStats'])->name('dashboard.public-stats');
+
+// Public translation endpoint (accessible for both logged-in and guest users)
+Route::post('/consultation/translate', [ConsultationController::class, 'translate'])->name('consultation.translate');
 
 // Scan upload with optional user attachment (accessible for seamless scanning across all auth modes)
 Route::post('/rice-detector/upload', [RiceScanController::class, 'upload'])->name('rice-detector.upload');
