@@ -298,8 +298,15 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        if ($request->user() && $request->user()->currentAccessToken()) {
-            $request->user()->currentAccessToken()->delete();
+        $accessToken = $request->user()?->currentAccessToken();
+        if ($accessToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $accessToken->delete();
+        } elseif ($request->bearerToken()) {
+            // Session-authenticated Sanctum users have a non-persisted token.
+            $bearerToken = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
+            if ($bearerToken && $bearerToken->tokenable?->is($request->user())) {
+                $bearerToken->delete();
+            }
         }
 
         if ($request->hasSession()) {
@@ -426,6 +433,11 @@ class AuthController extends Controller
             });
         } catch (Exception $e) {
             Log::warning('Mail delivery warning: ' . $e->getMessage());
+            DB::table('password_reset_tokens')->where('email', $email)->where('token', $otp)->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'The verification email could not be sent. Please try again later.',
+            ], 503);
         }
 
         return response()->json([
@@ -635,29 +647,24 @@ class AuthController extends Controller
 
     public function googleLogin(Request $request): JsonResponse
     {
+        $request->validate([
+            'id_token' => 'nullable|string|max:10000',
+            'credential' => 'nullable|string|max:10000',
+            'mode' => 'nullable|in:login,register',
+        ]);
         $idToken = $request->input('id_token') ?: $request->input('credential');
-        $email = strtolower(trim($request->input('email', '')));
-        $name = trim($request->input('name', ''));
-        $googleId = $request->input('google_id', '');
-        $avatar = $request->input('avatar', '');
-
-        // If Google Identity Services JWT token is present, decode it
-        if ($idToken) {
-            try {
-                $parts = explode('.', $idToken);
-                if (count($parts) >= 2) {
-                    $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
-                    if ($payload && isset($payload['email'])) {
-                        $email = strtolower(trim($payload['email']));
-                        $name = $payload['name'] ?? $name;
-                        $googleId = $payload['sub'] ?? $googleId;
-                        $avatar = $payload['picture'] ?? $avatar;
-                    }
-                }
-            } catch (Exception $e) {
-                Log::warning('Google JWT parse warning: ' . $e->getMessage());
-            }
+        if (!$idToken) {
+            return response()->json(['success' => false, 'message' => 'Please sign in using the Google account button.'], 422);
         }
+        try {
+            $payload = app(\App\Services\GoogleIdTokenVerifier::class)->verify($idToken);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Google sign-in could not be verified. Please try again.'], 401);
+        }
+        $email = strtolower(trim($payload['email']));
+        $name = trim($payload['name'] ?? '');
+        $googleId = $payload['sub'];
+        $avatar = $payload['picture'] ?? '';
 
         if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return response()->json([
@@ -675,9 +682,6 @@ class AuthController extends Controller
 
         if (!$name) {
             $name = explode('@', $email)[0];
-        }
-        if (!$googleId) {
-            $googleId = 'google_' . substr(md5($email), 0, 16);
         }
 
         $mode = $request->input('mode', 'login'); // 'login' or 'register'
@@ -740,15 +744,10 @@ class AuthController extends Controller
 
     public function googleAccounts(): JsonResponse
     {
-        $users = User::select(['id', 'name', 'email', 'role', 'avatar', 'location'])
-            ->where('email', 'like', '%@gmail.com')
-            ->take(6)
-            ->get()
-            ->map(fn($u) => $this->formatUser($u));
-
         return response()->json([
             'success' => true,
-            'accounts' => $users,
+            // Account selection belongs to Google's verified account chooser.
+            'accounts' => [],
         ]);
     }
 

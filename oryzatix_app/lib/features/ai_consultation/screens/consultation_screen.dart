@@ -53,9 +53,19 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     final text = textToSend ?? _textController.text;
     if (text.trim().isEmpty) return;
 
-    if (textToSend == null) _textController.clear();
     final provider = context.read<ConsultationProvider>();
-    await provider.sendMessage(text);
+    if (provider.isSending || provider.isLoading) return;
+    if (textToSend == null) _textController.clear();
+    final sent = await provider.sendMessage(text);
+    if (!mounted) return;
+    if (!sent) {
+      if (textToSend == null && _textController.text.isEmpty) {
+        _textController.text = text;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(provider.errorMessage ?? 'Message could not be sent.'),
+      ));
+    }
     _scrollToBottom();
   }
 
@@ -162,7 +172,13 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                 ),
               );
               if (confirm == true) {
-                consultation.clearMessages();
+                await consultation.clearMessages();
+                if (!context.mounted) return;
+                if (consultation.errorMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(consultation.errorMessage!),
+                  ));
+                }
               }
             },
           ),

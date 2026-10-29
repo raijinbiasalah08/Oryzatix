@@ -1,13 +1,17 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE scans MODIFY severity ENUM('mild', 'moderate', 'severe', 'healthy', 'unassessed') NOT NULL");
+        Schema::table('scans', function (Blueprint $table) {
+            $table->enum('severity', ['mild', 'moderate', 'severe', 'healthy', 'unassessed'])->change();
+        });
         // Existing disease severity values came from unvalidated image heuristics.
         DB::table('scans')->where('severity', '!=', 'healthy')->update(['severity' => 'unassessed']);
     }
@@ -20,6 +24,8 @@ return new class extends Migration
             );
         }
 
-        DB::statement("ALTER TABLE scans MODIFY severity ENUM('mild', 'moderate', 'severe', 'healthy') NOT NULL");
+        Schema::table('scans', function (Blueprint $table) {
+            $table->enum('severity', ['mild', 'moderate', 'severe', 'healthy'])->change();
+        });
     }
 };

@@ -76,6 +76,7 @@ class HistoryProvider extends ChangeNotifier {
         });
         _scansByDate.removeWhere((key, list) => list.isEmpty);
         notifyListeners();
+        await loadHistory(isSilent: true);
         return true;
       }
     } catch (_) {}

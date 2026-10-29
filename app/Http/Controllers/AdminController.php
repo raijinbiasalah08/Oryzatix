@@ -693,6 +693,7 @@ class AdminController extends Controller
                 'Bacterial Leaf Blight' => RiceScan::where('disease_name', 'like', '%Bacterial%')->count(),
                 'Brown Spot' => RiceScan::where('disease_name', 'like', '%Brown Spot%')->count(),
                 'Rice Tungro Disease' => RiceScan::where('disease_name', 'like', '%Tungro%')->count(),
+                'Sheath Blight' => RiceScan::where('disease_name', 'like', '%Sheath%')->count(),
                 'Healthy Rice Leaf' => RiceScan::where('disease_name', 'like', '%Healthy%')->orWhere('severity', 'healthy')->count(),
             ];
 
@@ -724,7 +725,7 @@ class AdminController extends Controller
                 }
             } else {
                 for ($i = 5; $i >= 0; $i--) {
-                    $m = Carbon::now()->subMonths($i);
+                    $m = Carbon::now()->startOfMonth()->subMonths($i);
                     $trendData[] = [
                         'label' => $m->format('M Y'),
                         'count' => RiceScan::whereYear('created_at', $m->year)->whereMonth('created_at', $m->month)->count(),

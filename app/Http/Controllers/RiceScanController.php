@@ -1596,11 +1596,20 @@ class RiceScanController extends Controller
 
     public function treatmentGuides(): JsonResponse
     {
-        $dbDiseases = \App\Models\Disease::where('status', 'active')->get()->keyBy('code');
+        $dbDiseases = \App\Models\Disease::all()->keyBy('code');
+        $catalog = $this->diseases;
+        foreach ($dbDiseases as $key => $disease) {
+            if (!isset($catalog[$key])) {
+                $catalog[$key] = ['name' => $disease->name, 'scientific' => $disease->scientific_name];
+            }
+        }
         $result = [];
 
-        foreach ($this->diseases as $key => $diseaseData) {
+        foreach ($catalog as $key => $diseaseData) {
             $dbItem = $dbDiseases->get($key);
+            if ($dbItem && $dbItem->status !== 'active') {
+                continue;
+            }
             $result[] = [
                 'key' => $key,
                 'name' => $dbItem?->name ?: $diseaseData['name'],
@@ -1613,9 +1622,9 @@ class RiceScanController extends Controller
                 'image_url' => $this->resolveScanImageUrl($dbItem?->image_path, $diseaseData['name']),
                 'severity_class' => $diseaseData['severity_class'] ?? 'blast-bg',
                 'severity_levels' => $diseaseData['severity_levels'] ?? null,
-                'treatments' => $diseaseData['treatments'] ?? [
-                    'chemical' => $dbItem?->chemical_treatments ?: [],
-                    'organic' => $dbItem?->organic_treatments ?: [],
+                'treatments' => [
+                    'chemical' => $dbItem?->chemical_treatments ?? ($diseaseData['treatments']['chemical'] ?? []),
+                    'organic' => $dbItem?->organic_treatments ?? ($diseaseData['treatments']['organic'] ?? []),
                 ],
             ];
         }

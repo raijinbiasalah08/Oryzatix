@@ -59,13 +59,25 @@ class AuthProvider extends ChangeNotifier {
             _currentUser = UserModel.fromJson(res['user']);
             await TokenStorage.saveUser(res['user']);
           }
+        } on ApiException catch (e) {
+          if (e.statusCode == 401 || e.statusCode == 403) {
+            await TokenStorage.clearAuth();
+            _currentUser = null;
+          } else {
+            // A network/server failure may use the cached offline identity.
+            final cached = await TokenStorage.getUser();
+            if (cached != null) {
+              _currentUser = UserModel.fromJson(cached);
+            }
+          }
         } catch (_) {
-          // Fall back to cached user if offline
           final cached = await TokenStorage.getUser();
           if (cached != null) {
             _currentUser = UserModel.fromJson(cached);
           }
         }
+      } else {
+        _currentUser = null;
       }
     } catch (_) {}
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/chat_message_model.dart';
 
@@ -59,17 +60,19 @@ class ConsultationProvider extends ChangeNotifier {
 
   Future<bool> sendMessage(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return false;
+    if (trimmed.isEmpty || _isSending || _isLoading) return false;
+    final language = _activeLanguage;
 
     final nowStr = DateFormat('h:mm a').format(DateTime.now());
 
     // Optimistically add user message
-    _messages.add(ChatMessageModel(
+    final pendingMessage = ChatMessageModel(
       role: 'user',
       content: trimmed,
-      language: _activeLanguage,
+      language: language,
       time: nowStr,
-    ));
+    );
+    _messages.add(pendingMessage);
     _isSending = true;
     _errorMessage = null;
     notifyListeners();
@@ -77,48 +80,50 @@ class ConsultationProvider extends ChangeNotifier {
     try {
       final res = await ApiClient.post(ApiEndpoints.consultationSend, body: {
         'message': trimmed,
-        'language': _activeLanguage,
+        'language': language,
       });
 
-      if (res is Map<String, dynamic> && res['success'] == true) {
-        final aiContent = res['ai_response']?.toString().trim() ?? '';
+      if (res is Map<String, dynamic> && res['success'] == true &&
+          res['ai_response'] is String && (res['ai_response'] as String).trim().isNotEmpty) {
+        final aiContent = (res['ai_response'] as String).trim();
         final aiTime = res['time']?.toString() ?? nowStr;
-
-        if (aiContent.isEmpty) {
-          throw StateError('Consultation service returned no answer');
-        }
 
         _messages.add(ChatMessageModel(
           role: 'ai',
           content: aiContent,
-          language: _activeLanguage,
+          language: res['language']?.toString() ?? language,
           time: aiTime,
         ));
-      } else {
-        throw StateError('Consultation service returned an unsuccessful response');
+        return true;
       }
-    } catch (_) {
-      _messages.add(ChatMessageModel(
-        role: 'ai',
-        content: _activeLanguage == 'tagalog'
-            ? 'Hindi ko makontak ang serbisyo ng payo sa palay kaya wala pa akong sagot. Subukan muli mamaya. Para sa agarang desisyon tungkol sa pananim o kemikal, kumonsulta sa Municipal Agriculture Office.'
-            : 'I could not reach the rice advisory service, so I do not have an answer yet. Please try again shortly. For time-sensitive crop or chemical decisions, contact your Municipal Agriculture Office.',
-        language: _activeLanguage,
-        time: nowStr,
-      ));
-      _errorMessage = null;
+      throw ApiException(message: 'The consultation service returned no answer. Please try again.');
+    } catch (e) {
+      _messages.remove(pendingMessage);
+      _errorMessage = 'Failed to get answer: ${e.toString()}';
+      return false;
+    } finally {
+      _isSending = false;
+      notifyListeners();
     }
-
-    _isSending = false;
-    notifyListeners();
-    return true;
   }
 
   Future<void> clearMessages() async {
+    if (_isSending || _isLoading) return;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
-      await ApiClient.delete(ApiEndpoints.consultationClear);
+      final res = await ApiClient.delete(ApiEndpoints.consultationClear);
+      if (res is! Map || res['success'] != true) {
+        throw ApiException(message: 'Could not clear the conversation.');
+      }
       _messages.clear();
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Could not clear messages: ${e.toString()}';
+    } finally {
+      _isLoading = false;
       notifyListeners();
-    } catch (_) {}
+    }
   }
 }
