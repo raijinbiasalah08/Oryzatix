@@ -682,13 +682,6 @@
 
       <!-- ═══════════ SCREEN 4: HOME / DASHBOARD ═══════════ -->
       <section class="screen" id="home">
-        <div class="dashboard-welcome-header">
-          <div class="dwh-user">
-            <h2 id="homeUserName">Mang Juan</h2>
-            <p data-en="Rice Leaf Health & Disease Diagnostic Dashboard" data-tl="Dashboard sa Kalusugan ng Dahon ng Palay at Pagsusuri ng Sakit">Rice Leaf Health & Disease Diagnostic Dashboard</p>
-          </div>
-        </div>
-
         <div class="dashboard-hero-row">
           <div class="quick-scan-card">
             <div>
