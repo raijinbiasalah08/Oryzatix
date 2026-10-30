@@ -158,7 +158,7 @@
 
       <!-- ADMIN ONLY SECTION -->
       <div id="sidebarAdminGroup" style="display: none; display: contents;">
-        <button class="sidebar-nav-btn" data-screen="admin-users" onclick="showScreen('admin-users'); loadAdminUsers();">
+        <button class="sidebar-nav-btn" data-screen="admin-users" onclick="showScreen('admin-users');">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span data-en="User Accounts" data-tl="Mga Account">User Management</span>
         </button>
@@ -251,7 +251,7 @@
 
       <!-- ADMIN ONLY SECTION -->
       <div id="drawerAdminGroup" style="display: none; display: contents;">
-        <button class="sidebar-nav-btn" data-screen="admin-users" onclick="showScreen('admin-users'); loadAdminUsers(); closeMobileDrawer();">
+        <button class="sidebar-nav-btn" data-screen="admin-users" onclick="showScreen('admin-users'); closeMobileDrawer();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span data-en="User Accounts" data-tl="Mga Account">User Management</span>
         </button>
@@ -1367,7 +1367,7 @@
 
         <!-- Quick Management Shortcuts Hub -->
         <div class="admin-quick-hub" style="margin-top: 20px;">
-          <div class="quick-hub-card" onclick="showScreen('admin-users'); loadAdminUsers();">
+          <div class="quick-hub-card" onclick="showScreen('admin-users');">
             <div class="quick-hub-icon green">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
@@ -1514,7 +1514,7 @@
         </div>
 
         <div class="admin-controls-row">
-          <input type="text" class="admin-search-input" id="adminSearchInput" placeholder="Search account by name, email, or location..." oninput="filterAdminUsersList()">
+          <input type="text" class="admin-search-input" id="adminSearchInput" placeholder="Search account by name, email, or location..." oninput="filterAdminUsersList(true)">
         </div>
 
         <!-- All Users Table Card -->
@@ -1536,6 +1536,10 @@
                 <tr><td colspan="7" class="empty-table-msg">Loading user accounts...</td></tr>
               </tbody>
             </table>
+          </div>
+          <div class="history-pagination-bar admin-users-pagination" id="adminUsersPagination" hidden>
+            <span class="pagination-info" id="adminUsersPaginationInfo"></span>
+            <nav class="pagination-controls" id="adminUsersPaginationControls" aria-label="User list pagination"></nav>
           </div>
         </div>
       </section>

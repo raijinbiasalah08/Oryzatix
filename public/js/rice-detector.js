@@ -4668,6 +4668,9 @@ let adminAllUsersList = [];
 let adminFarmersList = [];
 let adminStaffList = [];
 let activeAdminRoleFilter = 'all';
+const ADMIN_USERS_PER_PAGE = 6;
+let adminUsersCurrentPage = 1;
+let adminFilteredUsersList = [];
 
 async function loadAdminUsers() {
   await ensureCsrfCookie();
@@ -4704,15 +4707,18 @@ async function loadAdminUsers() {
         filterAdminUsersList();
       } else {
         renderAdminEmpty('adminUsersTableBody', data.message || 'Failed to load user accounts.');
+        renderAdminUsersPagination(0);
       }
     })
     .catch(() => {
       renderAdminEmpty('adminUsersTableBody', 'Unable to connect to server.');
+      renderAdminUsersPagination(0);
     });
 }
 
 function switchAdminUsersTab(role) {
   activeAdminRoleFilter = role;
+  adminUsersCurrentPage = 1;
   const tabs = ['all', 'farmer', 'agri_worker', 'admin'];
   tabs.forEach(t => {
     const idMap = {
@@ -4727,7 +4733,9 @@ function switchAdminUsersTab(role) {
   filterAdminUsersList();
 }
 
-function filterAdminUsersList() {
+function filterAdminUsersList(resetPage = false) {
+  if (resetPage) adminUsersCurrentPage = 1;
+
   const query = (document.getElementById('adminSearchInput')?.value || '').toLowerCase().trim();
   let list = adminAllUsersList;
   if (activeAdminRoleFilter !== 'all') {
@@ -4741,7 +4749,79 @@ function filterAdminUsersList() {
       (u.role_label || '').toLowerCase().includes(query)
     );
   }
-  renderAdminUsersTable(list);
+
+  adminFilteredUsersList = list;
+  const totalPages = Math.max(1, Math.ceil(list.length / ADMIN_USERS_PER_PAGE));
+  adminUsersCurrentPage = Math.min(Math.max(1, adminUsersCurrentPage), totalPages);
+
+  const startIndex = (adminUsersCurrentPage - 1) * ADMIN_USERS_PER_PAGE;
+  const pageUsers = list.slice(startIndex, startIndex + ADMIN_USERS_PER_PAGE);
+
+  renderAdminUsersTable(pageUsers);
+  renderAdminUsersPagination(list.length);
+}
+
+function changeAdminUsersPage(page) {
+  const totalPages = Math.max(1, Math.ceil(adminFilteredUsersList.length / ADMIN_USERS_PER_PAGE));
+  const nextPage = Math.min(Math.max(1, Number(page) || 1), totalPages);
+  if (nextPage === adminUsersCurrentPage) return;
+
+  adminUsersCurrentPage = nextPage;
+  filterAdminUsersList();
+
+  const tableCard = document.getElementById('adminUsersTableBody')?.closest('.admin-table-card');
+  if (tableCard) {
+    tableCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function renderAdminUsersPagination(totalUsers) {
+  const paginationBar = document.getElementById('adminUsersPagination');
+  const paginationInfo = document.getElementById('adminUsersPaginationInfo');
+  const paginationControls = document.getElementById('adminUsersPaginationControls');
+  if (!paginationBar || !paginationInfo || !paginationControls) return;
+
+  if (!totalUsers) {
+    paginationBar.hidden = true;
+    paginationInfo.textContent = '';
+    paginationControls.innerHTML = '';
+    return;
+  }
+
+  const totalPages = Math.ceil(totalUsers / ADMIN_USERS_PER_PAGE);
+  const firstUser = ((adminUsersCurrentPage - 1) * ADMIN_USERS_PER_PAGE) + 1;
+  const lastUser = Math.min(adminUsersCurrentPage * ADMIN_USERS_PER_PAGE, totalUsers);
+  paginationBar.hidden = false;
+  paginationInfo.textContent = `Showing ${firstUser}–${lastUser} of ${totalUsers} users`;
+
+  const visiblePages = totalPages <= 7
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : [1, adminUsersCurrentPage - 1, adminUsersCurrentPage, adminUsersCurrentPage + 1, totalPages]
+      .filter(page => page >= 1 && page <= totalPages)
+      .filter((page, index, pages) => pages.indexOf(page) === index)
+      .sort((a, b) => a - b);
+
+  let pageButtons = '';
+  let previousPage = 0;
+  visiblePages.forEach(page => {
+    if (previousPage && page - previousPage > 1) {
+      pageButtons += '<span class="page-ellipsis" aria-hidden="true">…</span>';
+    }
+    pageButtons += `
+      <button type="button" class="page-btn${page === adminUsersCurrentPage ? ' active' : ''}"
+        onclick="changeAdminUsersPage(${page})" aria-label="Go to page ${page}"
+        ${page === adminUsersCurrentPage ? 'aria-current="page"' : ''}>${page}</button>
+    `;
+    previousPage = page;
+  });
+
+  paginationControls.innerHTML = `
+    <button type="button" class="page-btn" onclick="changeAdminUsersPage(${adminUsersCurrentPage - 1})"
+      aria-label="Previous user page" ${adminUsersCurrentPage === 1 ? 'disabled' : ''}>‹</button>
+    ${pageButtons}
+    <button type="button" class="page-btn" onclick="changeAdminUsersPage(${adminUsersCurrentPage + 1})"
+      aria-label="Next user page" ${adminUsersCurrentPage === totalPages ? 'disabled' : ''}>›</button>
+  `;
 }
 
 function renderAdminUsersTable(users) {
