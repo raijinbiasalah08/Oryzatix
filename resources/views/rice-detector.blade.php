@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="app-booting">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
@@ -15,8 +15,27 @@
 <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
 <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ time() }}">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ filemtime(public_path('css/rice-detector.css')) ?: '1' }}">
+<style>
+  html.app-booting .web-app-shell {
+    opacity: 0;
+    visibility: hidden;
+  }
+  .web-app-shell {
+    opacity: 1;
+    transition: opacity 120ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .web-app-shell { transition: none; }
+  }
+</style>
+<script>
+  window.setTimeout(function () {
+    document.documentElement.classList.remove('app-booting');
+  }, 4000);
+</script>
 <meta name="google-signin-client_id" content="{{ config('services.google.client_id') ?? env('GOOGLE_CLIENT_ID', '') }}">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 @php
@@ -61,6 +80,13 @@
           'created_at' => $u->created_at ? $u->created_at->format('M j, Y') : 'N/A',
       ];
   }
+
+  $initialScreenId = match($currentUserData['role'] ?? null) {
+      'admin' => 'admin-dashboard',
+      'agri_worker' => 'staff-dashboard',
+      'farmer' => 'home',
+      default => 'login',
+  };
 @endphp
 <script>
   window.INITIAL_AUTH = {
@@ -77,7 +103,7 @@
 <input type="hidden" id="chatLanguage" value="tagalog">
 <input type="hidden" id="uiLanguage" value="english">
 
-<div class="web-app-shell auth-mode">
+<div class="web-app-shell{{ $currentUserData ? '' : ' auth-mode' }}">
 
   <!-- ═══════════ DESKTOP NAVIGATION SIDEBAR ═══════════ -->
   <aside class="web-sidebar">
@@ -93,19 +119,19 @@
 
     <nav class="sidebar-menu">
       <!-- FARMER DASHBOARD -->
-      <button class="sidebar-nav-btn active" id="sidebarFarmerHomeBtn" data-screen="home" onclick="showScreen('home'); loadHomeRecentScans();">
+      <button class="sidebar-nav-btn active" id="sidebarFarmerHomeBtn" data-screen="home" onclick="showScreen('home');">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span data-en="Dashboard" data-tl="Dashboard">Dashboard</span>
       </button>
 
       <!-- ADMIN DASHBOARD (Top Primary Dashboard for Admin) -->
-      <button class="sidebar-nav-btn" id="sidebarAdminHomeBtn" data-screen="admin-dashboard" onclick="showScreen('admin-dashboard'); loadAdminDashboard();" style="display: none;">
+      <button class="sidebar-nav-btn" id="sidebarAdminHomeBtn" data-screen="admin-dashboard" onclick="showScreen('admin-dashboard');" style="display: none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         <span data-en="Admin Dashboard" data-tl="Admin Dashboard">Admin Dashboard</span>
       </button>
 
       <!-- STAFF / EXTENSION WORKER DASHBOARD (Top Primary Dashboard for Staff) -->
-      <button class="sidebar-nav-btn" id="sidebarStaffHomeBtn" data-screen="staff-dashboard" onclick="showScreen('staff-dashboard'); loadStaffDashboard();" style="display: none;">
+      <button class="sidebar-nav-btn" id="sidebarStaffHomeBtn" data-screen="staff-dashboard" onclick="showScreen('staff-dashboard');" style="display: none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
         <span data-en="Staff Dashboard" data-tl="Staff Dashboard">Staff Dashboard</span>
       </button>
@@ -115,17 +141,17 @@
         <span data-en="Disease Scan" data-tl="Pag-scan ng Sakit">Disease Scan</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="history" onclick="showScreen('history'); loadHistory();">
+      <button class="sidebar-nav-btn" data-screen="history" onclick="showScreen('history');">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span data-en="Scan History" data-tl="Kasaysayan ng Scan">Scan History</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="consultation" onclick="showScreen('consultation'); loadChatMessages();">
+      <button class="sidebar-nav-btn" data-screen="consultation" onclick="showScreen('consultation');">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span data-en="AI Consultation" data-tl="AI Konsulta">AI Consultation</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="treatment" onclick="showScreen('treatment'); loadCurrentTreatment();">
+      <button class="sidebar-nav-btn" data-screen="treatment" onclick="showScreen('treatment');">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span data-en="Treatment Guide" data-tl="Gabay sa Gamutan">Treatment Guide</span>
       </button>
@@ -176,19 +202,19 @@
 
     <nav class="drawer-menu sidebar-menu">
       <!-- FARMER DASHBOARD -->
-      <button class="sidebar-nav-btn active" id="drawerFarmerHomeBtn" data-screen="home" onclick="showScreen('home'); loadHomeRecentScans(); closeMobileDrawer();">
+      <button class="sidebar-nav-btn active" id="drawerFarmerHomeBtn" data-screen="home" onclick="showScreen('home'); closeMobileDrawer();">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span data-en="Dashboard" data-tl="Dashboard">Dashboard</span>
       </button>
 
       <!-- ADMIN DASHBOARD -->
-      <button class="sidebar-nav-btn" id="drawerAdminHomeBtn" data-screen="admin-dashboard" onclick="showScreen('admin-dashboard'); loadAdminDashboard(); closeMobileDrawer();" style="display: none;">
+      <button class="sidebar-nav-btn" id="drawerAdminHomeBtn" data-screen="admin-dashboard" onclick="showScreen('admin-dashboard'); closeMobileDrawer();" style="display: none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         <span data-en="Admin Dashboard" data-tl="Admin Dashboard">Admin Dashboard</span>
       </button>
 
       <!-- STAFF DASHBOARD -->
-      <button class="sidebar-nav-btn" id="drawerStaffHomeBtn" data-screen="staff-dashboard" onclick="showScreen('staff-dashboard'); loadStaffDashboard(); closeMobileDrawer();" style="display: none;">
+      <button class="sidebar-nav-btn" id="drawerStaffHomeBtn" data-screen="staff-dashboard" onclick="showScreen('staff-dashboard'); closeMobileDrawer();" style="display: none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
         <span data-en="Staff Dashboard" data-tl="Staff Dashboard">Staff Dashboard</span>
       </button>
@@ -198,17 +224,17 @@
         <span data-en="Disease Scan" data-tl="Pag-scan ng Sakit">Disease Scan</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="history" onclick="showScreen('history'); loadHistory(); closeMobileDrawer();">
+      <button class="sidebar-nav-btn" data-screen="history" onclick="showScreen('history'); closeMobileDrawer();">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span data-en="Scan History" data-tl="Kasaysayan ng Scan">Scan History</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="consultation" onclick="showScreen('consultation'); loadChatMessages(); closeMobileDrawer();">
+      <button class="sidebar-nav-btn" data-screen="consultation" onclick="showScreen('consultation'); closeMobileDrawer();">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span data-en="AI Consultation" data-tl="AI Konsulta">AI Consultation</span>
       </button>
 
-      <button class="sidebar-nav-btn" data-screen="treatment" onclick="showScreen('treatment'); loadCurrentTreatment(); closeMobileDrawer();">
+      <button class="sidebar-nav-btn" data-screen="treatment" onclick="showScreen('treatment'); closeMobileDrawer();">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span data-en="Treatment Guide" data-tl="Gabay sa Gamutan">Treatment Guide</span>
       </button>
@@ -403,7 +429,7 @@
     <div class="web-page-content">
 
       <!-- ═══════════ SCREEN 1: LOGIN ═══════════ -->
-      <section class="screen active" id="login">
+      <section class="screen{{ $initialScreenId === 'login' ? ' active' : '' }}" id="login">
         <div class="auth-web-card">
           <div class="auth-header-card">
             <div class="auth-logo-badge">
@@ -681,7 +707,7 @@
       </section>
 
       <!-- ═══════════ SCREEN 4: HOME / DASHBOARD ═══════════ -->
-      <section class="screen" id="home">
+      <section class="screen{{ $initialScreenId === 'home' ? ' active' : '' }}" id="home">
         <div class="dashboard-hero-row">
           <div class="quick-scan-card">
             <div>
@@ -697,7 +723,7 @@
 
         <div class="section-header">
           <h3>Recent Diagnosis Scans</h3>
-          <a onclick="showScreen('history'); loadHistory();">View All Logs →</a>
+          <a onclick="showScreen('history');">View All Logs →</a>
         </div>
 
         <div class="recent-scans-grid" id="homeRecentScansContainer">
@@ -809,7 +835,7 @@
               </span>
               <h4 id="resultTreatmentCardHeading" style="font-size: 15px; font-weight: 700; color: var(--neutral-900, #111827); margin: 0;">Recommended Treatment & Care</h4>
             </div>
-            <button type="button" onclick="showScreen('treatment'); loadCurrentTreatment();" style="display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+            <button type="button" onclick="showScreen('treatment');" style="display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
               <span id="resultTreatmentGuideLinkText">Full Guide & Dosage</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
@@ -831,7 +857,7 @@
         </div>
 
         <div class="action-buttons" style="margin-top: 16px;">
-          <button class="btn-treatment" id="resultBtnTreatment" onclick="showScreen('treatment'); loadCurrentTreatment();">View Treatment Guide</button>
+          <button class="btn-treatment" id="resultBtnTreatment" onclick="showScreen('treatment');">View Treatment Guide</button>
           <button class="btn-ai-consult" id="resultBtnAiConsult" onclick="consultAboutCurrentDisease()">Ask AI Assistant</button>
           <button class="btn-newscan" id="resultBtnNewScan" onclick="showScreen('scan')">New Scan</button>
         </div>
@@ -1052,7 +1078,7 @@
       </section>
 
       <!-- ═══════════ SCREEN 10B: STAFF EXTENSION WORKER DASHBOARD ═══════════ -->
-      <section class="screen" id="staff-dashboard">
+      <section class="screen{{ $initialScreenId === 'staff-dashboard' ? ' active' : '' }}" id="staff-dashboard">
         <div class="staff-header-banner">
           <div class="staff-banner-content">
             <div class="staff-badge-pill">
@@ -1231,7 +1257,7 @@
       </section>
 
       <!-- ═══════════ SCREEN 10C: ADMIN EXECUTIVE DASHBOARD ═══════════ -->
-      <section class="screen" id="admin-dashboard">
+      <section class="screen{{ $initialScreenId === 'admin-dashboard' ? ' active' : '' }}" id="admin-dashboard">
         <div class="admin-header-banner">
           <div class="admin-banner-content">
             <div class="admin-badge-pill">
@@ -1721,11 +1747,11 @@
 
   <!-- ═══════════ MOBILE BOTTOM NAVIGATION ═══════════ -->
   <nav class="mobile-bottom-nav">
-    <button class="mobile-nav-btn active" data-screen="home" onclick="showScreen('home'); loadHomeRecentScans();">
+    <button class="mobile-nav-btn active" data-screen="home" onclick="showScreen('home');">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       <span>Home</span>
     </button>
-    <button class="mobile-nav-btn" data-screen="history" onclick="showScreen('history'); loadHistory();">
+    <button class="mobile-nav-btn" data-screen="history" onclick="showScreen('history');">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
       <span>History</span>
     </button>
@@ -1734,7 +1760,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
     </button>
-    <button class="mobile-nav-btn" data-screen="consultation" onclick="showScreen('consultation'); loadChatMessages();">
+    <button class="mobile-nav-btn" data-screen="consultation" onclick="showScreen('consultation');">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
       <span>AI Consult</span>
     </button>
@@ -2690,7 +2716,7 @@
 </div>
 
 <script src="{{ asset('js/qrcode.min.js') }}"></script>
-<script src="{{ asset('js/rice-detector.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('js/rice-detector.js') }}?v={{ filemtime(public_path('js/rice-detector.js')) ?: '1' }}"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {

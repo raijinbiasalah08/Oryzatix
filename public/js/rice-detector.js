@@ -655,13 +655,10 @@ function navigateAfterAuth() {
   }
   if (currentUser.role === 'admin') {
     showScreen('admin-dashboard');
-    loadAdminDashboard();
   } else if (currentUser.role === 'agri_worker') {
     showScreen('staff-dashboard');
-    loadStaffDashboard();
   } else {
     showScreen('home');
-    loadHomeRecentScans();
   }
 }
 
@@ -919,13 +916,13 @@ function applyUserToUI() {
   if (mobHomeBtn) {
     if (u.role === 'admin') {
       mobHomeBtn.setAttribute('data-screen', 'admin-dashboard');
-      mobHomeBtn.setAttribute('onclick', "showScreen('admin-dashboard'); loadAdminDashboard();");
+      mobHomeBtn.setAttribute('onclick', "showScreen('admin-dashboard');");
     } else if (u.role === 'agri_worker') {
       mobHomeBtn.setAttribute('data-screen', 'staff-dashboard');
-      mobHomeBtn.setAttribute('onclick', "showScreen('staff-dashboard'); loadStaffDashboard();");
+      mobHomeBtn.setAttribute('onclick', "showScreen('staff-dashboard');");
     } else {
       mobHomeBtn.setAttribute('data-screen', 'home');
-      mobHomeBtn.setAttribute('onclick', "showScreen('home'); loadHomeRecentScans();");
+      mobHomeBtn.setAttribute('onclick', "showScreen('home');");
     }
   }
 
@@ -6466,7 +6463,13 @@ function fallbackCopy(input, label) {
 }
 
 /* ═══════════ INITIALIZATION ═══════════ */
-document.addEventListener('DOMContentLoaded', function () {
+function finishInitialRender() {
+  window.requestAnimationFrame(function () {
+    document.documentElement.classList.remove('app-booting');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
   initLiveClock();
   initNetworkStatusMonitoring();
 
@@ -6482,8 +6485,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initAiVoiceMuteUI();
   }
 
-  checkLoginLockoutState();
-  fetchSecurityConfig();
-
-  checkAuthAndProceed();
+  try {
+    await checkAuthAndProceed();
+  } finally {
+    finishInitialRender();
+  }
 });
