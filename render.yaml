@@ -23,6 +23,8 @@ services:
         value: stderr
       - key: SESSION_DRIVER
         value: cookie
+      - key: SESSION_EXPIRE_ON_CLOSE
+        value: "true"
       - key: CACHE_STORE
         value: array
       - key: RUN_MIGRATIONS

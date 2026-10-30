@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,49 +7,45 @@ class TokenStorage {
   static const String _keyChatLanguage = 'oryzatix_chat_language';
 
   static const _secureStorage = FlutterSecureStorage();
+  static String? _sessionToken;
+  static Map<String, dynamic>? _sessionUser;
+  static bool _legacyAuthPurged = false;
 
-  static Future<void> saveToken(String token) async {
+  // Authentication is session-only. Remove credentials left by older app
+  // versions once, then keep the current login in process memory only.
+  static Future<void> _purgeLegacyPersistentAuth() async {
+    if (_legacyAuthPurged) return;
+    _legacyAuthPurged = true;
+
     try {
-      await _secureStorage.write(key: _keyToken, value: token);
+      await _secureStorage.delete(key: _keyToken);
     } catch (_) {}
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyToken, token);
+      await prefs.remove(_keyToken);
+      await prefs.remove(_keyUser);
     } catch (_) {}
+  }
+
+  static Future<void> saveToken(String token) async {
+    await _purgeLegacyPersistentAuth();
+    _sessionToken = token;
   }
 
   static Future<String?> getToken() async {
-    try {
-      final secureVal = await _secureStorage.read(key: _keyToken);
-      if (secureVal != null && secureVal.isNotEmpty) {
-        return secureVal;
-      }
-    } catch (_) {}
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyToken);
-    } catch (_) {}
-    return null;
+    await _purgeLegacyPersistentAuth();
+    return _sessionToken;
   }
 
   static Future<void> saveUser(Map<String, dynamic> userMap) async {
-    final str = jsonEncode(userMap);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyUser, str);
-    } catch (_) {}
+    await _purgeLegacyPersistentAuth();
+    _sessionUser = Map<String, dynamic>.from(userMap);
   }
 
   static Future<Map<String, dynamic>?> getUser() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final str = prefs.getString(_keyUser);
-      if (str != null && str.isNotEmpty) {
-        return jsonDecode(str) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return null;
+    await _purgeLegacyPersistentAuth();
+    final user = _sessionUser;
+    return user == null ? null : Map<String, dynamic>.from(user);
   }
 
   static Future<void> saveChatLanguage(String lang) async {
@@ -69,6 +64,8 @@ class TokenStorage {
   }
 
   static Future<void> clearAuth() async {
+    _sessionToken = null;
+    _sessionUser = null;
     try {
       await _secureStorage.delete(key: _keyToken);
     } catch (_) {}

@@ -6,7 +6,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/user_model.dart';
 
-class AuthProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   UserModel? _currentUser;
   bool _isLoading = false;
   bool _isCheckingAuth = true;
@@ -24,7 +24,26 @@ class AuthProvider extends ChangeNotifier {
   bool get isLockedOut => _lockoutSeconds > 0;
 
   AuthProvider() {
+    WidgetsBinding.instance.addObserver(this);
     checkAuth();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      unawaited(_expireSessionOnAppClose());
+    }
+  }
+
+  Future<void> _expireSessionOnAppClose() async {
+    try {
+      await ApiClient.post(ApiEndpoints.logout);
+    } catch (_) {
+      // The OS may terminate the process before this request can finish.
+    } finally {
+      await TokenStorage.clearAuth();
+      _currentUser = null;
+    }
   }
 
   void _startLockoutTimer(int seconds) {
@@ -187,6 +206,7 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lockoutTimer?.cancel();
     super.dispose();
   }

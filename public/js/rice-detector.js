@@ -683,8 +683,12 @@ async function checkAuthAndProceed() {
   const savedScreen = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('oryzatix_active_screen') : null;
   const savedAuthScreen = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('oryzatix_active_auth_screen') : null;
 
+  // A server cookie alone must not restore a closed browser or PWA session.
+  // Reloads keep sessionStorage, while closing the tab/app clears it.
+  const canRestoreInitialAuth = isSessionLoggedIn || !!paramToken || isGoogleCallback;
+
   // 1. If user is pre-rendered in INITIAL_AUTH or returning from Google login
-  if (window.INITIAL_AUTH && window.INITIAL_AUTH.user) {
+  if (window.INITIAL_AUTH && window.INITIAL_AUTH.user && canRestoreInitialAuth) {
     try {
       sessionStorage.setItem('oryzatix_is_logged_in', 'true');
     } catch (e) { }
@@ -1057,6 +1061,9 @@ async function executeGoogleLogin(email, name, idToken) {
 
       currentUser = data.user;
       if (data.token) setAuthToken(data.token);
+      try {
+        sessionStorage.setItem('oryzatix_is_logged_in', 'true');
+      } catch (e) { }
       applyUserToUI();
       closeModal('modalGoogleAuth');
       resetAuthForms();
