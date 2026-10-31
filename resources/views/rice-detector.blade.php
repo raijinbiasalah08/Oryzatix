@@ -2491,11 +2491,7 @@
     <div id="adminViewDiseaseContent" style="padding: 10px 0;">
       <!-- Content populated dynamically -->
     </div>
-    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 14px; border-top: 1px solid var(--neutral-200); padding-top: 12px;">
-      <button type="button" id="adminViewDiseaseDeleteBtn" class="btn-danger-outline" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12.5px; font-weight: 700; color: #e11d48; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; cursor: pointer; transition: all 0.2s;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        Delete Disease
-      </button>
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 14px; border-top: 1px solid var(--neutral-200); padding-top: 12px;">
       <button type="button" class="btn-modal-cancel" onclick="closeModal('modalAdminViewDisease')">Close</button>
     </div>
   </div>
