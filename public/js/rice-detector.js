@@ -3529,13 +3529,24 @@ function loadCurrentTreatment() {
 
   const treatIcon = document.getElementById('treatDiseaseIcon');
   if (treatIcon) {
-    treatIcon.classList.remove('blast-bg', 'blb-bg', 'healthy-bg');
-    const lower = (s.disease || '').toLowerCase();
-    let cls = 'blast-bg';
-    if (lower.includes('healthy')) { cls = 'healthy-bg'; }
-    else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) { cls = 'blb-bg'; }
-    treatIcon.classList.add(cls);
-    treatIcon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22v-9"/><path d="M12 13C8 13 4 9 4 4c5 0 9 4 9 9z"/><path d="M12 8c2-3 5-4 8-4 0 5-4 9-8 9"/></svg>';
+    const illustrations = {
+      blast: 'leaf-blast',
+      blb: 'bacterial-leaf-blight',
+      brown_spot: 'brown-spot',
+      sheath_blight: 'sheath-blight',
+      tungro: 'rice-tungro',
+      healthy: 'healthy-rice-leaf',
+    };
+    const illustration = illustrations[key];
+    treatIcon.replaceChildren();
+    if (illustration) {
+      const image = document.createElement('img');
+      image.src = treatIcon.dataset.imageBase + '/' + illustration + '-cartoon.png';
+      image.alt = (s.disease || 'Rice leaf') + ' illustration';
+      image.width = 50;
+      image.height = 50;
+      treatIcon.appendChild(image);
+    }
   }
 
   const treat = severityNeedsAssessment
@@ -3570,11 +3581,11 @@ function switchTreatment(type) {
   const chemList = document.getElementById('chemicalList');
   const orgList = document.getElementById('organicList');
   if (type === 'chemical') {
-    if (tabs[0]) tabs[0].classList.add('active');
+    if (tabs[1]) tabs[1].classList.add('active');
     if (chemList) chemList.style.display = 'block';
     if (orgList) orgList.style.display = 'none';
   } else {
-    if (tabs[1]) tabs[1].classList.add('active');
+    if (tabs[0]) tabs[0].classList.add('active');
     if (chemList) chemList.style.display = 'none';
     if (orgList) orgList.style.display = 'block';
   }

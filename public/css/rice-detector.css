@@ -2799,6 +2799,13 @@ select {
   background: var(--red-100);
 }
 
+.treat-disease-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 .treat-disease-icon.blb-bg {
   background: var(--amber-100);
 }

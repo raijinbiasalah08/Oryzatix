@@ -919,7 +919,9 @@
         </div>
 
         <div class="treat-disease-card">
-          <div class="treat-disease-icon blast-bg" id="treatDiseaseIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></div>
+          <div class="treat-disease-icon" id="treatDiseaseIcon" data-image-base="{{ asset('images/treatment') }}">
+            <img src="{{ asset('images/treatment/leaf-blast-cartoon.png') }}" alt="Leaf Blast illustration" width="50" height="50">
+          </div>
           <div class="treat-disease-info">
             <h3 id="treatDiseaseName">Leaf Blast</h3>
             <p id="treatDiseaseSub">Magnaporthe oryzae · Severity: Severe</p>
@@ -931,12 +933,12 @@
         </div>
 
         <div class="treatment-tabs" id="treatmentTabs">
-          <button class="active" onclick="switchTreatment('chemical')">Chemical Controls</button>
-          <button onclick="switchTreatment('organic')">Organic & Cultural</button>
+          <button class="active" onclick="switchTreatment('organic')">Organic & Cultural</button>
+          <button onclick="switchTreatment('chemical')">Chemical Controls</button>
         </div>
 
-        <div class="treatment-list" id="chemicalList"></div>
-        <div class="treatment-list" id="organicList" style="display: none;"></div>
+        <div class="treatment-list" id="organicList"></div>
+        <div class="treatment-list" id="chemicalList" style="display: none;"></div>
 
         <div class="dosage-calculator-card">
           <h4>Spray Dosage & Field Area Calculator</h4>
