@@ -5299,7 +5299,7 @@ function renderAdminDiseasesGrid() {
     const isActive = d.status === 'active' || d.is_active;
     const imgHtml = d.image_url
       ? `<img src="${d.image_url}" alt="${escapeHtml(d.name)}" style="width:100%; height:160px; object-fit:cover; border-radius:10px 10px 0 0; cursor:pointer;" onclick="openAdminViewDiseaseModal(${d.id})">`
-      : `<div style="width:100%; height:130px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400); font-size:28px; border-radius:10px 10px 0 0; cursor:pointer;" onclick="openAdminViewDiseaseModal(${d.id})">🌾</div>`;
+      : `<div style="width:100%; height:130px; background:var(--green-50); display:flex; align-items:center; justify-content:center; color:var(--brand-green); border-radius:10px 10px 0 0; cursor:pointer;" onclick="openAdminViewDiseaseModal(${d.id})" aria-label="View ${escapeHtml(d.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" width="34" height="34" aria-hidden="true"><path d="M20 4c-8 0-14 3-14 10a6 6 0 0 0 6 6c7 0 8-8 8-16Z"/><path d="M4 21c3-5 7-8 12-11"/></svg></div>`;
 
     const treatmentPreview = d.recommended_treatment || d.treatment || 'N/A';
 
@@ -5322,7 +5322,7 @@ function renderAdminDiseasesGrid() {
           </p>
 
           <div style="background:var(--neutral-50); border:1px solid var(--neutral-200); border-radius:8px; padding:10px; margin-top:auto; font-size:12px;">
-            <div style="margin-bottom:4px;"><strong style="color:var(--brand-green);">🩺 Treatment:</strong> <span style="color:var(--neutral-700);">${escapeHtml(treatmentPreview.length > 90 ? treatmentPreview.slice(0, 90) + '...' : treatmentPreview)}</span></div>
+            <div style="margin-bottom:4px;"><strong style="color:var(--brand-green);">Treatment:</strong> <span style="color:var(--neutral-700);">${escapeHtml(treatmentPreview.length > 90 ? treatmentPreview.slice(0, 90) + '...' : treatmentPreview)}</span></div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--neutral-100);">
@@ -5369,7 +5369,7 @@ function openAdminViewDiseaseModal(id) {
   if (Array.isArray(d.chemical_treatments) && d.chemical_treatments.length > 0) {
     chemHtml = `
       <div style="margin-top:10px;">
-        <h5 style="margin:0 0 6px 0; font-size:13px; color:var(--blue-700); font-weight:700;">🧪 Chemical Fungicides / Bactericides:</h5>
+        <h5 style="margin:0 0 6px 0; font-size:13px; color:var(--blue-700); font-weight:700;">Chemical Fungicides / Bactericides</h5>
         <ul style="margin:0; padding-left:18px; font-size:12.5px; color:var(--neutral-700); line-height:1.6;">
           ${d.chemical_treatments.map(c => `<li><strong>${escapeHtml(c.title || c.name || '')}</strong>: ${escapeHtml(c.rate || c.dosage || '')} <em>(${escapeHtml(c.timing || '')})</em></li>`).join('')}
         </ul>
@@ -5381,7 +5381,7 @@ function openAdminViewDiseaseModal(id) {
   if (Array.isArray(d.organic_treatments) && d.organic_treatments.length > 0) {
     orgHtml = `
       <div style="margin-top:10px;">
-        <h5 style="margin:0 0 6px 0; font-size:13px; color:var(--green-700); font-weight:700;">🌿 Organic & Cultural Measures:</h5>
+        <h5 style="margin:0 0 6px 0; font-size:13px; color:var(--green-700); font-weight:700;">Organic & Cultural Measures</h5>
         <ul style="margin:0; padding-left:18px; font-size:12.5px; color:var(--neutral-700); line-height:1.6;">
           ${d.organic_treatments.map(o => `<li><strong>${escapeHtml(o.title || o.name || '')}</strong>: ${escapeHtml(o.rate || o.dosage || '')} <em>(${escapeHtml(o.timing || '')})</em></li>`).join('')}
         </ul>
@@ -5401,33 +5401,33 @@ function openAdminViewDiseaseModal(id) {
 
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">📖 Description</h4>
+          <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">Description</h4>
           <p style="margin:0; font-size:12.5px; color:var(--neutral-700); line-height:1.5;">${escapeHtml(d.description || 'No description provided.')}</p>
         </div>
 
         ${d.symptoms ? `
           <div>
-            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">🔍 Symptoms & Diagnostic Visual Keys</h4>
+            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">Symptoms & Diagnostic Visual Keys</h4>
             <p style="margin:0; font-size:12.5px; color:var(--neutral-700); line-height:1.5;">${escapeHtml(d.symptoms)}</p>
           </div>
         ` : ''}
 
         ${d.causes ? `
           <div>
-            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">⚠️ Causes & Favorable Conditions</h4>
+            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">Causes & Favorable Conditions</h4>
             <p style="margin:0; font-size:12.5px; color:var(--neutral-700); line-height:1.5;">${escapeHtml(d.causes)}</p>
           </div>
         ` : ''}
 
         ${d.prevention ? `
           <div>
-            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">🛡️ Prevention Strategies</h4>
+            <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--neutral-900); font-weight:700;">Prevention Strategies</h4>
             <p style="margin:0; font-size:12.5px; color:var(--neutral-700); line-height:1.5;">${escapeHtml(d.prevention)}</p>
           </div>
         ` : ''}
 
         <div>
-          <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--brand-green); font-weight:700;">🩺 Recommended Treatment Protocol</h4>
+          <h4 style="margin:0 0 4px 0; font-size:13.5px; color:var(--brand-green); font-weight:700;">Recommended Treatment Protocol</h4>
           <p style="margin:0; font-size:12.5px; color:var(--neutral-700); line-height:1.5;">${escapeHtml(d.recommended_treatment || d.treatment || 'No treatment guidelines registered.')}</p>
           ${chemHtml}
           ${orgHtml}
