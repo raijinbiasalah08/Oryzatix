@@ -528,6 +528,169 @@ select {
   border: 2px solid #fff;
 }
 
+.notifications-modal-box {
+  max-width: 560px;
+  padding: 22px;
+}
+
+.notifications-modal-box .modal-header {
+  margin-bottom: 12px;
+}
+
+.notifications-subtitle {
+  margin: 3px 0 0;
+  color: var(--neutral-500);
+  font-size: 12.5px;
+}
+
+.notifications-toolbar,
+.notifications-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notifications-toolbar {
+  min-height: 40px;
+  border-bottom: 1px solid var(--neutral-200);
+  margin-bottom: 4px;
+}
+
+.notifications-unread-count {
+  color: var(--neutral-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notifications-text-btn,
+.notifications-refresh-btn {
+  border: 0;
+  background: transparent;
+  color: var(--brand-green);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notifications-refresh-btn {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--neutral-100);
+}
+
+.notifications-refresh-btn:hover {
+  background: var(--green-100);
+}
+
+.notifications-list {
+  display: flex;
+  max-height: min(56vh, 480px);
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--neutral-100);
+  background: #fff;
+  color: var(--neutral-800);
+  cursor: default;
+  text-align: left;
+}
+
+.notification-item.is-unread {
+  background: #f4fbf5;
+}
+
+.notification-item.is-actionable {
+  cursor: pointer;
+}
+
+.notification-item.is-actionable:hover {
+  background: #f8fbf8;
+}
+
+.notification-status {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.notification-status.is-healthy {
+  background: var(--green-100);
+  color: var(--green-700);
+}
+
+.notification-status.is-diseased {
+  background: var(--red-100);
+  color: var(--red-600);
+}
+
+.notification-details {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notification-details strong {
+  overflow: hidden;
+  color: var(--neutral-900);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-details > span,
+.notification-time {
+  color: var(--neutral-500);
+  font-size: 11.5px;
+}
+
+.notification-time {
+  max-width: 130px;
+  text-align: right;
+}
+
+.notifications-empty {
+  padding: 28px 12px;
+  color: var(--neutral-500);
+  font-size: 13px;
+  text-align: center;
+}
+
+.notifications-error {
+  color: var(--red-600);
+}
+
+@media (max-width: 520px) {
+  .notifications-modal-box {
+    padding: 18px;
+  }
+  .notification-time {
+    max-width: 90px;
+    font-size: 10px;
+  }
+}
+
 /* ═══════════ TOPBAR USER PROFILE & SETTINGS DROPDOWN ═══════════ */
 .topbar-user-menu-wrap {
   position: relative;
@@ -6297,11 +6460,6 @@ select {
     flex-shrink: 0;
   }
 
-  /* Hide redundant "Connect Mobile Phone via QR" button when ALREADY on mobile */
-  .topbar-action-pill-btn.mobile-lan-btn {
-    display: none !important;
-  }
-
   .mobile-menu-toggle-btn {
     display: flex;
     align-items: center;
@@ -7201,7 +7359,7 @@ select {
    PWA & MOBILE APP ADAPTATION STYLES
    ══════════════════════════════════════════════════════════════════ */
 
-/* Topbar Pill Buttons (Mobile App / Install App) */
+/* Topbar Install App Button */
 .topbar-action-pill-btn {
   display: inline-flex;
   align-items: center;
@@ -7215,18 +7373,6 @@ select {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   outline: none;
-}
-
-.topbar-action-pill-btn.mobile-lan-btn {
-  background: rgba(22, 80, 26, 0.08);
-  color: #16501a;
-  border: 1px solid rgba(22, 80, 26, 0.22);
-}
-
-.topbar-action-pill-btn.mobile-lan-btn:hover {
-  background: rgba(22, 80, 26, 0.16);
-  border-color: #16501a;
-  transform: translateY(-1px);
 }
 
 .topbar-action-pill-btn.pwa-install-btn {

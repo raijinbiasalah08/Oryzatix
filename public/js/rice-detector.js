@@ -601,6 +601,167 @@ function closeModal(modalId) {
   if (m) m.classList.remove('show');
 }
 
+/* ═══════════ CROP NOTIFICATIONS ═══════════ */
+let cropNotifications = [];
+let notificationsLoading = false;
+
+function notificationStorageKey() {
+  const userKey = currentUser && (currentUser.id || currentUser.email || currentUser.role);
+  return 'oryzatix_seen_notifications_' + String(userKey || 'guest');
+}
+
+function getSeenNotificationIds() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(notificationStorageKey()) || '[]');
+    return new Set(Array.isArray(saved) ? saved.map(String) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function getNotificationId(scan) {
+  return String(scan.id || [scan.created_at || scan.dateLabel || '', scan.disease_name || scan.disease || 'Rice leaf'].join('|'));
+}
+
+function setNotificationIndicator() {
+  const dot = document.getElementById('topbarNotificationDot');
+  const count = document.getElementById('notificationsUnreadCount');
+  if (!dot) return;
+  const seen = getSeenNotificationIds();
+  const unread = cropNotifications.filter(scan => !seen.has(getNotificationId(scan))).length;
+  dot.style.display = unread ? 'block' : 'none';
+  const button = document.getElementById('topbarNotificationsButton');
+  if (button) {
+    button.setAttribute('aria-label', unread ? `Open notifications, ${unread} unread` : 'Open notifications');
+    button.title = unread ? `Notifications (${unread} unread)` : 'Notifications';
+  }
+  if (count) count.textContent = unread ? `${unread} unread` : 'You’re all caught up';
+}
+
+function flattenHistoryScans(groups) {
+  const scans = [];
+  Object.entries(groups || {}).forEach(([dateLabel, entries]) => {
+    (entries || []).forEach(scan => scans.push({ ...scan, dateLabel }));
+  });
+  return scans;
+}
+
+async function loadNotifications(showLoading = false) {
+  const list = document.getElementById('notificationsList');
+  const count = document.getElementById('notificationsUnreadCount');
+  if (!currentUser) {
+    cropNotifications = [];
+    if (list) list.innerHTML = '<div class="notifications-empty">Sign in to view crop notifications.</div>';
+    if (count) count.textContent = 'Sign in to view updates';
+    setNotificationIndicator();
+    return;
+  }
+  if (notificationsLoading) return;
+  notificationsLoading = true;
+  if (list) {
+    list.setAttribute('aria-busy', 'true');
+    if (showLoading) list.innerHTML = '<div class="notifications-empty">Loading recent scans…</div>';
+  }
+
+  try {
+    await ensureCsrfCookie();
+    const role = currentUser.role;
+    const endpoint = role === 'admin' ? '/admin/overview' : (role === 'agri_worker' ? '/staff/overview' : '/rice-detector/history');
+    const response = await fetch(apiUrl(endpoint), { credentials: 'include', headers: authHeaders() });
+    const payload = await response.json();
+    if (!response.ok || !payload || !payload.success) throw new Error('Unable to load crop notifications.');
+
+    if (role === 'farmer') {
+      cropNotifications = flattenHistoryScans(payload.scans).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    } else {
+      const data = payload.data || {};
+      cropNotifications = (data.recent_scans || []).map(scan => ({
+        ...scan,
+        disease: scan.disease_name || scan.disease || 'Rice leaf',
+      }));
+    }
+    cropNotifications = cropNotifications.slice(0, 20);
+    renderNotifications();
+  } catch (error) {
+    if (list) list.innerHTML = '<div class="notifications-empty notifications-error">Could not load notifications. Check your connection and try again.</div>';
+    if (count) count.textContent = 'Updates unavailable';
+  } finally {
+    notificationsLoading = false;
+    if (list) list.setAttribute('aria-busy', 'false');
+  }
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notificationsList');
+  if (!list) return;
+  list.replaceChildren();
+  const seen = getSeenNotificationIds();
+  if (!cropNotifications.length) {
+    list.innerHTML = '<div class="notifications-empty">No recent scans to show yet.</div>';
+    setNotificationIndicator();
+    return;
+  }
+
+  cropNotifications.forEach(scan => {
+    const disease = scan.disease_name || scan.disease || 'Rice leaf';
+    const healthy = scan.severity === 'healthy' || /^healthy(?:\s|$)/i.test(disease);
+    const id = getNotificationId(scan);
+    const canOpenScan = Boolean(scan.id) && (currentUser.role === 'admin' || currentUser.role === 'farmer');
+    const item = document.createElement(canOpenScan ? 'button' : 'div');
+    if (canOpenScan) item.type = 'button';
+    item.className = `notification-item${seen.has(id) ? '' : ' is-unread'}${canOpenScan ? ' is-actionable' : ''}`;
+    item.setAttribute('aria-label', `${seen.has(id) ? '' : 'Unread: '}${healthy ? 'Healthy Leaf' : 'Not Healthy Leaf'} — ${disease}`);
+
+    const status = document.createElement('span');
+    status.className = `notification-status ${healthy ? 'is-healthy' : 'is-diseased'}`;
+    status.setAttribute('aria-hidden', 'true');
+    status.textContent = healthy ? '✓' : '!';
+
+    const details = document.createElement('span');
+    details.className = 'notification-details';
+    const title = document.createElement('strong');
+    title.textContent = disease;
+    const subtitle = document.createElement('span');
+    subtitle.textContent = healthy ? 'Healthy Leaf' : 'Not Healthy Leaf';
+    details.append(title, subtitle);
+
+    const time = document.createElement('span');
+    time.className = 'notification-time';
+    time.textContent = scan.time_ago || scan.created_at || scan.dateLabel || 'Recent scan';
+    item.append(status, details, time);
+
+    if (scan.id && currentUser.role === 'admin' && typeof openAdminScanPreview === 'function') {
+      item.addEventListener('click', () => {
+        closeModal('modalNotifications');
+        openAdminScanPreview(scan.id);
+      });
+    } else if (scan.id && currentUser.role === 'farmer' && typeof viewHistoryScanDetail === 'function') {
+      item.addEventListener('click', () => {
+        closeModal('modalNotifications');
+        viewHistoryScanDetail(scan.id);
+      });
+    }
+    list.appendChild(item);
+  });
+  setNotificationIndicator();
+}
+
+function openNotifications() {
+  openModal('modalNotifications');
+  loadNotifications(true);
+}
+
+function markNotificationsRead() {
+  try {
+    localStorage.setItem(notificationStorageKey(), JSON.stringify(cropNotifications.map(getNotificationId).slice(0, 100)));
+  } catch (e) { }
+  renderNotifications();
+}
+
+function refreshNotificationIndicator() {
+  if (currentUser) loadNotifications(false);
+}
+
 function openResultImagePreview() {
   const source = document.querySelector('#resultImageCard img.result-uploaded-img');
   const modal = document.getElementById('modalResultImagePreview');
@@ -975,6 +1136,8 @@ function applyUserToUI() {
   }
   const farmerWelcomeTitle = document.getElementById('farmerWelcomeTitle');
   if (farmerWelcomeTitle) farmerWelcomeTitle.textContent = 'Welcome back, ' + (u.name || 'farmer');
+
+  refreshNotificationIndicator();
 }
 
 function isValidGmail(email) {

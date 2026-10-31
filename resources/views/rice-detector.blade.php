@@ -300,21 +300,15 @@
           </div>
         </div>
 
-        <!-- Mobile App LAN QR Code Trigger -->
-        <button type="button" class="topbar-action-pill-btn mobile-lan-btn" onclick="openModal('modalMobileConnect')" title="Open Oryzatix on Mobile Device via Wi-Fi">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          <span class="btn-text-desktop">Mobile App</span>
-        </button>
-
         <!-- Dynamic In-App PWA Install Button -->
         <button type="button" class="topbar-action-pill-btn pwa-install-btn" id="btnInstallAppTopbar" onclick="triggerPwaInstall()" style="display: none;" title="Install Oryzatix App">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span class="btn-text-desktop">Install App</span>
         </button>
 
-        <button class="topbar-notif-btn" onclick="openModal('modalNotifications')" title="Notifications">
+        <button class="topbar-notif-btn" id="topbarNotificationsButton" onclick="openNotifications()" title="Notifications" aria-label="Open notifications" aria-haspopup="dialog" aria-controls="modalNotifications">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <div class="notif-dot"></div>
+          <span class="notif-dot" id="topbarNotificationDot" aria-hidden="true" style="display:none;"></span>
         </button>
 
         <!-- Topbar User Profile & Settings Dropdown Trigger -->
@@ -2307,14 +2301,25 @@
 </div>
 
 <div class="modal-backdrop" id="modalNotifications">
-  <div class="modal-box">
+  <div class="modal-box notifications-modal-box" role="dialog" aria-modal="true" aria-labelledby="notificationsModalTitle">
     <div class="modal-header">
-      <h3>Crop Notifications</h3>
+      <div>
+        <h3 id="notificationsModalTitle">Crop Notifications</h3>
+        <p class="notifications-subtitle">Recent rice leaf scans and their health status</p>
+      </div>
       <button class="modal-close-btn" onclick="closeModal('modalNotifications')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div style="padding: 14px; background: var(--amber-100); border-radius: 12px; font-size: 13px; color: var(--amber-800);">
-      <strong>Wet Weather Disease Advisory</strong><br>
-      High humidity detected in the region. Inspect leaf blades for blast lesions and ensure field drainage.
+    <div class="notifications-toolbar">
+      <span id="notificationsUnreadCount" class="notifications-unread-count">Checking for updates…</span>
+      <div class="notifications-toolbar-actions">
+        <button type="button" class="notifications-text-btn" onclick="markNotificationsRead()">Mark all read</button>
+        <button type="button" class="notifications-refresh-btn" onclick="loadNotifications(true)" aria-label="Refresh notifications" title="Refresh notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="notificationsList" class="notifications-list" aria-live="polite" aria-busy="false">
+      <div class="notifications-empty">Loading recent scans…</div>
     </div>
   </div>
 </div>
