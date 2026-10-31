@@ -958,21 +958,23 @@ function applyUserToUI() {
 
   const adminWelcomeTitle = document.getElementById('adminWelcomeTitle');
   if (adminWelcomeTitle && u.name) {
-    adminWelcomeTitle.textContent = u.name + ' · Executive Command Center';
+    adminWelcomeTitle.textContent = 'Welcome back, ' + u.name;
   }
   const adminWelcomeSubtitle = document.getElementById('adminWelcomeSubtitle');
   if (adminWelcomeSubtitle && u.location) {
-    adminWelcomeSubtitle.textContent = 'Provincial surveillance oversight, AI diagnostic performance, and field operations for ' + u.location;
+    adminWelcomeSubtitle.textContent = 'Monitor disease detections, manage your users, and support healthy rice crops in ' + u.location + '.';
   }
 
   const staffWelcomeTitle = document.getElementById('staffWelcomeTitle');
   if (staffWelcomeTitle && u.name) {
-    staffWelcomeTitle.textContent = u.name + ' · Staff Dashboard';
+    staffWelcomeTitle.textContent = 'Welcome back, ' + u.name;
   }
   const staffWelcomeSubtitle = document.getElementById('staffWelcomeSubtitle');
   if (staffWelcomeSubtitle && u.location) {
-    staffWelcomeSubtitle.textContent = 'Surveillance, outbreak tracking, and farmer advisory management for ' + u.location;
+    staffWelcomeSubtitle.textContent = 'Monitor field scans and support rice farmers in ' + u.location + '.';
   }
+  const farmerWelcomeTitle = document.getElementById('farmerWelcomeTitle');
+  if (farmerWelcomeTitle) farmerWelcomeTitle.textContent = 'Welcome back, ' + (u.name || 'farmer');
 }
 
 function isValidGmail(email) {
@@ -4519,16 +4521,9 @@ async function loadAdminDashboard() {
         const sToday = document.getElementById('adminDashTodayScans');
         if (sToday) sToday.textContent = stats.today_scans || 0;
 
-        const outCount = document.getElementById('adminDashOutbreakCount');
-        const severityReviewsNeeded = stats.severity_reviews_needed || 0;
-        if (outCount) outCount.textContent = severityReviewsNeeded;
-        const outPct = document.getElementById('adminDashOutbreakPercent');
-        if (outPct) outPct.textContent = `${severityReviewsNeeded} disease scans need severity review`;
-
-        const advCount = document.getElementById('adminDashAdvisoriesCount');
-        if (advCount) advCount.textContent = stats.advisories_count || 0;
-        const advCov = document.getElementById('adminDashAdvisoryCoverage');
-        if (advCov) advCov.textContent = `${stats.advisories_count || 0} official advisories recorded`;
+        renderAdminHealthOverview(stats, dist);
+        renderAdminRecentActivity(d.recent_scans || []);
+        setAdminOverviewStatus('');
 
         // Telemetry Time
         const sTime = document.getElementById('adminServerTime');
@@ -4550,14 +4545,104 @@ async function loadAdminDashboard() {
         // Staff Roster
         renderAdminStaffRoster(d.staff_roster || []);
       } else {
+        setAdminOverviewStatus('Dashboard data could not be loaded. Open the dashboard again to retry.');
         renderAdminEmpty('adminLocationsBody', 'Failed to load telemetry.');
         renderAdminEmpty('adminRecentScansTableBody', 'Failed to load telemetry.');
       }
     })
     .catch(() => {
+      setAdminOverviewStatus('Unable to refresh the dashboard. Check your connection and try again.');
       renderAdminEmpty('adminLocationsBody', 'Server unavailable.');
       renderAdminEmpty('adminRecentScansTableBody', 'Server unavailable.');
     });
+}
+
+function setAdminOverviewStatus(message) {
+  const status = document.getElementById('adminOverviewStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.hidden = !message;
+}
+
+function renderAdminHealthOverview(stats, distribution) {
+  const count = value => Math.max(0, Number(value) || 0);
+  const total = count(stats.total_scans);
+  const healthy = Math.min(total, count(stats.healthy_leaves));
+  const diseased = Math.max(0, total - healthy);
+  const diseasedPercent = total ? Math.round(diseased / total * 1000) / 10 : 0;
+  const healthyPercent = total ? Math.round(healthy / total * 1000) / 10 : 0;
+  const values = {
+    adminDashDetectedDiseases: diseased,
+    adminDashHealthyLeaves: healthy,
+    adminDashOutbreakPercent: total ? `${diseasedPercent}% of all scans` : 'No scans recorded yet',
+    adminDashHealthyRatio: total ? `${healthyPercent}% of all scans` : 'No scans recorded yet',
+    adminHealthDonutTotal: total,
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  });
+  const donut = document.getElementById('adminHealthDonut');
+  if (donut) {
+    donut.style.background = total
+      ? `conic-gradient(#d93642 0% ${diseasedPercent}%, #2b9654 ${diseasedPercent}% 100%)`
+      : 'var(--neutral-100)';
+    donut.setAttribute('aria-label', total
+      ? `${total} total scans: ${diseased} not healthy (${diseasedPercent}%), ${healthy} healthy (${healthyPercent}%).`
+      : 'No scans recorded yet.');
+  }
+  const legend = document.getElementById('adminHealthLegend');
+  if (!legend) return;
+  if (!total) {
+    legend.innerHTML = '<p class="overview-empty">Your disease distribution will appear after the first leaf scan.</p>';
+    return;
+  }
+  const categories = [
+    ['blast', 'Leaf Blast'], ['blb', 'Bacterial Leaf Blight'], ['brown_spot', 'Brown Spot'],
+    ['sheath_blight', 'Sheath Blight'], ['tungro', 'Rice Tungro'], ['healthy', 'Healthy'],
+  ];
+  legend.innerHTML = `
+    <div class="health-legend-row"><span class="health-dot diseased" aria-hidden="true"></span><span>Not healthy leaves</span><strong>${diseasedPercent}% (${diseased})</strong></div>
+    <div class="health-legend-row"><span class="health-dot healthy" aria-hidden="true"></span><span>Healthy leaves</span><strong>${healthyPercent}% (${healthy})</strong></div>
+    <div class="health-legend-detail">${categories.map(([key, label]) => `
+      <div class="health-legend-row"><span class="health-dot ${key}" aria-hidden="true"></span><span>${label}</span><strong>${count(distribution[key]?.count)}</strong></div>
+    `).join('')}</div>`;
+}
+
+function renderAdminRecentActivity(scans) {
+  const container = document.getElementById('adminRecentActivity');
+  if (!container) return;
+  container.replaceChildren();
+  if (!scans.length) {
+    container.innerHTML = '<p class="overview-empty">No scans yet. New detections will appear here.</p>';
+    return;
+  }
+  scans.slice(0, 4).forEach(scan => {
+    const healthy = scan.severity === 'healthy' || /^healthy(?:\s|$)/i.test(scan.disease_name || '');
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'activity-row';
+    row.setAttribute('aria-label', `View ${scan.disease_name || 'leaf'} scan from ${scan.created_at || ''}`);
+    row.addEventListener('click', () => openAdminScanPreview(scan.id));
+    const image = document.createElement('img');
+    image.src = resolveClientImageUrl(scan.image_url, scan.disease_name) || getDiseaseSampleImage(scan.disease_name);
+    image.alt = '';
+    image.loading = 'lazy';
+    image.onerror = () => { image.onerror = null; image.src = getDiseaseSampleImage(scan.disease_name); };
+    const info = document.createElement('span');
+    info.className = 'activity-info';
+    const name = document.createElement('strong');
+    name.textContent = scan.disease_name || 'Rice leaf';
+    const badge = document.createElement('span');
+    badge.className = 'health-status ' + (healthy ? 'healthy' : 'diseased');
+    badge.textContent = healthy ? 'Healthy Leaf' : 'Not Healthy Leaf';
+    info.append(name, badge);
+    const time = document.createElement('span');
+    time.className = 'activity-time';
+    time.textContent = scan.time_ago || scan.created_at || '';
+    row.append(image, info, time);
+    container.appendChild(row);
+  });
 }
 
 function setMeterData(prefix, info) {
@@ -4617,8 +4702,8 @@ function renderAdminRecentScansTable(scans) {
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
     const sevBadge = isHealthy
-      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
-      : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
+      ? '<span class="health-status healthy">Healthy Leaf</span>'
+      : '<span class="health-status diseased">Not Healthy Leaf</span>';
 
     const resolvedAdminThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackAdminThumb = getDiseaseSampleImage(s.disease_name);
@@ -4941,8 +5026,8 @@ async function openAdminUserScansModal(userId, userName) {
             : `<div style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
           const isHealthy = s.severity === 'healthy';
           const sevBadge = isHealthy
-            ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
-            : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
+            ? '<span class="health-status healthy">Healthy Leaf</span>'
+            : '<span class="health-status diseased">Not Healthy Leaf</span>';
 
           return `
             <tr>
@@ -5656,8 +5741,8 @@ function renderAdminScansLogsTable(scans) {
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
     const sevBadge = isHealthy
-      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
-      : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
+      ? '<span class="health-status healthy">Healthy Leaf</span>'
+      : '<span class="health-status diseased">Not Healthy Leaf</span>';
 
     const resolvedScanThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackScanThumb = getDiseaseSampleImage(s.disease_name);

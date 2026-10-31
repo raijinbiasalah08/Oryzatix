@@ -1,7 +1,11 @@
-/* Shared visual system. Loaded after the original component and mobile styles. */
+/* Approved Concept A: green gradients, original logo, ivory canvas and gold actions.
+   Shared by farmer, extension staff, administrator, and authentication screens. */
 :root {
-  --brand-green: #176344;
-  --brand-green-hover: #104d34;
+  --brand-green: #087443;
+  --brand-green-hover: #065532;
+  --sidebar-gradient: linear-gradient(165deg, #137441 0%, #085332 55%, #063d29 100%);
+  --hero-gradient: linear-gradient(110deg, #084a2d 0%, #12733e 60%, #24934c 100%);
+  --gold-gradient: linear-gradient(115deg, #e7bd50, #f7df8a);
   --brand-green-light: #f0f7f2;
   --brand-green-border: #cde3d4;
   --green-50: #f0f7f2;
@@ -28,25 +32,26 @@
   --shadow-sm: 0 3px 12px rgba(21, 43, 31, .045);
   --shadow-md: 0 8px 24px rgba(21, 43, 31, .08);
   --shadow-lg: 0 16px 40px rgba(21, 43, 31, .10);
-  --radius-lg: 18px;
+  --radius-lg: 14px;
   --radius-xl: 24px;
   --ui-ease: cubic-bezier(.2, .7, .2, 1);
 }
 
-body { background: #f4f7f4; }
-.web-main-workspace { background: #f4f7f4; }
+body { background: #f6f8f3; }
+.web-main-workspace { background: #f6f8f3; }
 .web-page-content { max-width: 1480px; }
 
 /* A quiet navigation rail with a clear, high-contrast current page. */
 .web-sidebar {
-  background: linear-gradient(170deg, #153d2d, #0f3025);
+  background: url('../images/field-contours.svg') center bottom / 150% auto no-repeat, var(--sidebar-gradient);
   border-right: 1px solid rgba(255, 255, 255, .08);
   box-shadow: none;
 }
 .sidebar-brand { background: transparent; padding: 24px 20px; }
-.brand-icon { box-shadow: none; border-radius: 13px; }
+.brand-icon { width: 54px; height: 54px; padding: 4px; background: #fff; box-shadow: none; border-radius: 12px; flex-shrink: 0; }
+.brand-icon img { width: 100%; height: 100%; object-fit: contain; }
 .brand-text h1 { text-shadow: none; letter-spacing: -.4px; }
-.brand-text p { color: #b6cebf; }
+.brand-text p { color: #d1ebdb; }
 .sidebar-menu { padding: 20px 12px; gap: 6px; }
 .sidebar-nav-btn {
   min-height: 46px;
@@ -55,18 +60,18 @@ body { background: #f4f7f4; }
   color: #dce9e0;
   transition: background-color 160ms ease, color 160ms ease;
 }
-.sidebar-nav-btn svg { color: #a9cbb6; stroke: currentColor; }
+.sidebar-nav-btn svg { color: #e1f4e7; stroke: currentColor; }
 .sidebar-nav-btn:hover { background: rgba(255,255,255,.08); transform: none; }
 .sidebar-nav-btn:hover svg { transform: none; filter: none; color: #fff; }
 .sidebar-nav-btn.active {
-  background: #e4f2e8;
+  background: linear-gradient(110deg, #b9e7ca, #dcf5e4);
   color: #153d2d;
   border-color: transparent;
   box-shadow: none;
 }
 .sidebar-nav-btn.active svg { color: #176344; stroke: currentColor; }
 .mobile-drawer {
-  background: #153d2d;
+  background: url('../images/field-contours.svg') center bottom / 150% auto no-repeat, var(--sidebar-gradient);
   visibility: hidden;
   transition: transform 240ms var(--ui-ease), visibility 240ms;
 }
@@ -75,7 +80,7 @@ body { background: #f4f7f4; }
 /* Keep page titles readable as the header runs out of space. */
 .web-topbar { padding-inline: 28px; gap: 20px; box-shadow: none; }
 .web-topbar > div:first-child { min-width: 0; }
-.topbar-title { font-weight: 700; font-size: 18px; letter-spacing: -.35px; }
+.topbar-title { font-weight: 600; font-size: 22px; letter-spacing: -.35px; }
 .topbar-actions { gap: 8px; flex-shrink: 0; }
 .topbar-datetime-widget {
   background: transparent;
@@ -114,7 +119,7 @@ body { background: #f4f7f4; }
 .admin-banner-content h2 { font-weight: 600; font-size: clamp(24px, 2.3vw, 32px); line-height: 1.2; }
 .admin-header-banner {
   padding: 30px;
-  background: linear-gradient(115deg, #153d2d, #236447);
+  background: var(--hero-gradient);
   box-shadow: none;
   border: 1px solid #285a40;
 }
@@ -128,7 +133,7 @@ body { background: #f4f7f4; }
 }
 .admin-banner-content { position: relative; z-index: 1; }
 .admin-badge-pill { background: rgba(255,255,255,.08); color: #dceccf; border-color: rgba(255,255,255,.18); font-size: 10px; }
-.quick-scan-card { background: linear-gradient(115deg, #153d2d, #236447); box-shadow: none; }
+.quick-scan-card { background: var(--hero-gradient); box-shadow: none; }
 
 /* Consistent surfaces across dashboard, treatment, history, and administration. */
 .admin-stat-card, .staff-stat-card, .stat-card,
@@ -223,6 +228,171 @@ button:disabled { cursor: not-allowed; }
 .dosage-calculator-card { background: #f0f7f2; border-color: #cde2d3; }
 .dosage-result-box { border-style: solid; border-color: #d6e6db; }
 .modal-backdrop.result-image-preview-backdrop { background: rgba(6,20,13,.92); padding: 24px; }
+
+/* Concept A's welcome treatment is shared by all three roles. */
+.admin-header-banner, .staff-header-banner, .quick-scan-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--hero-gradient);
+  border: 1px solid rgba(10,81,44,.15);
+  border-radius: 16px;
+  box-shadow: none;
+  padding: 28px 30px;
+  gap: 24px;
+}
+.admin-header-banner::before, .staff-header-banner::before, .quick-scan-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url('../images/field-contours.svg') right center / 70% auto no-repeat;
+  pointer-events: none;
+}
+.admin-header-banner::after, .staff-header-banner::after, .quick-scan-card::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 220px;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(90deg, #208948, rgba(20,107,57,.4)), url('../images/auth-bg.jpg') 60% center / cover;
+  z-index: -2;
+  opacity: .65;
+  pointer-events: none;
+}
+.admin-banner-content, .staff-banner-content, .quick-scan-card > div:first-child { flex: 1 1 340px; min-width: 0; }
+.hero-eyebrow, .admin-badge-pill, .staff-badge-pill {
+  display: block;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  text-transform: none;
+  color: #d7eedf;
+}
+.admin-badge-pill svg, .staff-badge-pill svg { display: none; }
+.admin-banner-content h2, .staff-banner-content h2, .quick-scan-card h3 {
+  color: #fff;
+  font-size: clamp(25px, 2.3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -.7px;
+  line-height: 1.15;
+  margin: 0 0 10px;
+}
+.admin-banner-content p, .staff-banner-content p, .quick-scan-card p { color: #e0f0e5; font-size: 13.5px; line-height: 1.6; max-width: 610px; }
+.hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hero-actions .scan-action-btn {
+  background: var(--gold-gradient);
+  color: #143629;
+  box-shadow: 0 2px 5px rgba(0,0,0,.08);
+  border: 1px solid #efd780;
+  font-size: 13px;
+  padding: 12px 20px;
+  min-height: 46px;
+  border-radius: 10px;
+}
+.hero-actions .scan-action-btn:hover { background: #f5df96; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.hero-secondary-btn, .hero-actions .staff-refresh-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+  background: rgba(5,66,35,.24); border: 1px solid #d7c779; border-radius: 10px;
+  color: #fff; font: 700 13px 'Nunito', sans-serif; min-height: 46px; padding: 12px 18px; cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.hero-secondary-btn:hover, .hero-actions .staff-refresh-btn:hover { background: rgba(5,45,26,.5); }
+.hero-actions button:focus-visible { outline-color: #fff !important; }
+#admin-dashboard, #admin-users, #staff-dashboard { max-width: 1280px; }
+.admin-stat-card.executive, .staff-stat-card { align-items: center; padding: 22px; }
+.admin-stat-info, .staff-stat-data { display: flex; flex-direction: column; }
+.admin-stat-info .stat-lbl, .staff-stat-data .stat-label { order: -1; margin: 0 0 8px; font-weight: 600; }
+.admin-stat-info .stat-val, .staff-stat-data .stat-value { font-size: 30px; font-weight: 600; color: #132d27; }
+.admin-stat-icon, .staff-stat-icon { border-radius: 50%; width: 52px; height: 52px; }
+#adminDashDetectedDiseases { color: #b92434; }
+.dashboard-status { margin: 0 0 14px; padding: 12px 16px; background: #fff7df; border-radius: 10px; color: #765314; font-size: 13px; }
+.dashboard-status[hidden] { display: none; }
+.overview-panels { gap: 18px; margin-bottom: 20px; }
+.panel-text-link { border: 0; background: none; color: var(--green-800); font: 700 12px 'Nunito', sans-serif; cursor: pointer; min-height: 36px; padding: 4px; white-space: nowrap; }
+.panel-text-link:hover { text-decoration: underline; }
+.health-distribution { padding: 22px; display: grid; grid-template-columns: minmax(140px, .85fr) minmax(180px, 1.15fr); align-items: center; gap: 24px; }
+.health-donut { aspect-ratio: 1; width: 100%; max-width: 210px; border-radius: 50%; background: var(--neutral-100); display: grid; place-items: center; margin: auto; }
+.health-donut-center { background: #fff; width: 65%; height: 65%; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.health-donut-center strong { font: 600 30px 'Outfit', sans-serif; color: #142b25; }
+.health-donut-center span { font-size: 12px; color: var(--neutral-600); }
+.health-legend { min-width: 0; font-size: 12px; }
+.health-legend-row { display: flex; align-items: center; gap: 8px; margin: 9px 0; }
+.health-legend-row > span:nth-child(2) { flex: 1; }
+.health-legend-row strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.health-legend-detail { border-top: 1px solid var(--neutral-200); margin-top: 16px; padding-top: 6px; }
+.health-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--brand-green); }
+.health-dot.diseased { background: #d93642; }
+.health-dot.blast { background: #bd3642; }
+.health-dot.blb { background: #b67b13; }
+.health-dot.brown_spot { background: #b06a35; }
+.health-dot.sheath_blight { background: #e39928; }
+.health-dot.tungro { background: #b6a72b; }
+.health-dot.healthy { background: #2b9654; }
+.activity-list { padding: 4px 20px 12px; }
+.activity-row { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; width: 100%; text-align: left; background: #fff; border: 0; border-bottom: 1px solid var(--neutral-100); padding: 13px 0; cursor: pointer; font: inherit; }
+.activity-row:last-child { border-bottom: 0; }
+.activity-row:hover { background: #f5faf6; }
+.activity-row img { width: 48px; height: 44px; object-fit: cover; border-radius: 7px; }
+.activity-row .activity-info { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.activity-row strong { font-size: 12.5px; font-weight: 700; color: var(--neutral-800); }
+.activity-time { font-size: 11px; color: var(--neutral-500); text-align: right; }
+.health-status { display: inline-flex; border-radius: 999px; padding: 4px 9px; font-size: 10.5px; font-weight: 700; line-height: 1.35; }
+.health-status.healthy { color: #14603a; background: #e1f2e6; }
+.health-status.diseased, .severity-badge.unassessed, .sev-badge.unassessed { color: #a52634; background: #fde6e7; }
+.overview-empty { color: var(--neutral-500); font-size: 13px; padding: 24px 8px; text-align: center; line-height: 1.6; }
+
+/* The same design language in every workspace and account screen. */
+.treat-disease-card, .result-diagnosis, .symptoms-card, .treatment-item, .history-filter-card,
+.admin-disease-card, .profile-menu-item, .barangay-card, .protocol-card, .auth-web-card { box-shadow: var(--shadow-sm); }
+.profile-avatar, .topbar-user-avatar, .ai-avatar, .send-btn, .profile-avatar-edit-overlay { background: var(--hero-gradient); }
+.treat-disease-icon { width: 56px; height: 56px; }
+.result-diagnosis.healthy { background: linear-gradient(110deg, #e0f6e6, #f2faf4); }
+.staff-tab-btn.active, .admin-tab-btn.active, .treatment-tabs button.active { color: #075b33; }
+.staff-chip.active, .disease-pill.active { background: var(--hero-gradient); border-color: #087443; color: #fff; }
+.admin-add-btn, .btn-primary-save, .btn-refresh, .auth-btn { background: var(--hero-gradient); }
+.admin-add-btn:hover, .btn-primary-save:hover, .btn-refresh:hover, .auth-btn:hover { background: #065532; }
+.auth-header-card { background: var(--hero-gradient); }
+.auth-logo-badge { background: #fff; }
+.auth-header-card h1 { color: #fff; }
+.auth-header-card p { color: #dbeee1; }
+.profile-card { background: linear-gradient(180deg, #e7f4eb 0, #fff 140px); }
+.staff-search-input, .form-input-styled { border-color: var(--neutral-200); border-radius: 10px; }
+.mobile-bottom-nav { border-top-color: #dce8df; box-shadow: 0 -4px 18px rgba(6,61,41,.06); }
+
+@media (min-width: 769px) and (max-width: 1199px) {
+  .sidebar-brand { padding-inline: 12px; gap: 9px; }
+  .brand-icon { width: 44px; height: 44px; }
+  .brand-text h1 { font-size: 18px; }
+  .brand-text p { font-size: 10px; }
+  .health-distribution { grid-template-columns: 1fr; }
+  .admin-stat-icon, .staff-stat-icon { width: 42px; height: 42px; }
+}
+@media (max-width: 768px) {
+  .admin-header-banner, .staff-header-banner, .quick-scan-card { padding: 24px 20px; }
+  .admin-banner-content, .staff-banner-content, .quick-scan-card > div:first-child { flex-basis: auto; }
+  .hero-actions { width: 100%; }
+  .hero-actions > button { flex: 1 1 140px; }
+  .hero-actions .scan-action-btn { width: auto !important; font-size: 13px; }
+  .admin-stat-card.executive, .staff-stat-card { padding: 16px; gap: 12px; align-items: flex-start; }
+  .admin-stat-icon, .staff-stat-icon { width: 38px; height: 38px; }
+  .admin-stat-info .stat-val, .staff-stat-data .stat-value { font-size: 26px; }
+  .health-distribution { gap: 20px; padding: 18px; }
+}
+@media (max-width: 540px) {
+  .admin-stat-card.executive, .staff-stat-card { flex-direction: column; }
+  .health-distribution { grid-template-columns: 1fr; }
+  .health-donut { max-width: 180px; }
+  .activity-row { grid-template-columns: 42px minmax(0,1fr); gap: 10px; }
+  .activity-row img { width: 42px; }
+  .activity-time { grid-column: 2; text-align: left; }
+}
 
 /* Small, finite motion: no animated layout or perpetual decoration. */
 @keyframes workspace-enter {

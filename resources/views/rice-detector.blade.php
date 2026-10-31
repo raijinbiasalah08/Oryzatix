@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
 <title>ORYZATIX — Rice Leaf Disease Detection Web Application</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="theme-color" content="#16501a">
+<meta name="theme-color" content="#087443">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Oryzatix">
@@ -712,13 +712,17 @@
         <div class="dashboard-hero-row">
           <div class="quick-scan-card">
             <div>
-              <h3>Scan Rice Plant Leaf</h3>
-              <p>Upload a leaf photo to check it against the labeled reference images and estimate affected area.</p>
+              <span class="hero-eyebrow">Your rice health companion</span>
+              <h3 id="farmerWelcomeTitle">Welcome back, farmer</h3>
+              <p>Keep a closer eye on your crop. Scan a rice leaf, review your results, and explore care guidance.</p>
             </div>
+            <div class="hero-actions">
             <button class="scan-action-btn" onclick="showScreen('scan')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span>Start Leaf Scan</span>
+              <span>Scan a leaf</span>
             </button>
+            <button type="button" class="hero-secondary-btn" onclick="showScreen('treatment')">Treatment Guide <span aria-hidden="true">→</span></button>
+            </div>
           </div>
         </div>
 
@@ -1107,15 +1111,18 @@
           <div class="staff-banner-content">
             <div class="staff-badge-pill">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>DA-PhilRice Agricultural Extension & Field Surveillance</span>
+              <span>Field surveillance</span>
             </div>
-            <h2 id="staffWelcomeTitle">Extension Officer Field Portal</h2>
-            <p id="staffWelcomeSubtitle">Surveillance, outbreak tracking, and farmer advisory management for Roxas, Oriental Mindoro</p>
+            <h2 id="staffWelcomeTitle">Welcome back, field officer</h2>
+            <p id="staffWelcomeSubtitle">Monitor field scans, support farmers, and keep your community's rice crops healthy.</p>
           </div>
+          <div class="hero-actions">
+          <button type="button" class="scan-action-btn" onclick="showScreen('scan')">Scan a leaf <span aria-hidden="true">→</span></button>
           <button class="staff-refresh-btn" onclick="loadStaffDashboard()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             <span>Refresh Data</span>
           </button>
+          </div>
         </div>
 
         <!-- 4 Staff Metric Stat Cards -->
@@ -1286,12 +1293,20 @@
           <div class="admin-banner-content">
             <div class="admin-badge-pill">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span>DA-PhilRice Central Agronomy Administration</span>
+              <span>Rice health overview</span>
             </div>
-            <h2 id="adminWelcomeTitle">Admin Executive Command Center</h2>
-            <p id="adminWelcomeSubtitle">Provincial surveillance oversight, AI diagnostic performance, and management center</p>
+            <h2 id="adminWelcomeTitle">Welcome back, Administrator</h2>
+            <p id="adminWelcomeSubtitle">Monitor disease detections, manage your users, and keep rice crops healthy.</p>
+          </div>
+          <div class="hero-actions">
+            <button type="button" class="scan-action-btn" onclick="showScreen('scan')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Scan a leaf
+            </button>
+            <button type="button" class="hero-secondary-btn" onclick="showScreen('treatment')">Treatment Guide <span aria-hidden="true">→</span></button>
           </div>
         </div>
+        <p class="dashboard-status" id="adminOverviewStatus" role="status">Loading your dashboard…</p>
 
         <!-- 4 Primary KPI Executive Stat Cards -->
         <div class="admin-stats-grid">
@@ -1312,7 +1327,7 @@
             </div>
             <div class="admin-stat-info">
               <div class="stat-val" id="adminDashTotalScans">0</div>
-              <div class="stat-lbl">Total Detections</div>
+              <div class="stat-lbl">Total Scans</div>
               <div class="stat-sub">Today: +<span id="adminDashTodayScans">0</span> scans</div>
             </div>
           </div>
@@ -1323,8 +1338,8 @@
             </div>
             <div class="admin-stat-info">
               <div class="stat-val" id="adminDashDetectedDiseases">0</div>
-              <div class="stat-lbl">Detected Diseases</div>
-              <div class="stat-sub" id="adminDashOutbreakPercent">Scans needing severity review</div>
+              <div class="stat-lbl">Not Healthy Leaves</div>
+              <div class="stat-sub" id="adminDashOutbreakPercent">Detected with disease</div>
             </div>
           </div>
 
@@ -1335,60 +1350,77 @@
             <div class="admin-stat-info">
               <div class="stat-val" id="adminDashHealthyLeaves">0</div>
               <div class="stat-lbl">Healthy Rice Leaves</div>
-              <div class="stat-sub" id="adminDashHealthyRatio">100% Healthy Index</div>
+              <div class="stat-sub" id="adminDashHealthyRatio">Detected as healthy</div>
             </div>
           </div>
         </div>
 
-        <!-- Most Detected Disease & 7-Day Statistics Chart Row -->
-        <div class="admin-two-col-grid" style="margin-top: 18px;">
-          <!-- Most Detected Disease Highlight Card -->
+        <!-- Live health distribution and recent activity -->
+        <div class="admin-two-col-grid overview-panels">
           <div class="admin-panel-card">
             <div class="panel-card-header">
               <div class="panel-title-group">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <h3>Most Detected Disease</h3>
+                <h3>Disease Distribution</h3>
               </div>
-              <span class="badge-pill" style="background: var(--amber-100); color: var(--amber-800);">Prevalent</span>
+              <button type="button" class="panel-text-link" onclick="showScreen('admin-reports')">Analytics <span aria-hidden="true">→</span></button>
             </div>
-            <div class="panel-card-body" style="padding: 20px;">
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="width: 56px; height: 56px; border-radius: 14px; background: var(--red-50); border: 1px solid var(--red-100); display: flex; align-items: center; justify-content: center; color: var(--red-600); flex-shrink: 0;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
-                </div>
-                <div>
-                  <h4 style="font-size: 19px; font-weight: 800; color: var(--neutral-900); margin: 0;" id="adminDashMostDetectedName">Rice Leaf Blast</h4>
-                  <p style="font-size: 13px; color: var(--neutral-500); margin: 4px 0 0;">Total Detections: <strong id="adminDashMostDetectedCount" style="color: var(--red-600);">0</strong> (<span id="adminDashMostDetectedPercent">0%</span> of all scans)</p>
-                </div>
+            <div class="panel-card-body health-distribution">
+              <div class="health-donut" id="adminHealthDonut" role="img" aria-label="Loading leaf health distribution">
+                <div class="health-donut-center"><strong id="adminHealthDonutTotal">—</strong><span>Total scans</span></div>
               </div>
-              <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--neutral-100); display: flex; gap: 8px;">
-                <button class="panel-action-btn" onclick="showScreen('admin-reports');" style="flex: 1; justify-content: center;">View Detailed Analytics →</button>
-                <button class="panel-action-btn" onclick="showScreen('admin-diseases');" style="flex: 1; justify-content: center;">Disease Information →</button>
-              </div>
+              <div id="adminHealthLegend" class="health-legend"><p class="overview-empty">Loading scan distribution…</p></div>
             </div>
           </div>
 
-          <!-- Detection Statistics / 7-Day Trends Chart -->
+          <!-- The latest recorded scans, with the same preview as the records table -->
           <div class="admin-panel-card">
             <div class="panel-card-header">
               <div class="panel-title-group">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                <h3>Detection Statistics (Last 7 Days)</h3>
+                <h3>Recent Detection Activity</h3>
               </div>
-              <span class="badge-pill" style="background: var(--blue-100); color: var(--blue-700);">Daily Activity</span>
+              <button type="button" class="panel-text-link" onclick="showScreen('admin-scans-logs')">View all <span aria-hidden="true">→</span></button>
             </div>
-            <div class="panel-card-body" style="padding: 16px 20px;">
-              <div class="admin-chart-container" id="adminDailyTrendChart">
-                <!-- Injected dynamically: 7-day columns -->
-              </div>
-              <div style="display: flex; justify-content: center; gap: 20px; margin-top: 12px; font-size: 11.5px; font-weight: 700;">
-                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--red-500); display: inline-block;"></span> Diseased Leaves</span>
-                <span style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: var(--brand-green); display: inline-block;"></span> Healthy Leaves</span>
-              </div>
+            <div class="panel-card-body activity-list" id="adminRecentActivity">
+              <p class="overview-empty">Loading recent activity…</p>
             </div>
           </div>
         </div>
 
+        <!-- Full Width: Recent Detections Table -->
+        <div class="admin-panel-card" style="margin-top: 24px; margin-bottom: 30px;">
+          <div class="panel-card-header">
+            <div class="panel-title-group">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <h3>Recent Detections</h3>
+            </div>
+            <button class="panel-action-btn" onclick="showScreen('admin-scans-logs'); loadAdminScansLogs();">
+              <span>View All Detection Records</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="panel-card-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="width: 65px;">Photo</th>
+                    <th>User</th>
+                    <th>Predicted Disease</th>
+                    <th>Confidence / Accuracy</th>
+                    <th>Severity Level</th>
+                    <th>Date & Time</th>
+                    <th style="text-align: center; width: 100px;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRecentScansTableBody">
+                  <tr><td colspan="7" class="empty-table-msg">Loading recent detection records...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
         <!-- Quick Management Shortcuts Hub -->
         <div class="admin-quick-hub" style="margin-top: 20px;">
           <div class="quick-hub-card" onclick="showScreen('admin-users');">
@@ -1435,40 +1467,6 @@
             <div class="quick-hub-arrow">→</div>
           </div>
 
-        </div>
-
-        <!-- Full Width: Recent Detections Table -->
-        <div class="admin-panel-card" style="margin-top: 24px; margin-bottom: 30px;">
-          <div class="panel-card-header">
-            <div class="panel-title-group">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <h3>Recent Detections</h3>
-            </div>
-            <button class="panel-action-btn" onclick="showScreen('admin-scans-logs'); loadAdminScansLogs();">
-              <span>View All Detection Records</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-          <div class="panel-card-body" style="padding: 0;">
-            <div class="table-responsive">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th style="width: 65px;">Photo</th>
-                    <th>User</th>
-                    <th>Predicted Disease</th>
-                    <th>Confidence / Accuracy</th>
-                    <th>Severity Level</th>
-                    <th>Date & Time</th>
-                    <th style="text-align: center; width: 100px;">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="adminRecentScansTableBody">
-                  <tr><td colspan="7" class="empty-table-msg">Loading recent detection records...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </section>
 
