@@ -35,66 +35,18 @@
   },
   "disease": {
     "target_precision": 0.95,
-    "threshold_policy": "lowest predicted-class threshold reaching the target precision on the disease model validation split; maximum validation coverage",
+    "threshold_policy": "Four full-image orientations averaged; minimum 20 validation accepts per class at 95% empirical precision.",
     "thresholds": {
-      "blb": 0.8141849040985107,
-      "brown_spot": 0.849190354347229,
-      "healthy": 0.5409027934074402,
-      "sheath_blight": 0.9550160765647888,
-      "tungro": 0.7523496150970459,
-      "blast": 0.9093549251556396
+      "blb": 0.831451416015625,
+      "brown_spot": 0.6848785281181335,
+      "healthy": 0.4488687515258789,
+      "sheath_blight": 0.516076922416687,
+      "tungro": 0.5875284075737,
+      "blast": 0.7569734454154968
     },
-    "per_class_validation": {
-      "blb": {
-        "validation_true_images": 39,
-        "accepted_predictions": 37,
-        "correct_accepted_predictions": 37,
-        "precision": 1.0,
-        "recall_at_threshold": 0.9487179487179487,
-        "threshold": 0.8141849040985107
-      },
-      "brown_spot": {
-        "validation_true_images": 164,
-        "accepted_predictions": 125,
-        "correct_accepted_predictions": 119,
-        "precision": 0.952,
-        "recall_at_threshold": 0.725609756097561,
-        "threshold": 0.849190354347229
-      },
-      "healthy": {
-        "validation_true_images": 159,
-        "accepted_predictions": 146,
-        "correct_accepted_predictions": 139,
-        "precision": 0.952054794520548,
-        "recall_at_threshold": 0.8742138364779874,
-        "threshold": 0.5409027934074402
-      },
-      "sheath_blight": {
-        "validation_true_images": 40,
-        "accepted_predictions": 33,
-        "correct_accepted_predictions": 32,
-        "precision": 0.9696969696969697,
-        "recall_at_threshold": 0.8,
-        "threshold": 0.9550160765647888
-      },
-      "tungro": {
-        "validation_true_images": 119,
-        "accepted_predictions": 117,
-        "correct_accepted_predictions": 112,
-        "precision": 0.9572649572649573,
-        "recall_at_threshold": 0.9411764705882353,
-        "threshold": 0.7523496150970459
-      },
-      "blast": {
-        "validation_true_images": 78,
-        "accepted_predictions": 44,
-        "correct_accepted_predictions": 42,
-        "precision": 0.9545454545454546,
-        "recall_at_threshold": 0.5384615384615384,
-        "threshold": 0.9093549251556396
-      }
-    },
-    "validation_image_count": 1074
+    "validation_image_count": 1074,
+    "orientation_views": 4,
+    "model_sha256": "9d620a488271ac102c44a99f0e9050f97aba0458b068ca87ffa5c54dcf8a434a"
   },
   "binary_test": {
     "overall": {

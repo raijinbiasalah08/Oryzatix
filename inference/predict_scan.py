@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def laplacian_variance(image: Image.Image) -> float:
     return float(np.var(laplacian))
 
 
-def run_model(model_path: Path, pixels: np.ndarray, expected_shape: tuple[int, ...]) -> np.ndarray:
+def load_model(model_path: Path):
     interpreter = Interpreter(model_path=str(model_path), num_threads=2)
     interpreter.allocate_tensors()
     inputs = interpreter.get_input_details()
@@ -51,12 +52,34 @@ def run_model(model_path: Path, pixels: np.ndarray, expected_shape: tuple[int, .
         raise ValueError(f"Unexpected input shape for {model_path.name}.")
     if input_detail["dtype"] != np.float32 or output_detail["dtype"] != np.float32:
         raise ValueError(f"Unexpected tensor dtype for {model_path.name}.")
-    interpreter.set_tensor(input_detail["index"], pixels)
+    return interpreter, input_detail, output_detail
+
+
+def invoke_model(model, pixels: np.ndarray, expected_shape: tuple[int, ...]) -> np.ndarray:
+    interpreter, input_detail, output_detail = model
+    interpreter.set_tensor(input_detail["index"], np.ascontiguousarray(pixels, dtype=np.float32))
     interpreter.invoke()
     result = np.asarray(interpreter.get_tensor(output_detail["index"]), dtype=np.float32)
     if result.shape != expected_shape or not np.isfinite(result).all():
-        raise ValueError(f"Model returned invalid output shape or values: {model_path.name}.")
+        raise ValueError("Model returned invalid output shape or values.")
     return result
+
+
+def run_model(model_path: Path, pixels: np.ndarray, expected_shape: tuple[int, ...]) -> np.ndarray:
+    return invoke_model(load_model(model_path), pixels, expected_shape)
+
+
+def disease_views(model, pixels: np.ndarray, class_count: int, rotations: int = 1) -> np.ndarray:
+    """Average identical full-image views; never crop away disease symptoms."""
+    if rotations not in (1, 4):
+        raise ValueError("Supported orientation counts are 1 and 4.")
+    views = [invoke_model(model, np.rot90(pixels, k, axes=(1, 2)), (1, class_count))[0]
+             for k in range(rotations)]
+    views = np.asarray(views)
+    if (not np.isfinite(views).all() or np.any(views < 0) or np.any(views > 1)
+            or not np.allclose(views.sum(axis=1), 1.0, rtol=0.0, atol=0.02)):
+        raise ValueError("Disease model returned invalid probabilities for an orientation.")
+    return views
 
 
 def make_result(
@@ -96,6 +119,9 @@ def main() -> int:
     labels = json.loads(labels_path.read_text(encoding="utf-8"))
     labels.sort(key=lambda row: int(row["index"]))
     thresholds = json.loads(thresholds_path.read_text(encoding="utf-8"))
+    calibrated_hash = thresholds['disease'].get('model_sha256')
+    if calibrated_hash and hashlib.sha256(disease_path.read_bytes()).hexdigest() != calibrated_hash:
+        raise ValueError("Disease thresholds belong to a different model; recalibration is required.")
     rice_gate = thresholds["rice_leaf"]
     blur_gate = thresholds["blur"]
     disease_gate = thresholds["disease"]["thresholds"]
@@ -103,8 +129,11 @@ def main() -> int:
     blur_threshold = float(blur_gate["threshold"])
     if not rice_gate.get("operating_point_available"):
         raise ValueError("Rice-leaf validator has no accepting operating point from validation data.")
-    if not (0.0 <= rice_threshold <= 1.0) or not np.isfinite(blur_threshold):
+    if not (0.0 <= rice_threshold <= 1.0) or not np.isfinite(blur_threshold) or blur_threshold < 0:
         raise ValueError("Calibrated validation thresholds are invalid.")
+    for value in disease_gate.values():
+        if value is not None and not 0.0 <= float(value) <= 1.0:
+            raise ValueError("Calibrated disease threshold is invalid.")
 
     image = load_rgb(image_path)
     focus_score = laplacian_variance(image)
@@ -129,7 +158,9 @@ def main() -> int:
         )))
         return 0
 
-    probabilities = run_model(disease_path, pixels, (1, len(labels)))[0]
+    rotations = int(thresholds["disease"].get("orientation_views", 1))
+    views = disease_views(load_model(disease_path), pixels, len(labels), rotations)
+    probabilities = np.mean(views, axis=0)
     if np.any(probabilities < 0.0) or np.any(probabilities > 1.0):
         raise ValueError("Disease model probabilities fall outside [0, 1].")
     probability_sum = float(np.sum(probabilities))
@@ -167,6 +198,9 @@ def main() -> int:
             rice_threshold, focus_score, blur_threshold,
             {"disease_key": disease_key, "name": label.get("name"), "confidence": confidence, "minimum_confidence": float(disease_threshold)},
         )
+    result['diagnosis']['orientation_views'] = rotations
+    result['diagnosis']['orientation_agreement'] = float(np.mean(np.argmax(views, axis=1) == best_index))
+    result['diagnosis']['score_description'] = 'Mean model probability across full-image orientations'
     print(json.dumps(result, allow_nan=False))
     return 0
 

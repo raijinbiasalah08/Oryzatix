@@ -1,5 +1,21 @@
 # Train and run the Oryzatix scan models
 
+## Scanner orientation upgrade — October 31, 2026
+
+The server now averages the disease model's probabilities over the original image and its 90°, 180°, and 270° rotations. Each view contains the entire leaf image. The interpreter is reused across views. The rice/non-rice and focus gates still run before disease classification. This costs four disease-model invocations per scan instead of one.
+
+The four-view policy was selected on the existing validation split, with class thresholds calibrated there to at least 95% empirical precision and at least 20 accepted examples. The existing frozen test split was then evaluated once. On its 1,074 images, classification accuracy rose from 94.79% to 96.09%; on the 599 rice images alone, it rose from 90.65% to 92.99%. Leaf Blast recall rose from 75.64% to 84.62% (78 images), and Brown Spot recall rose from 89.02% to 90.24% (164 images).
+
+Thresholded disease acceptance increased from 486 to 533 test images, with 472 versus 514 correct accepted results. Precision among accepted results decreased from 97.12% to 96.44%. These are classifier measurements before the rice/focus gates and reference-match fallback, not end-to-end field accuracy. Existing limitations around limited scene negatives, synthetic blur, and dataset representativeness still apply. Scores are model probabilities, not calibrated guarantees of correctness.
+
+The reproducible report is in `training/reports/scanner-orientations-2026-10-31/evaluation.json`. Model and manifest SHA-256 identifiers record the exact inputs. Reproduce calibration with:
+
+```powershell
+.\.venv-training\Scripts\python.exe training/calibrate_scan_orientations.py --manifest outputs/brown-spot-retraining-2026-10-23/candidate-01/training_manifest.csv --output outputs/scanner-orientation-candidate
+```
+
+The command writes candidate thresholds without deploying them. Only use four-view thresholds with the same disease model; server inference rejects a mismatched model hash. After retraining, recalibrate before replacing model assets. Legacy threshold files without `orientation_views` retain single-view behavior.
+
 Oryzatix uses two separate MobileNetV2 models during server-side scans: a binary rice-leaf versus non-rice-image validator, followed by the existing disease classifier. The disease classifier is not treated as a non-rice rejection model. The scan pipeline also applies an image-focus check and rejects malformed probabilities or predictions below validation-derived class thresholds.
 
 The disease training workflow trains a seven-class rice-leaf classifier, evaluates it on a held-out test split, and exports Keras and TensorFlow Lite models. It uses exact SHA-256 deduplication, excludes identical images assigned to different labels, and writes a deterministic 70/15/15 class-stratified manifest. Offline images inside an `Augmented` subfolder are excluded before splitting to prevent near-duplicate leakage; online augmentation is applied to training batches instead. Files under the Brown Spot folder whose filename or subfolder explicitly identifies Leaf Blast are excluded from Brown Spot and listed with excluded augmented images in `dataset_exclusions.csv`; Leaf Blast images belong in the dedicated `leaf_blast` folder. It does not move or rewrite source images.
