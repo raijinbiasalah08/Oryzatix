@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=optional" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ filemtime(public_path('css/rice-detector.css')) ?: '1' }}">
+<link rel="stylesheet" href="{{ asset('css/ui-refresh.css') }}?v={{ filemtime(public_path('css/ui-refresh.css')) ?: '1' }}">
 <style>
   html.app-booting .web-app-shell {
     opacity: 0;
@@ -740,6 +741,11 @@
 
       <!-- ═══════════ SCREEN 5: DISEASE SCANNER ═══════════ -->
       <section class="screen" id="scan">
+        <div class="page-intro">
+          <span class="page-eyebrow">Leaf scanner</span>
+          <h2>A closer look at your crop</h2>
+          <p>Upload a clear photo or use your camera. Keep the leaf in focus with good, even lighting.</p>
+        </div>
         <div class="scan-box-wrapper">
           <div class="camera-viewfinder" id="cameraViewfinder">
             <video id="cameraStream" autoplay playsinline muted></video>
@@ -756,10 +762,12 @@
 
           <div class="scan-controls">
             <button class="secondary-btn" title="Gallery Upload" onclick="document.getElementById('fileInput').click();">
+              <span class="scan-control-label">Upload photo</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             </button>
-            <button class="capture-btn" id="shutterBtn" onclick="handleCaptureClick()" title="Capture Leaf Photo"></button>
+            <button class="capture-btn" id="shutterBtn" onclick="handleCaptureClick()" title="Capture Leaf Photo"><span class="scan-control-label">Capture leaf</span></button>
             <button class="secondary-btn" id="cameraToggleBtn" title="Toggle Live Camera" onclick="toggleLiveCamera()">
+              <span class="scan-control-label">Live camera</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
             </button>
           </div>
@@ -906,6 +914,11 @@
 
       <!-- ═══════════ SCREEN 8: TREATMENT GUIDE ═══════════ -->
       <section class="screen" id="treatment">
+        <div class="page-intro">
+          <span class="page-eyebrow">Treatment & care</span>
+          <h2>Care for every leaf</h2>
+          <p>Explore disease-specific guidance, cultural practices, and treatment options.</p>
+        </div>
         <div class="disease-selector-bar" id="treatmentDiseasePills">
           <button class="disease-pill active" onclick="switchTreatmentDisease('blast')">Leaf Blast</button>
           <button class="disease-pill" onclick="switchTreatmentDisease('blb')">Bacterial Blight</button>
@@ -963,6 +976,11 @@
 
       <!-- ═══════════ SCREEN 9: SCAN HISTORY ═══════════ -->
       <section class="screen" id="history">
+        <div class="page-intro">
+          <span class="page-eyebrow">Your scan records</span>
+          <h2>Follow your crop's health</h2>
+          <p>Review past detections and find the guidance you need for your next step.</p>
+        </div>
         <div class="history-stats">
           <div class="stat-card"><div class="stat-num green" id="statHealthy">0</div><div class="stat-label">Healthy</div></div>
           <div class="stat-card"><div class="stat-num mild" id="statMild">0</div><div class="stat-label">Mild (≤ 25%)</div></div>

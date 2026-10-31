@@ -1,0 +1,299 @@
+/* Shared visual system. Loaded after the original component and mobile styles. */
+:root {
+  --brand-green: #176344;
+  --brand-green-hover: #104d34;
+  --brand-green-light: #f0f7f2;
+  --brand-green-border: #cde3d4;
+  --green-50: #f0f7f2;
+  --green-100: #e1f3e7;
+  --green-200: #c4e4cf;
+  --green-700: #187044;
+  --green-800: #164d35;
+  --blue-200: #b9ddeb;
+  --blue-400: #38a1ce;
+  --blue-700: #126182;
+  --blue-800: #164e63;
+  --amber-400: #fbbf24;
+  --amber-800: #855013;
+  --neutral-50: #f7f9f8;
+  --neutral-100: #eef2f0;
+  --neutral-200: #dfe7e2;
+  --neutral-300: #c9d5cd;
+  --neutral-500: #64766c;
+  --neutral-600: #4f6157;
+  --neutral-700: #354b3e;
+  --neutral-800: #20392c;
+  --neutral-900: #152b1f;
+  --shadow-xs: 0 1px 3px rgba(21, 43, 31, .035);
+  --shadow-sm: 0 3px 12px rgba(21, 43, 31, .045);
+  --shadow-md: 0 8px 24px rgba(21, 43, 31, .08);
+  --shadow-lg: 0 16px 40px rgba(21, 43, 31, .10);
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --ui-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+body { background: #f4f7f4; }
+.web-main-workspace { background: #f4f7f4; }
+.web-page-content { max-width: 1480px; }
+
+/* A quiet navigation rail with a clear, high-contrast current page. */
+.web-sidebar {
+  background: linear-gradient(170deg, #153d2d, #0f3025);
+  border-right: 1px solid rgba(255, 255, 255, .08);
+  box-shadow: none;
+}
+.sidebar-brand { background: transparent; padding: 24px 20px; }
+.brand-icon { box-shadow: none; border-radius: 13px; }
+.brand-text h1 { text-shadow: none; letter-spacing: -.4px; }
+.brand-text p { color: #b6cebf; }
+.sidebar-menu { padding: 20px 12px; gap: 6px; }
+.sidebar-nav-btn {
+  min-height: 46px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #dce9e0;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.sidebar-nav-btn svg { color: #a9cbb6; stroke: currentColor; }
+.sidebar-nav-btn:hover { background: rgba(255,255,255,.08); transform: none; }
+.sidebar-nav-btn:hover svg { transform: none; filter: none; color: #fff; }
+.sidebar-nav-btn.active {
+  background: #e4f2e8;
+  color: #153d2d;
+  border-color: transparent;
+  box-shadow: none;
+}
+.sidebar-nav-btn.active svg { color: #176344; stroke: currentColor; }
+.mobile-drawer {
+  background: #153d2d;
+  visibility: hidden;
+  transition: transform 240ms var(--ui-ease), visibility 240ms;
+}
+.mobile-drawer.show { visibility: visible; }
+
+/* Keep page titles readable as the header runs out of space. */
+.web-topbar { padding-inline: 28px; gap: 20px; box-shadow: none; }
+.web-topbar > div:first-child { min-width: 0; }
+.topbar-title { font-weight: 700; font-size: 18px; letter-spacing: -.35px; }
+.topbar-actions { gap: 8px; flex-shrink: 0; }
+.topbar-datetime-widget {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding-inline: 6px;
+}
+.topbar-datetime-widget:hover { background: transparent; border-color: transparent; box-shadow: none; }
+.topbar-time { font-weight: 600; letter-spacing: 0; }
+.topbar-user-btn { border-width: 1px; background: #fff; min-height: 40px; }
+.topbar-action-pill-btn { min-height: 36px; border-radius: 10px; }
+.topbar-action-pill-btn.pwa-install-btn { box-shadow: none; }
+.topbar-action-pill-btn.mobile-lan-btn { background: #f3f7f4; border-color: #d6e4db; }
+
+/* Typography and shared page introductions. */
+.page-intro { margin-bottom: 24px; }
+.page-eyebrow {
+  display: block;
+  color: var(--brand-green);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+.page-intro h2, .admin-title h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(24px, 2vw, 30px);
+  font-weight: 600;
+  letter-spacing: -.7px;
+  line-height: 1.2;
+}
+.page-intro p { font-size: 13.5px; line-height: 1.65; color: var(--neutral-500); margin-top: 8px; }
+.admin-title p { line-height: 1.6; max-width: 720px; }
+.admin-header-row { gap: 20px; }
+.admin-banner-content h2 { font-weight: 600; font-size: clamp(24px, 2.3vw, 32px); line-height: 1.2; }
+.admin-header-banner {
+  padding: 30px;
+  background: linear-gradient(115deg, #153d2d, #236447);
+  box-shadow: none;
+  border: 1px solid #285a40;
+}
+.admin-header-banner::after {
+  width: 280px;
+  height: 280px;
+  right: -70px;
+  top: -110px;
+  border: 40px solid rgba(219, 239, 208, .045);
+  background: none;
+}
+.admin-banner-content { position: relative; z-index: 1; }
+.admin-badge-pill { background: rgba(255,255,255,.08); color: #dceccf; border-color: rgba(255,255,255,.18); font-size: 10px; }
+.quick-scan-card { background: linear-gradient(115deg, #153d2d, #236447); box-shadow: none; }
+
+/* Consistent surfaces across dashboard, treatment, history, and administration. */
+.admin-stat-card, .staff-stat-card, .stat-card,
+.admin-panel-card, .admin-table-card, .staff-table-card,
+.history-table-wrapper, .history-filter-card, .treat-disease-card,
+.treatment-item, .symptoms-card, .scan-box-wrapper, .profile-card {
+  border-color: var(--neutral-200);
+  box-shadow: var(--shadow-xs);
+}
+.admin-stat-card, .admin-stat-card.executive { padding: 22px; gap: 14px; align-items: flex-start; }
+.admin-stat-info, .staff-stat-data { min-width: 0; }
+.admin-stat-info .stat-val { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.admin-stat-info .stat-lbl { color: var(--neutral-600); font-weight: 700; line-height: 1.4; }
+.admin-stat-card .stat-sub { font-weight: 500; line-height: 1.5; }
+.admin-stat-icon { width: 42px; height: 42px; border-radius: 12px; }
+.stat-card { text-align: left; padding: 18px 22px; }
+.stat-card .stat-num { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 600; }
+.stat-card .stat-label { color: var(--neutral-600); }
+.panel-card-header { background: #fff; padding: 18px 20px; flex-wrap: wrap; }
+.panel-title-group { min-width: 0; }
+.panel-title-group h3 { font-weight: 600; line-height: 1.4; }
+.panel-title-group > svg { flex-shrink: 0; color: var(--brand-green); }
+.quick-hub-card { text-align: left; font-family: inherit; }
+
+/* Badges previously had only background colors, leaving text unpadded. */
+.web-page-content .badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.admin-table :is(.badge-pill, .role-badge), .sev-badge { white-space: nowrap; }
+.severity-badge.unassessed, .sev-badge.unassessed { background: #fff0df; color: #855013; }
+.u-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; color: #fff; }
+.u-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.history-data-table th, .admin-table th, .staff-data-table th { color: #53665b; font-size: 10.5px; letter-spacing: .7px; }
+.history-data-table thead, .admin-table thead, .staff-data-table thead { background: #f7faf7; }
+.history-data-table td, .admin-table td, .staff-data-table td { border-bottom-color: #edf2ee; }
+.history-data-table tr:hover td, .admin-table tbody tr:hover, .staff-data-table tr:hover td { background: #f3f8f4; }
+.table-responsive, .history-table-responsive, .disease-selector-bar { scrollbar-width: thin; scrollbar-color: #b6cbbd transparent; }
+.admin-disease-card { border-radius: 18px; box-shadow: var(--shadow-xs); }
+
+/* Controls: soft tracks, obvious selections, and visible keyboard focus. */
+.admin-tabs-bar, .staff-tabs-bar, .treatment-tabs { background: #e8eeea; padding: 5px; gap: 5px; border-radius: 13px; }
+.admin-tab-btn, .staff-tab-btn, .treatment-tabs button { min-height: 42px; font-weight: 700; border-radius: 9px; }
+.admin-tab-btn.active, .staff-tab-btn.active, .treatment-tabs button.active { box-shadow: 0 1px 4px rgba(21,43,31,.08); }
+.disease-pill { min-height: 40px; padding-inline: 16px; }
+.history-filter-card { padding: 16px; gap: 12px; }
+.admin-search-input, .history-search-input, .dosage-inputs input, .dosage-inputs select { min-height: 44px; }
+.admin-add-btn, .btn-refresh { box-shadow: none; min-height: 42px; }
+.panel-action-btn, .ht-view-btn { min-height: 36px; }
+.action-icon-btn, .ht-delete-btn { min-width: 36px; min-height: 36px; }
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #3b8960 !important;
+  outline-offset: 3px;
+}
+.sidebar-nav-btn:focus-visible { outline-color: #bde5c9 !important; outline-offset: -3px; }
+button:disabled { cursor: not-allowed; }
+
+/* Scanner and consultation are calmer work areas with clear actions. */
+.camera-viewfinder { background: radial-gradient(ellipse at center, #1a3529, #0c1d16); }
+.scan-laser-line { height: 2px; box-shadow: 0 0 8px rgba(74,222,128,.35); }
+.scan-controls { padding-bottom: 30px; gap: 42px; }
+.scan-controls > button { position: relative; }
+.scan-control-label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 14px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 700 11px 'Nunito', sans-serif;
+  color: var(--neutral-600);
+}
+.scan-controls .secondary-btn .scan-control-label { top: calc(100% + 24px); }
+#consultation { box-shadow: var(--shadow-sm); }
+/* The legacy mobile rule sets display:flex even when another screen is active. */
+#consultation:not(.active) { display: none !important; }
+.chat-header { background: #fcfefc; }
+.chat-messages { background: #f8fbf8; }
+.chat-time { color: var(--neutral-500); }
+.chat-bubble.ai { background: #fff; border-color: #dfe9e1; box-shadow: var(--shadow-xs); }
+.chat-bubble.user { background: var(--brand-green); }
+.chat-input-bar { background: #fff; }
+.chat-input-bar input { background: #f4f7f4; border-color: var(--neutral-200); }
+.treat-disease-card { padding: 20px 22px; }
+.treat-disease-info h3 { font-size: 20px; font-weight: 600; }
+.dosage-calculator-card { background: #f0f7f2; border-color: #cde2d3; }
+.dosage-result-box { border-style: solid; border-color: #d6e6db; }
+.modal-backdrop.result-image-preview-backdrop { background: rgba(6,20,13,.92); padding: 24px; }
+
+/* Small, finite motion: no animated layout or perpetual decoration. */
+@keyframes workspace-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .screen.active { animation: workspace-enter 260ms var(--ui-ease); }
+  .chat-bubble { animation: workspace-enter 180ms var(--ui-ease); }
+  .quick-hub-card, .feature-card, .recent-scan-card, .admin-disease-card {
+    transition: transform 180ms var(--ui-ease), border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .disease-pill, .admin-tab-btn, .treatment-tabs button, .panel-action-btn {
+    transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+  }
+}
+@media (hover: hover) {
+  .quick-hub-card:hover, .feature-card:hover, .recent-scan-card:hover, .admin-disease-card:hover {
+    transform: translateY(-2px); border-color: #afcbb9; box-shadow: var(--shadow-md);
+  }
+  .disease-pill:not(.active):hover { background: #eaf3ed; border-color: #bed7c7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .scan-laser-line { display: none; }
+  .quick-hub-card:hover, .feature-card:hover, .recent-scan-card:hover, .admin-disease-card:hover { transform: none; }
+}
+
+@media (max-width: 1399px) {
+  .topbar-datetime-widget { display: none; }
+  .topbar-user-name { max-width: 130px; }
+}
+@media (min-width: 769px) and (max-width: 1100px) {
+  .topbar-user-meta, .topbar-action-pill-btn .btn-text-desktop { display: none; }
+  .web-topbar { padding-inline: 20px; gap: 12px; }
+  .topbar-action-pill-btn { width: 38px; padding: 8px; justify-content: center; }
+  .admin-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .web-topbar { padding-inline: 12px; gap: 8px; }
+  .topbar-title { font-size: 15px; }
+  .topbar-actions { gap: 5px; }
+  .topbar-notif-btn, .mobile-menu-toggle-btn, .topbar-user-btn { min-width: 40px; min-height: 40px; }
+  .page-intro { margin-bottom: 20px; }
+  .page-intro h2, .admin-title h2 { font-size: 25px; }
+  .page-intro p { font-size: 13px; }
+  .admin-header-banner { padding: 24px 20px; border-radius: 18px; }
+  .admin-badge-pill { font-size: 9px; line-height: 1.5; }
+  .admin-stat-card, .admin-stat-card.executive { padding: 16px; gap: 10px; }
+  .admin-stats-grid, .staff-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-stat-info .stat-val { font-size: 26px; }
+  .stat-card { padding: 14px 16px; }
+  .admin-tabs-bar, .staff-tabs-bar { overflow-x: auto; }
+  .admin-tab-btn, .staff-tab-btn { flex-shrink: 0; min-width: max-content; }
+  .admin-add-btn, .btn-refresh, .action-icon-btn, .ht-delete-btn, .ht-view-btn { min-height: 44px; }
+  .action-icon-btn, .ht-delete-btn { min-width: 44px; }
+  .scan-controls { gap: 36px; padding-bottom: 32px; }
+  .scan-box-wrapper { padding: 16px; }
+  .panel-card-header { padding: 16px; }
+  .treat-disease-card { padding: 18px; }
+  .treatment-tabs button, .blb-sev-pill { white-space: normal; }
+  .dosage-inputs input { min-width: 0; }
+  #consultation {
+    height: calc(100dvh - var(--topbar-height) - 110px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+@media (max-width: 480px) {
+  .chat-header { flex-wrap: wrap; }
+  .chat-header-info h3, .chat-header-info p { white-space: normal !important; }
+  .chat-header-actions { flex-basis: 100%; justify-content: flex-end !important; }
+}
+@media (max-width: 380px) {
+  .admin-stat-card, .admin-stat-card.executive { flex-direction: column; }
+}

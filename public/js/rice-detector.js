@@ -5219,7 +5219,7 @@ function renderAdminDiseasesGrid() {
     const treatmentPreview = d.recommended_treatment || d.treatment || 'N/A';
 
     return `
-      <div class="admin-disease-card" style="background:#fff; border:1px solid var(--neutral-200); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;">
+      <div class="admin-disease-card">
         ${imgHtml}
         <div style="padding:16px; flex:1; display:flex; flex-direction:column;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">

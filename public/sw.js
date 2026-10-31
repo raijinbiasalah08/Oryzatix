@@ -1,9 +1,9 @@
-// v7 clears the old cache, which accumulated one CSS/JS entry per reload when
-// those asset URLs used a request-time timestamp.
-const CACHE_NAME = 'oryzatix-pwa-v7';
+// Refresh the app shell and precache the shared visual system.
+const CACHE_NAME = 'oryzatix-pwa-v8';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
+    './css/ui-refresh.css',
     './js/rice-detector.js',
     './images/logo.png',
     './images/icons/icon-192.png',
