@@ -147,6 +147,16 @@ function getDiseaseSampleImage(keyOrName) {
   return base ? (base + '/images/diseases/' + fn) : ('/images/diseases/' + fn);
 }
 
+function getDiseaseCartoonName(keyOrName) {
+  const key = String(keyOrName || '').toLowerCase();
+  if (key === 'blb' || key.includes('bacterial')) return 'bacterial-leaf-blight';
+  if (key === 'brown_spot' || key.includes('brown')) return 'brown-spot';
+  if (key === 'sheath_blight' || key.includes('sheath')) return 'sheath-blight';
+  if (key === 'tungro' || key.includes('tungro')) return 'rice-tungro';
+  if (key === 'healthy' || key.includes('healthy')) return 'healthy-rice-leaf';
+  return 'leaf-blast';
+}
+
 function resolveClientImageUrl(url, keyOrName) {
   if (!url) {
     return getDiseaseSampleImage(keyOrName);
@@ -2561,6 +2571,17 @@ function applyScanResult(scan) {
       diag.classList.add('warning');
       diagIcon.classList.add('warn');
     }
+
+    const illustration = getDiseaseCartoonName(scan.disease_key || scan.disease);
+    let illustrationImage = diagIcon.querySelector('img');
+    if (!illustrationImage) {
+      illustrationImage = document.createElement('img');
+      illustrationImage.width = 48;
+      illustrationImage.height = 48;
+      diagIcon.replaceChildren(illustrationImage);
+    }
+    illustrationImage.src = diagIcon.dataset.imageBase + '/' + illustration + '-cartoon.png';
+    illustrationImage.alt = (scan.disease || 'Rice leaf') + ' illustration';
   }
 
   // Only render a severity scale when an expert-validated area measurement exists.
@@ -3546,15 +3567,7 @@ function loadCurrentTreatment() {
 
   const treatIcon = document.getElementById('treatDiseaseIcon');
   if (treatIcon) {
-    const illustrations = {
-      blast: 'leaf-blast',
-      blb: 'bacterial-leaf-blight',
-      brown_spot: 'brown-spot',
-      sheath_blight: 'sheath-blight',
-      tungro: 'rice-tungro',
-      healthy: 'healthy-rice-leaf',
-    };
-    const illustration = illustrations[key];
+    const illustration = getDiseaseCartoonName(key);
     treatIcon.replaceChildren();
     if (illustration) {
       const image = document.createElement('img');

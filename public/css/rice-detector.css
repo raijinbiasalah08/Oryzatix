@@ -2539,6 +2539,15 @@ select {
   height: 26px;
 }
 
+.diag-icon img {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+  box-sizing: border-box;
+  object-fit: contain;
+  display: block;
+}
+
 .diag-text h3 {
   font-family: 'Outfit', sans-serif;
   font-size: 18px;
