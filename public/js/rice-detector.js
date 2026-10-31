@@ -5330,9 +5330,7 @@ function renderAdminDiseasesGrid() {
               <button class="panel-action-btn" onclick="openAdminViewDiseaseModal(${d.id})" style="font-size:11.5px; padding:4px 8px; background:var(--neutral-100); color:var(--neutral-700);">
                 View Details
               </button>
-              <button class="panel-action-btn" onclick="toggleAdminDiseaseStatus(${d.id})" style="font-size:11.5px; padding:4px 8px;">
-                ${isActive ? 'Deactivate' : 'Activate'}
-              </button>
+              ${isActive ? '' : `<button class="panel-action-btn" onclick="toggleAdminDiseaseStatus(${d.id})" style="font-size:11.5px; padding:4px 8px;">Activate</button>`}
             </div>
             <div style="display:flex; gap:6px;">
               <button class="action-icon-btn edit" onclick="openAdminEditDiseaseModalById(${d.id})" title="Edit Disease">
