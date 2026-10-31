@@ -140,11 +140,11 @@ class AdminController extends Controller
             // Disease distribution percentages
             $calcPercent = fn($cnt) => $totalScans > 0 ? round(($cnt / $totalScans) * 100, 1) : 0;
             $diseaseDistribution = [
-                'blast' => ['count' => $blastCount, 'percent' => $calcPercent($blastCount), 'label' => 'Leaf Blast', 'severity' => 'Needs assessment'],
-                'blb' => ['count' => $blbCount, 'percent' => $calcPercent($blbCount), 'label' => 'Bacterial Leaf Blight', 'severity' => 'Needs assessment'],
-                'sheath_blight' => ['count' => $sheathBlightCount, 'percent' => $calcPercent($sheathBlightCount), 'label' => 'Sheath Blight', 'severity' => 'Needs assessment'],
-                'tungro' => ['count' => $tungroCount, 'percent' => $calcPercent($tungroCount), 'label' => 'Rice Tungro Disease', 'severity' => 'Needs assessment'],
-                'brown_spot' => ['count' => $brownSpotCount, 'percent' => $calcPercent($brownSpotCount), 'label' => 'Brown Spot', 'severity' => 'Needs assessment'],
+                'blast' => ['count' => $blastCount, 'percent' => $calcPercent($blastCount), 'label' => 'Leaf Blast', 'severity' => 'Not Healthy Leaf'],
+                'blb' => ['count' => $blbCount, 'percent' => $calcPercent($blbCount), 'label' => 'Bacterial Leaf Blight', 'severity' => 'Not Healthy Leaf'],
+                'sheath_blight' => ['count' => $sheathBlightCount, 'percent' => $calcPercent($sheathBlightCount), 'label' => 'Sheath Blight', 'severity' => 'Not Healthy Leaf'],
+                'tungro' => ['count' => $tungroCount, 'percent' => $calcPercent($tungroCount), 'label' => 'Rice Tungro Disease', 'severity' => 'Not Healthy Leaf'],
+                'brown_spot' => ['count' => $brownSpotCount, 'percent' => $calcPercent($brownSpotCount), 'label' => 'Brown Spot', 'severity' => 'Not Healthy Leaf'],
                 'healthy' => ['count' => $healthyCount, 'percent' => $calcPercent($healthyCount), 'label' => 'Healthy Rice Leaves', 'severity' => 'Not applicable'],
             ];
 
@@ -702,7 +702,7 @@ class AdminController extends Controller
                 'Mild (≤ 25%)' => 0,
                 'Moderate (26%-60%)' => 0,
                 'Severe (> 60%)' => 0,
-                'Needs assessment' => RiceScan::where('severity', '!=', 'healthy')->count(),
+                'Not Healthy Leaf' => RiceScan::where('severity', '!=', 'healthy')->count(),
             ];
 
             $trendData = [];
@@ -788,7 +788,7 @@ class AdminController extends Controller
                 '"' . str_replace('"', '""', $s->disease_name) . '"',
                 '"' . str_replace('"', '""', $s->scientific_name ?: 'Oryza sativa') . '"',
                 $s->confidence . '%',
-                $s->severity === 'healthy' ? 'Healthy' : 'Needs assessment',
+                $s->severity === 'healthy' ? 'Healthy Leaf' : 'Not Healthy Leaf',
                 '"' . str_replace('"', '""', $s->notes ?: '') . '"',
                 '"' . ($s->created_at ? $s->created_at->format('Y-m-d H:i:s') : '') . '"',
             ]);

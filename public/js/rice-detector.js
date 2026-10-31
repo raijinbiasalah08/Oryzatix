@@ -2597,7 +2597,7 @@ function applyScanResult(scan) {
   if (severityLabels) severityLabels.style.display = hasMeasuredSeverity ? 'flex' : 'none';
   if (severityUnavailable) {
     severityUnavailable.style.display = isHealthy || hasMeasuredSeverity ? 'none' : 'block';
-    severityUnavailable.textContent = scan.severity_message || 'Severity needs assessment. The disease classifier does not measure affected leaf area. Ask an agriculturist to assess the leaf before using severity-based treatment advice.';
+    severityUnavailable.textContent = scan.severity_message || 'Disease detected: Not Healthy Leaf. The scanner does not measure affected leaf area or severity. Ask an agriculturist before using severity-based treatment advice.';
   }
 
   if (hasMeasuredSeverity) {
@@ -3532,10 +3532,12 @@ function loadCurrentTreatment() {
   const sub = document.getElementById('treatDiseaseSub');
   if (sub) {
     const rangeText = isMultiSev && !severityNeedsAssessment ? (curSeverity === 'mild' ? ' (≤ 25%)' : (curSeverity === 'moderate' ? ' (26% – 60%)' : ' (> 60%)')) : '';
-    const severityText = severityNeedsAssessment
-      ? (manualGuide ? 'Select a level' : 'Needs assessment')
-      : curSeverity.toUpperCase() + rangeText;
-    sub.textContent = (s.scientific || s.disease) + ' · Severity: ' + severityText;
+    if (severityNeedsAssessment && !manualGuide) {
+      sub.textContent = (s.scientific || s.disease) + ' · Status: Not Healthy Leaf';
+    } else {
+      const severityText = severityNeedsAssessment ? 'Select a level' : curSeverity.toUpperCase() + rangeText;
+      sub.textContent = (s.scientific || s.disease) + ' · Severity: ' + severityText;
+    }
   }
 
   const severityNotice = document.getElementById('treatSeverityNotice');
@@ -3717,20 +3719,9 @@ function renderHistoryList(scans) {
   pageItems.forEach(scan => {
     const rawSeverity = (scan.severity || '').toLowerCase();
     const isHealthyScan = rawSeverity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy');
-    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(rawSeverity);
-    const sev = isHealthyScan ? 'healthy' : (hasExpertSeverity ? rawSeverity : 'unassessed');
-    let badgeCls = 'sev-badge unassessed';
-    let badgeText = 'Needs assessment';
-    if (sev === 'healthy') {
-      badgeCls = 'sev-badge healthy';
-      badgeText = 'Healthy Leaf';
-    } else if (sev === 'mild') {
-      badgeCls = 'sev-badge mild';
-      badgeText = 'Mild (≤ 25%)';
-    } else if (sev === 'moderate') {
-      badgeCls = 'sev-badge moderate';
-      badgeText = 'Moderate (26% – 60%)';
-    }
+    const sev = isHealthyScan ? 'healthy' : 'unassessed';
+    const badgeCls = isHealthyScan ? 'sev-badge healthy' : 'sev-badge unassessed';
+    const badgeText = isHealthyScan ? 'Healthy Leaf' : 'Not Healthy Leaf';
 
     const rawThumbUrl = scan.image_url;
     const resolvedThumbUrl = resolveClientImageUrl(rawThumbUrl, scan.disease);
@@ -3916,15 +3907,10 @@ async function loadHomeRecentScans() {
         else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) thumbCls = 'blb';
         const rawSeverity = (s.severity || '').toLowerCase();
         const isHealthyScan = rawSeverity === 'healthy' || lower.includes('healthy');
-        const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(rawSeverity);
-        const displaySeverity = isHealthyScan ? 'healthy' : (hasExpertSeverity ? rawSeverity : 'unassessed');
+        const displaySeverity = isHealthyScan ? 'healthy' : 'unassessed';
         let sevCls = displaySeverity;
 
-        let sevLabel = 'Needs assessment';
-        if (displaySeverity === 'healthy') sevLabel = 'Healthy';
-        else if (displaySeverity === 'mild') sevLabel = 'Mild (≤25%)';
-        else if (displaySeverity === 'moderate') sevLabel = 'Moderate (26-60%)';
-        else if (displaySeverity === 'severe') sevLabel = 'Severe (>60%)';
+        const sevLabel = isHealthyScan ? 'Healthy Leaf' : 'Not Healthy Leaf';
 
         const rawUrl = s.image_url;
         const resolvedUrl = resolveClientImageUrl(rawUrl, s.disease);
@@ -4630,16 +4616,9 @@ function renderAdminRecentScansTable(scans) {
 
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
-    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
     const sevBadge = isHealthy
-      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-      : (!hasExpertSeverity
-        ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
-        : (s.severity === 'severe'
-        ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe (>60%)</span>'
-        : (s.severity === 'mild'
-          ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
-          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>')));
+      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
+      : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
 
     const resolvedAdminThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackAdminThumb = getDiseaseSampleImage(s.disease_name);
@@ -4961,16 +4940,9 @@ async function openAdminUserScansModal(userId, userName) {
             ? `<img src="${resolvedUserThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackUserThumb}';" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
             : `<div style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
           const isHealthy = s.severity === 'healthy';
-          const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
           const sevBadge = isHealthy
-            ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-            : (!hasExpertSeverity
-              ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
-              : (s.severity === 'severe'
-              ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe</span>'
-              : (s.severity === 'mild'
-                ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild</span>'
-                : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate</span>')));
+            ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
+            : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
 
           return `
             <tr>
@@ -5683,16 +5655,9 @@ function renderAdminScansLogsTable(scans) {
 
   tbody.innerHTML = scans.map(s => {
     const isHealthy = s.severity === 'healthy';
-    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(s.severity);
     const sevBadge = isHealthy
-      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy</span>'
-      : (!hasExpertSeverity
-        ? '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Needs assessment</span>'
-        : (s.severity === 'severe'
-        ? '<span class="badge-pill" style="background:var(--red-100); color:var(--red-700);">Severe (>60%)</span>'
-        : (s.severity === 'mild'
-          ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Mild (≤25%)</span>'
-          : '<span class="badge-pill" style="background:var(--amber-100); color:var(--amber-800);">Moderate (26-60%)</span>')));
+      ? '<span class="badge-pill" style="background:var(--green-100); color:var(--brand-green);">Healthy Leaf</span>'
+      : '<span class="badge-pill" style="background:var(--neutral-100); color:var(--neutral-700);">Not Healthy Leaf</span>';
 
     const resolvedScanThumb = resolveClientImageUrl(s.image_url, s.disease_name);
     const fallbackScanThumb = getDiseaseSampleImage(s.disease_name);
@@ -5739,12 +5704,7 @@ function openAdminScanPreview(scanId) {
   const content = document.getElementById('adminScanPreviewContent');
   if (content) {
     const isHealthy = scan.severity === 'healthy';
-    const sev = (scan.severity || 'unassessed').toLowerCase();
-    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
-    let sevDisplay = isHealthy ? 'HEALTHY' : 'NEEDS ASSESSMENT';
-    if (hasExpertSeverity && sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
-    else if (hasExpertSeverity && sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
-    else if (hasExpertSeverity && sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
+    const sevDisplay = isHealthy ? 'HEALTHY LEAF' : 'NOT HEALTHY LEAF';
 
     const resolvedScanPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
     const fallbackScanPreview = getDiseaseSampleImage(scan.disease_name);
@@ -5758,7 +5718,7 @@ function openAdminScanPreview(scanId) {
         <div><strong>Location:</strong> ${escapeHtml(scan.location)}</div>
         <div><strong>Predicted Result:</strong> <span style="color:var(--brand-green); font-weight:700;">${escapeHtml(scan.disease_name)}</span></div>
         <div><strong>Confidence / Accuracy:</strong> ${formatConfidencePercent(scan.confidence)}</div>
-        <div><strong>Severity Assessment:</strong> <span style="font-weight:700;">${sevDisplay}</span></div>
+        <div><strong>Leaf Health:</strong> <span style="font-weight:700;">${sevDisplay}</span></div>
         <div><strong>Scan Date:</strong> ${escapeHtml(scan.created_at)}</div>
         ${scan.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--neutral-200);"><strong>Staff Advisory:</strong> ${escapeHtml(scan.notes)}</div>` : ''}
       </div>
@@ -5987,15 +5947,9 @@ function renderStaffScansTable(scans) {
 
   tbody.innerHTML = scans.map(s => {
     const sev = s.severity || 'unassessed';
-    const hasExpertSeverity = s.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
-    const sevLabels = {
-      healthy: 'Healthy',
-      mild: 'Mild (≤ 25%)',
-      moderate: 'Moderate (26%–60%)',
-      severe: 'Severe (> 60%)',
-      unassessed: 'Needs assessment',
-    };
-    const sevLabel = sev === 'healthy' ? 'Healthy' : (hasExpertSeverity ? sevLabels[sev] : 'Needs assessment');
+    const isHealthy = sev === 'healthy' || (s.disease_name || '').toLowerCase().includes('healthy');
+    const sevLabel = isHealthy ? 'Healthy Leaf' : 'Not Healthy Leaf';
+    const statusClass = isHealthy ? 'healthy' : 'unassessed';
     const hasNote = Boolean(s.notes && s.notes.trim());
 
     const resolvedStaffThumb = resolveClientImageUrl(s.image_url, s.disease_name);
@@ -6021,7 +5975,7 @@ function renderStaffScansTable(scans) {
           ${hasNote ? `<div style="margin-top:4px; font-size:11px; padding:2px 6px; background:#eff6ff; color:#1d4ed8; border-radius:4px; border:1px solid #bfdbfe; display:inline-block;">💬 Staff Note Added</div>` : ''}
         </td>
         <td>
-          <span class="sev-badge ${sev}">${sevLabel}</span>
+          <span class="sev-badge ${statusClass}">${sevLabel}</span>
         </td>
         <td>
           <div style="font-size:12px; font-weight:600; color:var(--neutral-700);">${escapeHtml(s.created_at)}</div>
@@ -6131,11 +6085,7 @@ function openStaffAdvisoryModal(scanId) {
   if (preview) {
     const sev = (scan.severity || 'unassessed').toLowerCase();
     const isHealthy = sev === 'healthy' || (scan.disease_name || '').toLowerCase().includes('healthy');
-    const hasExpertSeverity = scan.severity_status === 'expert_validated' && ['mild', 'moderate', 'severe'].includes(sev);
-    let sevDisplay = isHealthy ? 'HEALTHY' : 'NEEDS ASSESSMENT';
-    if (hasExpertSeverity && sev === 'mild') sevDisplay = 'MILD (≤ 25%)';
-    else if (hasExpertSeverity && sev === 'moderate') sevDisplay = 'MODERATE (26% - 60%)';
-    else if (hasExpertSeverity && sev === 'severe') sevDisplay = 'SEVERE (> 60%)';
+    const sevDisplay = isHealthy ? 'HEALTHY LEAF' : 'NOT HEALTHY LEAF';
 
     const resolvedStaffPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
     const fallbackStaffPreview = getDiseaseSampleImage(scan.disease_name);

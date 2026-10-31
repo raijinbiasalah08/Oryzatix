@@ -811,7 +811,7 @@
             <span class="sev-label active-sev" id="sevLabelSev">Severe (> 60%)</span>
           </div>
           <div id="resultSeverityUnavailable" style="display:none; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; font-size:13px; line-height:1.5;">
-            Severity needs assessment. The disease classifier does not measure affected leaf area. Ask an agriculturist to assess the leaf before using severity-based treatment advice.
+            Disease detected: Not Healthy Leaf. The scanner does not measure affected leaf area or severity. Ask an agriculturist before using severity-based treatment advice.
           </div>
         </div>
 
@@ -984,7 +984,7 @@
                 <option value="mild">Mild (≤ 25%)</option>
                 <option value="moderate">Moderate (26% – 60%)</option>
                 <option value="severe">Severe (> 60%)</option>
-                <option value="unassessed">Needs assessment</option>
+                <option value="unassessed">Not Healthy Leaf</option>
                 <option value="blast">Leaf Blast</option>
                 <option value="blb">BLB</option>
                 <option value="brown_spot">Brown Spot</option>

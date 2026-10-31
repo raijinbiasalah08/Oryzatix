@@ -1421,7 +1421,7 @@ class RiceScanController extends Controller
                 'severity' => $severity,
                 'severity_status' => $severityStatus,
                 'severity_message' => $severityStatus === 'unassessed'
-                    ? 'Affected leaf area was not measured. Severity needs a visual assessment by a trained agriculturist.'
+                    ? 'Disease detected: Not Healthy Leaf. Affected leaf area and severity were not measured.'
                     : null,
                 'affected_percentage' => null,
                 'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : 'unassessed-bg'),
@@ -1489,7 +1489,7 @@ class RiceScanController extends Controller
                         'created_at_raw' => $scan->created_at->toISOString(),
                         'severity' => $displaySeverity,
                         'severity_status' => $isHealthy ? 'not_applicable' : 'unassessed',
-                        'severity_label' => $isHealthy ? 'Healthy' : 'Needs assessment',
+                        'severity_label' => $isHealthy ? 'Healthy Leaf' : 'Not Healthy Leaf',
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,
                         'image_url' => $scanImageUrl,
