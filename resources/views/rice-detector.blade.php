@@ -781,12 +781,16 @@
 
       <!-- ═══════════ SCREEN 7: DETECTION RESULTS ═══════════ -->
       <section class="screen" id="results">
-        <div class="result-image-card disease-blast" id="resultImageCard">
+        <button type="button" class="result-image-card disease-blast" id="resultImageCard" onclick="openResultImagePreview()" aria-label="Open detection image preview" title="Click to enlarge">
           <svg class="default-leaf-icon" id="resultImageCardIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          <div class="result-overlay">
-            <div class="date-tag" id="resultDateTag">Today</div>
-          </div>
-        </div>
+          <span class="result-image-zoom-hint" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            Enlarge
+          </span>
+          <span class="result-overlay">
+            <span class="date-tag" id="resultDateTag">Today</span>
+          </span>
+        </button>
 
         <div class="result-diagnosis warning" id="resultDiagnosis">
           <div class="diag-icon warn" id="resultDiagIcon">
@@ -1778,6 +1782,19 @@
 </div><!-- /.web-app-shell -->
 
 <!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Detection Result Image Preview -->
+<div class="modal-backdrop result-image-preview-backdrop" id="modalResultImagePreview" role="dialog" aria-modal="true" aria-labelledby="resultImagePreviewTitle">
+  <div class="result-image-preview-dialog">
+    <div class="result-image-preview-header">
+      <h3 id="resultImagePreviewTitle">Detection Image</h3>
+      <button type="button" class="result-image-preview-close" id="resultImagePreviewClose" onclick="closeModal('modalResultImagePreview')" aria-label="Close image preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <img id="resultImagePreview" src="" alt="Detection image preview">
+  </div>
+</div>
 
 <!-- Admin: Add New User Modal -->
 <div class="modal-backdrop" id="modalAdminAddUser">

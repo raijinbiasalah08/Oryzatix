@@ -591,6 +591,22 @@ function closeModal(modalId) {
   if (m) m.classList.remove('show');
 }
 
+function openResultImagePreview() {
+  const source = document.querySelector('#resultImageCard img.result-uploaded-img');
+  const modal = document.getElementById('modalResultImagePreview');
+  const preview = document.getElementById('resultImagePreview');
+  const title = document.getElementById('resultImagePreviewTitle');
+  if (!source || !source.src || !modal || !preview) return;
+
+  preview.src = source.src;
+  preview.alt = source.alt || 'Detection image preview';
+  if (title) title.textContent = ((currentScanResult && currentScanResult.disease) || 'Detection') + ' Image';
+  modal.classList.add('show');
+
+  const closeButton = document.getElementById('resultImagePreviewClose');
+  if (closeButton) closeButton.focus();
+}
+
 /* ═══════════ TOPBAR USER PROFILE & SETTINGS DROPDOWN ═══════════ */
 function toggleTopbarUserDropdown(e) {
   if (e) {
@@ -2502,6 +2518,7 @@ function applyScanResult(scan) {
         img.style.objectFit = 'cover';
         imgCard.insertBefore(img, imgCard.firstChild);
       }
+      img.alt = (scan.disease || 'Rice leaf') + ' detection image';
       img.onerror = function() {
         if (lastScannedLeafBlobUrl && this.src !== lastScannedLeafBlobUrl) {
           this.src = lastScannedLeafBlobUrl;

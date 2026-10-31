@@ -2339,6 +2339,9 @@ select {
 }
 
 .result-image-card {
+  width: 100%;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
@@ -2349,6 +2352,43 @@ select {
   background: var(--neutral-800);
   margin-bottom: 20px;
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.result-image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.result-image-card:focus-visible {
+  outline: 3px solid rgba(22, 163, 74, 0.35);
+  outline-offset: 3px;
+}
+
+.result-image-zoom-hint {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
+
+.result-image-zoom-hint svg {
+  width: 15px;
+  height: 15px;
 }
 
 .result-image-card.disease-blast {
@@ -2394,6 +2434,64 @@ select {
   background: rgba(255, 255, 255, 0.2);
   padding: 4px 12px;
   border-radius: var(--radius-full);
+}
+
+.result-image-preview-backdrop {
+  background: rgba(2, 6, 23, 0.88);
+  padding: 24px;
+}
+
+.result-image-preview-dialog {
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.result-image-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+}
+
+.result-image-preview-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.result-image-preview-close {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+
+.result-image-preview-close:hover,
+.result-image-preview-close:focus-visible {
+  background: rgba(255, 255, 255, 0.22);
+  outline: none;
+}
+
+.result-image-preview-close svg {
+  width: 22px;
+  height: 22px;
+}
+
+#resultImagePreview {
+  display: block;
+  width: 100%;
+  max-height: calc(100vh - 112px);
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+  background: #0f172a;
 }
 
 .result-diagnosis {
