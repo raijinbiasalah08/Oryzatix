@@ -1813,18 +1813,16 @@
     class="oryzatix-leaf-assistant"
     onclick="showScreen('consultation');"
     aria-label="Open AI Consultant"
-    title="Open AI Consultant"
   >
     <span class="oryzatix-leaf-assistant__mascot" aria-hidden="true">
-      <img src="{{ asset('images/oryzatix-rice-leaf-mascot.png') }}" alt="" width="64" height="64" decoding="async">
+      <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--left">
+        <img src="{{ asset('images/oryzatix-rice-leaf-arm.png') }}" alt="" width="20" height="24" decoding="async">
+      </span>
+      <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--right">
+        <img src="{{ asset('images/oryzatix-rice-leaf-arm-right.png') }}" alt="" width="20" height="24" decoding="async">
+      </span>
+      <img class="oryzatix-leaf-assistant__body" src="{{ asset('images/oryzatix-rice-leaf-body.png') }}" alt="" width="64" height="64" decoding="async">
     </span>
-    <span class="oryzatix-leaf-assistant__copy">
-      <span class="oryzatix-leaf-assistant__eyebrow">AI Consultant</span>
-      <span class="oryzatix-leaf-assistant__label" data-en="Ask Oryzatix" data-tl="Magtanong kay Oryzatix">Ask Oryzatix</span>
-    </span>
-    <svg class="oryzatix-leaf-assistant__arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4 10h11m-4-4 4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
   </button>
 </div><!-- /.web-app-shell -->
 

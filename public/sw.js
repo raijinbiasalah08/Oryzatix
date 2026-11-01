@@ -1,11 +1,14 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v21';
+const CACHE_NAME = 'oryzatix-pwa-v22';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
     './css/ui-refresh.css',
     './images/field-contours.svg',
     './images/oryzatix-rice-leaf-mascot.png',
+    './images/oryzatix-rice-leaf-body.png',
+    './images/oryzatix-rice-leaf-arm.png',
+    './images/oryzatix-rice-leaf-arm-right.png',
     './js/rice-detector.js',
     './images/logo.png',
     './images/icons/icon-192.png',

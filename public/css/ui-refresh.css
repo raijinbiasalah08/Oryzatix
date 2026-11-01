@@ -735,89 +735,98 @@ button:disabled { cursor: not-allowed; }
   right: max(24px, env(safe-area-inset-right, 0px));
   bottom: 24px;
   z-index: 990;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 64px;
-  padding: 7px 16px 7px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #075b3b 0%, #087443 58%, #138b4c 100%);
-  color: #fff;
-  font-family: 'Nunito', sans-serif;
-  text-align: left;
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-  box-shadow: 0 12px 30px rgba(4, 57, 37, 0.28), 0 0 0 4px rgba(255, 255, 255, 0.8);
-  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  box-shadow: none;
+  transition: transform 180ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .oryzatix-leaf-assistant:hover {
-  transform: translateY(-3px);
-  filter: saturate(1.08);
-  box-shadow: 0 16px 34px rgba(4, 57, 37, 0.32), 0 0 0 4px #fff;
+  transform: translateY(-2px) scale(1.03);
 }
 
 .oryzatix-leaf-assistant:active { transform: scale(0.97); }
 
 .oryzatix-leaf-assistant:focus-visible {
   outline: 3px solid #facc15;
-  outline-offset: 4px;
+  outline-offset: 1px;
+  border-radius: 18px;
 }
 
 .oryzatix-leaf-assistant__mascot {
-  display: grid;
-  place-items: center;
-  flex: 0 0 50px;
-  width: 50px;
-  height: 50px;
-  overflow: hidden;
-  border: 1px solid rgba(7, 91, 53, 0.12);
-  border-radius: 50%;
-  background: linear-gradient(145deg, #f5ffdf, #d9f99d);
-  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.9);
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 72px;
+  overflow: visible;
 }
 
-.oryzatix-leaf-assistant__mascot img { width: 47px; height: 47px; object-fit: contain; image-rendering: pixelated; }
+.oryzatix-leaf-assistant__body {
+  position: absolute;
+  z-index: 2;
+  left: 4px;
+  top: 3px;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.oryzatix-leaf-assistant__arm {
+  position: absolute;
+  z-index: 1;
+  top: 22px;
+  width: 20px;
+  height: 24px;
+}
+
+.oryzatix-leaf-assistant__arm--left { left: -4px; }
+.oryzatix-leaf-assistant__arm--right { right: -4px; transform: scaleX(-1); }
+
+.oryzatix-leaf-assistant__arm img {
+  display: block;
+  width: 20px;
+  height: 24px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transform-origin: 80% 90%;
+}
 
 @keyframes oryzatix-leaf-bob {
   0%, 100% { transform: translateY(0) rotate(-1deg); }
   50% { transform: translateY(-3px) rotate(1.5deg); }
 }
 
+@keyframes oryzatix-leaf-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-18deg); }
+  50% { transform: rotate(12deg); }
+  75% { transform: rotate(-14deg); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .oryzatix-leaf-assistant__mascot img,
+  .oryzatix-leaf-assistant__mascot,
   #consultation.voice-companion .ai-avatar img {
     animation: oryzatix-leaf-bob 2.4s ease-in-out infinite;
     transform-origin: 50% 80%;
   }
-}
 
-.oryzatix-leaf-assistant__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
+  .oryzatix-leaf-assistant__arm img {
+    animation: oryzatix-leaf-wave 1.25s ease-in-out infinite;
+  }
 
-.oryzatix-leaf-assistant__eyebrow {
-  color: rgba(232, 255, 237, 0.8);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  line-height: 1.1;
-  text-transform: uppercase;
+  .oryzatix-leaf-assistant__arm--right img { animation-delay: .22s; }
 }
-
-.oryzatix-leaf-assistant__label {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 900;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.oryzatix-leaf-assistant__arrow { width: 17px; height: 17px; opacity: 0.84; }
 
 .web-app-shell.auth-mode .oryzatix-leaf-assistant,
 .web-app-shell:has(#consultation.active) .oryzatix-leaf-assistant {
@@ -828,18 +837,17 @@ button:disabled { cursor: not-allowed; }
   .oryzatix-leaf-assistant {
     right: max(12px, env(safe-area-inset-right, 0px));
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    min-height: 58px;
-    padding: 5px 13px 5px 6px;
-    gap: 8px;
-    box-shadow: 0 9px 24px rgba(4, 57, 37, 0.26), 0 0 0 3px rgba(255, 255, 255, 0.88);
+    width: 76px;
+    height: 76px;
   }
 
-  .oryzatix-leaf-assistant__mascot { flex-basis: 46px; width: 46px; height: 46px; }
-  .oryzatix-leaf-assistant__mascot img { width: 44px; height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .oryzatix-leaf-assistant { transition: none; }
+  .oryzatix-leaf-assistant__mascot,
+  .oryzatix-leaf-assistant__arm img,
+  #consultation.voice-companion .ai-avatar img { animation: none !important; }
 }
 
 @media (max-width: 380px) {
