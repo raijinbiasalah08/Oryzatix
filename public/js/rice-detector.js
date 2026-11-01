@@ -415,7 +415,7 @@ const SCREEN_TITLES = {
   'staff-dashboard': { en: 'Staff Extension Dashboard', tl: 'Staff Dashboard' },
   scan: { en: 'Leaf Disease Scanner', tl: 'Scanner ng Dahon' },
   loading: { en: 'Analyzing Leaf Image', tl: 'Sinusuri ang Larawan' },
-  results: { en: 'Disease Info', tl: 'Impormasyon tungkol sa Sakit' },
+  results: { en: 'Detection Results', tl: 'Resulta ng Pagsusuri' },
   treatment: { en: 'Treatment & Care Guide', tl: 'Gabay sa Gamutan' },
   history: { en: 'Scan History & Records', tl: 'Kasaysayan ng mga Scan' },
   consultation: { en: 'AI Agricultural Consult', tl: 'AI Konsulta' },
@@ -1388,6 +1388,13 @@ function applyUserToUI() {
       mobHomeBtn.setAttribute('data-screen', 'home');
       mobHomeBtn.setAttribute('onclick', "showScreen('home');");
     }
+  }
+
+  const mobDiseaseInfoBtn = document.getElementById('mobileDiseaseInfoNav');
+  if (mobDiseaseInfoBtn) {
+    const diseaseInfoScreen = u.role === 'admin' ? 'admin-diseases' : 'treatment';
+    mobDiseaseInfoBtn.setAttribute('data-screen', diseaseInfoScreen);
+    mobDiseaseInfoBtn.setAttribute('onclick', `showScreen('${diseaseInfoScreen}');`);
   }
 
   const adminWelcomeTitle = document.getElementById('adminWelcomeTitle');

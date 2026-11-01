@@ -796,7 +796,7 @@
           <span class="detection-info-empty__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
           </span>
-          <h2 data-en="No disease info yet" data-tl="Wala pang impormasyon tungkol sa sakit">No disease info yet</h2>
+          <h2 data-en="No detection yet" data-tl="Wala pang resulta ng pagsusuri">No detection yet</h2>
           <p data-en="Scan a rice leaf to see its diagnosis and severity information here." data-tl="Mag-scan ng dahon ng palay upang makita rito ang diagnosis at impormasyon ng tindi.">Scan a rice leaf to see its diagnosis and severity information here.</p>
           <button type="button" onclick="showScreen('scan')" data-en="Start a Scan" data-tl="Magsimula ng Scan">Start a Scan</button>
         </div>
@@ -1804,7 +1804,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
     </button>
-    <button class="mobile-nav-btn" id="mobileDiseaseInfoNav" data-screen="results" onclick="showScreen('results');" aria-label="Disease Info">
+    <button class="mobile-nav-btn" id="mobileDiseaseInfoNav" data-screen="treatment" onclick="showScreen('treatment');" aria-label="Disease Info">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
       <span data-en="Disease Info" data-tl="Impormasyon tungkol sa Sakit">Disease Info</span>
     </button>
