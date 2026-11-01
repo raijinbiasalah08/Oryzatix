@@ -2,7 +2,7 @@
 <html lang="en" class="app-booting">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content, maximum-scale=5.0">
 <title>ORYZATIX — Rice Leaf Disease Detection Web Application</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="theme-color" content="#087443">

@@ -615,6 +615,7 @@ button:disabled { cursor: not-allowed; }
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 #consultation.voice-companion .chat-input-bar input:focus {
+  outline: none;
   border-color: #56a477;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(17, 128, 74, .10);
@@ -844,6 +845,42 @@ button:disabled { cursor: not-allowed; }
 .web-app-shell.auth-mode .oryzatix-assistant-shortcut,
 .web-app-shell:has(#consultation.active) .oryzatix-assistant-shortcut {
   display: none;
+}
+
+@media (max-width: 768px) {
+  .web-app-shell.mobile-keyboard-open,
+  .web-app-shell.mobile-keyboard-open .web-main-workspace {
+    height: var(--mobile-visual-height, 100dvh) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open .web-page-content {
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open #consultation.voice-companion {
+    height: calc(var(--mobile-visual-height, 100dvh) - var(--topbar-height) - env(safe-area-inset-top, 0px) - 24px) !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open #consultation .voice-input-prompt {
+    display: none !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open #consultation .chat-input-bar {
+    padding: 6px 8px !important;
+  }
 }
 
 @media (max-width: 768px) {

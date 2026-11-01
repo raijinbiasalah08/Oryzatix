@@ -7722,10 +7722,52 @@ function finishInitialRender() {
   });
 }
 
+let mobileConsultationViewportBaseline = null;
+
+function syncMobileConsultationKeyboardLayout() {
+  const shell = document.querySelector('.web-app-shell');
+  if (!shell) return;
+
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--mobile-visual-height', Math.round(viewportHeight) + 'px');
+
+  const chatInputFocused = document.activeElement && document.activeElement.id === 'chatInput';
+  if (!chatInputFocused) mobileConsultationViewportBaseline = viewportHeight;
+  const heightChange = (mobileConsultationViewportBaseline || window.innerHeight) - viewportHeight;
+  const keyboardOpen = window.matchMedia('(max-width: 768px)').matches && chatInputFocused && heightChange > 110;
+
+  shell.classList.toggle('mobile-keyboard-open', keyboardOpen);
+  if (keyboardOpen) {
+    window.requestAnimationFrame(() => {
+      const messages = document.getElementById('chatMessages');
+      if (messages) messages.scrollTop = messages.scrollHeight;
+    });
+  }
+}
+
+function initMobileConsultationKeyboardLayout() {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+
+  const viewport = window.visualViewport;
+  if (viewport) {
+    viewport.addEventListener('resize', syncMobileConsultationKeyboardLayout);
+    viewport.addEventListener('scroll', syncMobileConsultationKeyboardLayout);
+  }
+  window.addEventListener('resize', syncMobileConsultationKeyboardLayout);
+  input.addEventListener('focus', () => {
+    mobileConsultationViewportBaseline = viewport ? viewport.height : window.innerHeight;
+    window.setTimeout(syncMobileConsultationKeyboardLayout, 100);
+  });
+  input.addEventListener('blur', () => window.setTimeout(syncMobileConsultationKeyboardLayout, 250));
+  syncMobileConsultationKeyboardLayout();
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
   initLiveClock();
   initNetworkStatusMonitoring();
   startOryAssistantGreetingLoop();
+  initMobileConsultationKeyboardLayout();
 
   const savedLang = window.localStorage ? window.localStorage.getItem('oryzatix_ui_lang') : null;
   if (savedLang) setUILanguage(savedLang);
