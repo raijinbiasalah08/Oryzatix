@@ -1821,6 +1821,9 @@
     aria-label="Meet Ory and open AI Consultant"
   >
     <span class="oryzatix-assistant-shortcut__intro" id="oryAssistantIntro" data-en="Hi, I'm Ory! Your rice-farming helper is ready." data-tl="Kumusta, ako si Ory! Handa akong tumulong sa pagsasaka ng palay." aria-hidden="true" hidden>Hi, I'm Ory! Your rice-farming helper is ready.</span>
+    <span class="oryzatix-assistant-shortcut__leaf oryzatix-assistant-shortcut__leaf--one" aria-hidden="true"></span>
+    <span class="oryzatix-assistant-shortcut__leaf oryzatix-assistant-shortcut__leaf--two" aria-hidden="true"></span>
+    <span class="oryzatix-assistant-shortcut__sparkle" aria-hidden="true"></span>
     <img class="oryzatix-assistant-shortcut__character" src="{{ asset('images/oryzatix-farm-assistant.png') }}?v={{ $assistantMascotAssetVersion }}" alt="" width="333" height="284" decoding="async">
   </button>
 </div><!-- /.web-app-shell -->

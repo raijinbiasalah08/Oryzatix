@@ -798,6 +798,21 @@ button:disabled { cursor: not-allowed; }
   -webkit-tap-highlight-color: transparent;
 }
 
+.oryzatix-assistant-shortcut::before {
+  position: absolute;
+  z-index: 0;
+  bottom: 11%;
+  left: 50%;
+  width: 66%;
+  height: 18%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(11, 116, 66, .18), rgba(11, 116, 66, 0) 72%);
+  content: '';
+  transform: translateX(-50%);
+  animation: ory-shadow-breathe 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .oryzatix-assistant-shortcut:hover {
   transform: translateY(-2px) scale(1.03);
 }
@@ -810,12 +825,54 @@ button:disabled { cursor: not-allowed; }
 }
 
 .oryzatix-assistant-shortcut__character {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 156px;
   height: 124px;
   object-fit: contain;
   filter: drop-shadow(0 6px 5px rgba(23, 48, 61, .16));
   transform-origin: 50% 76%;
+}
+
+.oryzatix-assistant-shortcut__leaf {
+  position: absolute;
+  z-index: 0;
+  width: 10px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, .76);
+  border-radius: 100% 0 100% 0;
+  background: linear-gradient(145deg, #b7e86c 8%, #39a85e 85%);
+  box-shadow: 0 3px 8px rgba(17, 91, 51, .2);
+  pointer-events: none;
+}
+
+.oryzatix-assistant-shortcut__leaf--one {
+  top: 22%;
+  right: 19%;
+  animation: ory-leaf-drift 3.8s ease-in-out infinite;
+}
+
+.oryzatix-assistant-shortcut__leaf--two {
+  bottom: 28%;
+  left: 16%;
+  width: 8px;
+  height: 14px;
+  animation: ory-leaf-drift 4.2s ease-in-out -1.9s infinite reverse;
+}
+
+.oryzatix-assistant-shortcut__sparkle {
+  position: absolute;
+  z-index: 2;
+  top: 29%;
+  left: 22%;
+  width: 10px;
+  height: 10px;
+  background: #ffd45b;
+  clip-path: polygon(50% 0, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0 50%, 39% 38%);
+  filter: drop-shadow(0 1px 4px rgba(255, 190, 47, .38));
+  animation: ory-sparkle-twinkle 2.8s ease-in-out -1.2s infinite;
+  pointer-events: none;
 }
 
 .oryzatix-assistant-shortcut__intro {
@@ -876,8 +933,30 @@ button:disabled { cursor: not-allowed; }
 }
 
 @keyframes oryzatix-assistant-hover {
-  0%, 100% { transform: translateY(0) rotate(-.35deg); }
-  50% { transform: translateY(-3px) rotate(.35deg); }
+  0%, 100% { transform: translateY(1px) rotate(-.6deg) scale(.99); }
+  50% { transform: translateY(-5px) rotate(.6deg) scale(1.015); }
+}
+
+@keyframes ory-greeting-bounce {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  24% { transform: translateY(-8px) rotate(-3deg) scale(1.025); }
+  50% { transform: translateY(1px) rotate(2deg) scale(.99); }
+  76% { transform: translateY(-5px) rotate(-1.5deg) scale(1.015); }
+}
+
+@keyframes ory-shadow-breathe {
+  0%, 100% { opacity: .58; transform: translateX(-50%) scale(.9); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+@keyframes ory-leaf-drift {
+  0%, 100% { translate: 0 2px; rotate: -8deg; }
+  50% { translate: 2px -5px; rotate: 12deg; }
+}
+
+@keyframes ory-sparkle-twinkle {
+  0%, 100% { opacity: .25; transform: scale(.55) rotate(0); }
+  45%, 65% { opacity: 1; transform: scale(1) rotate(45deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -885,6 +964,10 @@ button:disabled { cursor: not-allowed; }
   #consultation.voice-companion .ai-avatar img {
     animation: oryzatix-assistant-hover 2.6s ease-in-out infinite;
     transform-origin: 50% 80%;
+  }
+
+  .oryzatix-assistant-shortcut.is-introducing .oryzatix-assistant-shortcut__character {
+    animation: ory-greeting-bounce 760ms cubic-bezier(.2,.75,.35,1) both;
   }
 }
 
@@ -986,6 +1069,9 @@ button:disabled { cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) {
   .oryzatix-assistant-shortcut { transition: none; }
+  .oryzatix-assistant-shortcut::before,
+  .oryzatix-assistant-shortcut__leaf,
+  .oryzatix-assistant-shortcut__sparkle { animation: none !important; }
   .oryzatix-assistant-shortcut__character,
   .oryzatix-assistant-shortcut__intro,
   .ory-intro-message,
