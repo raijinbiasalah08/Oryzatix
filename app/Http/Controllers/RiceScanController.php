@@ -78,7 +78,7 @@ class RiceScanController extends Controller
             'message_tl' => $message['tl'],
             'server_error' => $httpStatus >= 500,
             'supported_diseases' => [
-                'Bacterial Leaf Blight (BLB) — Mild (≤ 25%), Moderate (26% – 60%), Severe (> 60%)',
+                'Bacterial Leaf Blight (BLB)',
                 'Rice Leaf Blast (Magnaporthe oryzae)',
                 'Brown Spot (Bipolaris oryzae)',
                 'Sheath Blight (Rhizoctonia solani)',
@@ -295,7 +295,6 @@ class RiceScanController extends Controller
             'severity_levels' => [
                 'mild' => [
                     'severity' => 'mild',
-                    'range' => '≤ 25%',
                     'description' => 'Initial blast infection characterized by small brown specks or pinhead-sized diamond spots on leaf blades with mostly green intact canopy.',
                     'chemical' => [
                         ['name' => 'Tricyclazole 75% WP (Beam / Blast-Off)', 'desc' => 'Apply 0.6–1.0 g/L (300–400 g/ha) as early preventive foliar spray. DA-PhilRice standard systemic protective fungicide that inhibits fungal melanin biosynthesis.', 'tag' => 'Fungicide', 'tag_class' => 'fungicide'],
@@ -310,7 +309,6 @@ class RiceScanController extends Controller
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
-                    'range' => '26% – 60%',
                     'description' => 'Active leaf blast with distinct spindle-shaped or diamond-shaped lesions having gray/whitish necrotic centers and dark reddish-brown margins coalescing across leaf mid-ribs.',
                     'chemical' => [
                         ['name' => 'Isoprothiolane 40% EC (Fuji-One)', 'desc' => 'Apply 1.5–2.0 ml/L (750–1000 ml/ha) foliar spray. Systemic fungicide with strong translaminar and acropetal translocation that arrests active lesion expansion.', 'tag' => 'Fungicide', 'tag_class' => 'fungicide'],
@@ -326,7 +324,6 @@ class RiceScanController extends Controller
                 ],
                 'severe' => [
                     'severity' => 'severe',
-                    'range' => '> 60%',
                     'description' => 'Advanced acute leaf blast with widespread coalesced necrotic lesions, scorched or burnt leaf appearance, collar rot, and imminent threat of neck/panicle blast.',
                     'chemical' => [
                         ['name' => 'Therapeutic Tricyclazole + Propiconazole / Mancozeb Tank Mix', 'desc' => 'Emergency therapeutic tank spray (1.5–2.0 g/L) directed at upper leaves and panicle boot to save productive tillers and prevent catastrophic neck blast.', 'tag' => 'Emergency Therapeutic', 'tag_class' => 'fungicide'],
@@ -361,7 +358,6 @@ class RiceScanController extends Controller
             'severity_levels' => [
                 'mild' => [
                     'severity' => 'mild',
-                    'range' => '≤ 25%',
                     'description' => 'Initial bacterial infection with small water-soaked streaks or narrow yellowish wavy margins at leaf tips. Minimal vascular blockage.',
                     'chemical' => [
                         ['name' => 'Copper Hydroxide 77% WP (Kocide 2000 / Champion)', 'dosage' => '2.0–2.5 g / L water (1.0–1.25 kg/ha)', 'desc' => 'Apply as preventive contact foliar spray to sanitize leaf surfaces and inhibit Xanthomonas entry through hydathodes.', 'tag' => 'Contact Bactericide', 'tag_class' => 'bactericide'],
@@ -381,13 +377,12 @@ class RiceScanController extends Controller
                         ['strategy' => 'Potassium & Silica Cell Wall Fortification', 'category' => 'Nutrition & Resilience', 'desc' => 'Apply 30–40 kg/ha K₂O (Muriate of Potash, 0-0-60) and 200–300 kg/ha Carbonized Rice Hull (CRH) to thicken epidermal cell walls against penetration.'],
                         ['strategy' => 'Leaf Color Chart (LCC) Precision Nitrogen Scheduling', 'category' => 'Fertilizer Optimization', 'desc' => 'Measure leaf greenness with DA-PhilRice LCC. Apply nitrogen only when readings drop below panel 4 to optimize tiller count without excessive lushness.'],
                         ['strategy' => 'Alternate Wetting and Drying (AWD) Water Regime', 'category' => 'Water Efficiency', 'desc' => 'Allow water level to drop to 15 cm below soil surface before re-flooding to strengthen root anchorage and halt bacterial spread.'],
-                        ['strategy' => 'Flag Leaf Preservation for High Harvest Yield', 'category' => 'Yield Protection', 'desc' => 'Intervening early keeps blight below 25%, preserving over 75% of grain filling capacity and securing full potential harvest yield (5.5–6.5 t/ha).'],
+                        ['strategy' => 'Flag Leaf Preservation for High Harvest Yield', 'category' => 'Yield Protection', 'desc' => 'Intervene early at the first signs of blight and follow local agricultural guidance to protect crop health.'],
                     ],
-                    'productivity_harvest_impact' => 'Mild infection affects ≤ 25% leaf area. Early treatment preserves 85–95% canopy photosynthesis, protecting full harvest yield potential (5.5–6.5 tons/ha).',
+                    'productivity_harvest_impact' => 'Mild infection may respond to early management. Follow local agricultural guidance for the affected crop.',
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
-                    'range' => '26% – 60%',
                     'description' => 'Active bacterial blight with noticeable wavy yellow-orange margins expanding along leaf blades and drying tips.',
                     'chemical' => [
                         ['name' => 'Streptomycin Sulfate + Oxytetracycline (Plantomycin / Agrimycin 100)', 'dosage' => '150–200 ppm (1.5–2.0 g / L water)', 'desc' => 'Systemic agricultural antibiotic that penetrates vascular bundles to arrest bacterial replication. Repeat after 7–10 days.', 'tag' => 'Systemic Antibiotic', 'tag_class' => 'bactericide'],
@@ -408,13 +403,12 @@ class RiceScanController extends Controller
                         ['strategy' => 'Panicle Initiation Potassium Booster (0-0-60 Topdress)', 'category' => 'Nutrient Compensation', 'desc' => 'Apply 20–25 kg/ha K₂O (MOP) at panicle initiation to enhance carbohydrate translocation and reduce chaffy grains.'],
                         ['strategy' => 'Foliar Zinc & Micronutrient Recovery Spray', 'category' => 'Metabolic Support', 'desc' => 'Apply chelated zinc (0.5% ZnSO₄) and boron foliar spray to preserve pollen viability and promote uniform panicle exertion.'],
                         ['strategy' => 'Canopy Micro-Climate Moderation via AWD', 'category' => 'Disease Suppression', 'desc' => 'Practice controlled AWD to eliminate continuous standing water films on lower leaf sheaths, breaking the disease cycle.'],
-                        ['strategy' => 'Productivity Recovery & Yield Salvage Strategy', 'category' => 'Harvest Protection', 'desc' => 'Arresting moderate blight at 26–60% preserves upper canopy photosynthesis, salvaging up to 80–85% of standard crop harvest.'],
+                        ['strategy' => 'Productivity Recovery & Yield Protection', 'category' => 'Harvest Protection', 'desc' => 'For moderate blight, focus on limiting spread and protecting remaining healthy tillers with local expert guidance.'],
                     ],
-                    'productivity_harvest_impact' => 'Moderate infection affects 26–60% leaf area. Rapid antibiotic/bactericide spray and AWD drainage halt lesion spread, salvaging 80–85% of standard harvest yield.',
+                    'productivity_harvest_impact' => 'Moderate infection can spread through the crop. Consult a local agriculturist about suitable management.',
                 ],
                 'severe' => [
                     'severity' => 'severe',
-                    'range' => '> 60%',
                     'description' => 'Advanced blight condition (Kresek / systemic wilt) with large bleached-gray or straw-colored dried leaves and severe photosynthetic impairment.',
                     'chemical' => [
                         ['name' => 'Therapeutic Streptomycin-Oxytetracycline (200 ppm) + Zinc Thiazole 20% SC Tank Mix', 'dosage' => '2.0–2.5 g + 1.5 mL / L water', 'desc' => 'Emergency curative spray directed forcefully at remaining green foliage and flag leaf boots to salvage productive tillers.', 'tag' => 'Emergency Therapeutic', 'tag_class' => 'bactericide'],
@@ -434,7 +428,7 @@ class RiceScanController extends Controller
                         ['strategy' => 'Pre-Planting Basal Silicate & Organic Conditioning', 'category' => 'Soil Regeneration', 'desc' => 'Incorporate 2–3 tons/ha decomposed manure/compost plus 300 kg/ha Carbonized Rice Hull (CRH) during land preparation.'],
                         ['strategy' => 'Salvaging Grain Filling in Surviving Tillers', 'category' => 'Harvest Protection', 'desc' => 'Apply light potassium topdressing (15 kg K₂O/ha) to surviving tillers to optimize panicle filling, minimizing catastrophic crop failure.'],
                     ],
-                    'productivity_harvest_impact' => 'Severe infection affects > 60% leaf area (advanced kresek/wilt). Emergency therapeutic intervention salvages remaining tillers; immediate switch to resistant varieties next season ensures sustained productivity.',
+                    'productivity_harvest_impact' => 'Severe infection with advanced kresek or wilt symptoms needs prompt advice from a local agriculturist.',
                 ],
             ],
             'treatments' => [
@@ -459,7 +453,6 @@ class RiceScanController extends Controller
             'severity_levels' => [
                 'mild' => [
                     'severity' => 'mild',
-                    'range' => '≤ 25%',
                     'description' => 'Early infection with isolated small, circular, pinhead-sized dark brown spots on leaf blades with minimal chlorosis, indicating initial soil nutrient stress.',
                     'chemical' => [
                         ['name' => 'Mancozeb 80% WP (Dithane M-45)', 'desc' => 'Apply 2.0–2.5 g/L (1.5–2.0 kg/ha) as early protective contact foliar spray. Creates an active surface barrier preventing fungal spore germination on leaf tissue.', 'tag' => 'Fungicide', 'tag_class' => 'fungicide'],
@@ -474,7 +467,6 @@ class RiceScanController extends Controller
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
-                    'range' => '26% – 60%',
                     'description' => 'Moderate Brown Spot infection with numerous round-to-oval chocolate-brown spots having grayish centers and bright yellow chlorotic halos coalescing across leaf blades.',
                     'chemical' => [
                         ['name' => 'Tebuconazole 250 EC (Folicur)', 'desc' => 'Apply 0.75–1.0 ml/L (500–750 ml/ha) foliar spray. Systemic fungicide providing curative and translaminar control against expanding Bipolaris lesions.', 'tag' => 'Fungicide', 'tag_class' => 'fungicide'],
@@ -490,7 +482,6 @@ class RiceScanController extends Controller
                 ],
                 'severe' => [
                     'severity' => 'severe',
-                    'range' => '> 60%',
                     'description' => 'Severe acute Brown Spot with widespread coalesced necrotic lesions, premature leaf drying, severe photosynthetic failure, and active glume infection (pecky rice / dark grain discoloration).',
                     'chemical' => [
                         ['name' => 'Therapeutic Propiconazole + Difenoconazole / Mancozeb Tank Mix', 'desc' => 'Emergency curative spray (1.5–2.0 g/L) directed at upper canopy and emerging panicles to save productive tillers and protect grains from pecky rice / seed rot.', 'tag' => 'Emergency Therapeutic', 'tag_class' => 'fungicide'],
@@ -525,7 +516,6 @@ class RiceScanController extends Controller
             'severity_levels' => [
                 'mild' => [
                     'severity' => 'mild',
-                    'range' => '≤ 25%',
                     'description' => 'Early-stage viral infection with initial light yellowing of upper leaf tips and minor vector feeding marks. Minimal height reduction.',
                     'chemical' => [
                         ['name' => 'Imidacloprid 17.8% SL', 'desc' => 'Apply 0.5–0.75 ml/L foliar spray. Rapid systemic knockdown of Green Leafhopper (Nephotettix virescens) vectors before viral inoculation.', 'tag' => 'Insecticide', 'tag_class' => 'bactericide'],
@@ -539,7 +529,6 @@ class RiceScanController extends Controller
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
-                    'range' => '26% – 60%',
                     'description' => 'Moderate Tungro infection with pronounced yellow-orange leaf discoloration extending from leaf tip to blade, mottled green patches, and noticeable plant stunting with reduced tillering.',
                     'chemical' => [
                         ['name' => 'Dinotefuran 20% SG', 'desc' => 'Apply 0.5–1.0 g/L. Fast-acting 3rd-generation neonicotinoid with systemic and translaminar activity against leafhopper nymphs and adults.', 'tag' => 'Insecticide', 'tag_class' => 'bactericide'],
@@ -554,7 +543,6 @@ class RiceScanController extends Controller
                 ],
                 'severe' => [
                     'severity' => 'severe',
-                    'range' => '> 60%',
                     'description' => 'Severe systemic Tungro condition with intense orange-yellow discoloration, severe stunting, compact tillers, failure of panicle emergence or sterile partial panicles.',
                     'chemical' => [
                         ['name' => 'Etofenprox 10% EC', 'desc' => 'Apply 1.5–2.0 ml/L pyrethroid ether for rapid emergency knockdown of high-density leafhopper populations.', 'tag' => 'Insecticide', 'tag_class' => 'bactericide'],
@@ -588,7 +576,6 @@ class RiceScanController extends Controller
             'severity_levels' => [
                 'mild' => [
                     'severity' => 'mild',
-                    'range' => '≤ 25%',
                     'description' => 'Early infection with isolated oval, greenish-gray water-soaked spots on leaf sheaths just above the water line.',
                     'chemical' => [
                         ['name' => 'Validamycin 3% L (Sheathmar / Validacin)', 'desc' => 'Apply 2.0–2.5 ml/L foliar spray targeted at the lower canopy/culm base. Highly effective antibiotic fungicide that halts Rhizoctonia hyphal elongation.', 'tag' => 'Bio-Fungicide', 'tag_class' => 'fungicide'],
@@ -603,7 +590,6 @@ class RiceScanController extends Controller
                 ],
                 'moderate' => [
                     'severity' => 'moderate',
-                    'range' => '26% – 60%',
                     'description' => 'Active sheath blight with characteristic irregular ellipsoid snake-skin lesions having bleached centers and dark reddish-brown margins ascending to middle and upper leaf sheaths.',
                     'chemical' => [
                         ['name' => 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)', 'desc' => 'Apply 1.0 ml/L spray directed at mid-canopy. Dual systemic strobilurin + triazole with powerful translaminar curative action.', 'tag' => 'Systemic Fungicide', 'tag_class' => 'fungicide'],
@@ -618,7 +604,6 @@ class RiceScanController extends Controller
                 ],
                 'severe' => [
                     'severity' => 'severe',
-                    'range' => '> 60%',
                     'description' => 'Advanced sheath blight lesions reaching the flag leaf sheath and leaf blades, causing extensive lodging, tiller death, poor grain filling, and sclerotial formation.',
                     'chemical' => [
                         ['name' => 'Therapeutic Thifluzamide + Tebuconazole / Epoxiconazole Tank Mix', 'desc' => 'Emergency therapeutic spray (1.5–2.0 g/L) to salvage flag leaves and booting panicles from catastrophic lodging and blighting.', 'tag' => 'Emergency Therapeutic', 'tag_class' => 'fungicide'],
@@ -1465,7 +1450,7 @@ class RiceScanController extends Controller
                 'severity' => $severity,
                 'severity_status' => $severityStatus,
                 'severity_message' => $severityStatus === 'unassessed'
-                    ? 'Disease detected: Not Healthy Leaf. Affected leaf area and severity were not measured.'
+                    ? 'Disease detected: Not Healthy Leaf. Severity level has not been assessed.'
                     : null,
                 'affected_percentage' => null,
                 'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : 'unassessed-bg'),

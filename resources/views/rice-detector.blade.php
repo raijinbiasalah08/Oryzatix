@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Oryzatix">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Rice leaf disease reference matching with severity marked for expert assessment when leaf area has not been measured">
+<meta name="description" content="Rice leaf disease detection with severity levels pending expert assessment">
 <link rel="manifest" href="{{ asset('manifest.json') }}">
 <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
 <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
@@ -705,7 +705,7 @@
           <img src="{{ asset('images/logo.png') }}" alt="Oryzatix Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
         </div>
         <h1>ORYZATIX</h1>
-        <p>A rice leaf disease scanner with severity marked for expert assessment when affected area has not been measured</p>
+        <p>A rice leaf disease scanner with severity levels pending expert assessment</p>
         <div class="tap-hint">Click anywhere to continue →</div>
       </section>
 
@@ -820,15 +820,14 @@
         </div>
 
         <div class="severity-meter">
-          <h4 id="resultSeverityHeading">Severity Level &amp; Leaf Area Affected</h4>
-          <div class="severity-bar-track" id="resultSeverityTrack"><div class="severity-bar-fill" id="resultSeverityFill" style="width:0%"></div></div>
+          <h4 id="resultSeverityHeading">Severity Level</h4>
           <div class="severity-labels" id="resultSeverityLabels">
-            <span class="sev-label inactive" id="sevLabelMild">Mild (≤ 25%)</span>
-            <span class="sev-label inactive" id="sevLabelMod">Moderate (26% – 60%)</span>
-            <span class="sev-label inactive" id="sevLabelSev">Severe (> 60%)</span>
+            <span class="sev-label inactive" id="sevLabelMild">Mild</span>
+            <span class="sev-label inactive" id="sevLabelMod">Moderate</span>
+            <span class="sev-label inactive" id="sevLabelSev">Severe</span>
           </div>
           <div id="resultSeverityUnavailable" role="status" style="margin-top:8px; color:var(--neutral-500); font-size:11px; line-height:1.4;">
-            Not assessed. Affected leaf area has not been measured.
+            Severity level has not been assessed.
           </div>
         </div>
 
@@ -939,9 +938,9 @@
 
         <!-- Disease Severity Level Selector (Active for BLB & Tungro) -->
         <div class="blb-severity-pills-bar" id="blbSeverityPillsBar" style="display: none;">
-          <button class="blb-sev-pill" id="blbSevMildBtn" onclick="switchDiseaseSeverity('mild')">Mild (≤ 25%)</button>
-          <button class="blb-sev-pill active" id="blbSevModBtn" onclick="switchDiseaseSeverity('moderate')">Moderate (26% – 60%)</button>
-          <button class="blb-sev-pill" id="blbSevSevBtn" onclick="switchDiseaseSeverity('severe')">Severe (> 60%)</button>
+          <button class="blb-sev-pill" id="blbSevMildBtn" onclick="switchDiseaseSeverity('mild')">Mild</button>
+          <button class="blb-sev-pill active" id="blbSevModBtn" onclick="switchDiseaseSeverity('moderate')">Moderate</button>
+          <button class="blb-sev-pill" id="blbSevSevBtn" onclick="switchDiseaseSeverity('severe')">Severe</button>
         </div>
 
         <div class="treat-disease-card">
@@ -992,9 +991,9 @@
         </div>
         <div class="history-stats">
           <div class="stat-card"><div class="stat-num green" id="statHealthy">0</div><div class="stat-label">Healthy</div></div>
-          <div class="stat-card"><div class="stat-num mild" id="statMild">0</div><div class="stat-label">Mild (≤ 25%)</div></div>
-          <div class="stat-card"><div class="stat-num amber" id="statModerate">0</div><div class="stat-label">Moderate (>25–60%)</div></div>
-          <div class="stat-card"><div class="stat-num red" id="statSevere">0</div><div class="stat-label">Severe (> 60%)</div></div>
+          <div class="stat-card"><div class="stat-num mild" id="statMild">0</div><div class="stat-label">Mild</div></div>
+          <div class="stat-card"><div class="stat-num amber" id="statModerate">0</div><div class="stat-label">Moderate</div></div>
+          <div class="stat-card"><div class="stat-num red" id="statSevere">0</div><div class="stat-label">Severe</div></div>
         </div>
         <div class="history-load-status" id="historyLoadStatus" role="status" aria-live="polite" style="display:none;"></div>
 
@@ -1009,9 +1008,9 @@
               <select id="historyFilterSelect" onchange="setHistoryFilter(this.value)">
                 <option value="all">All Scans</option>
                 <option value="healthy">Healthy</option>
-                <option value="mild">Mild (≤ 25%)</option>
-                <option value="moderate">Moderate (>25% – 60%)</option>
-                <option value="severe">Severe (> 60%)</option>
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
                 <option value="unassessed">Severity not assessed</option>
                 <option value="blast">Leaf Blast</option>
                 <option value="blb">BLB</option>
@@ -1290,7 +1289,7 @@
               </div>
               <div class="protocol-body">
                 <p><strong>Nutrient Correction:</strong> Brown spot heavily correlates with soil potassium (K) and silica deficiency. Apply Muriate of Potash (30–40 kg/ha).</p>
-                <p><strong>Foliar Spray:</strong> Difenoconazole + Azoxystrobin (Amistar Top) at 1.0 ml/L if lesions exceed 20% of flag leaf area.</p>
+                <p><strong>Foliar Spray:</strong> Consult a local agriculturist before using Difenoconazole + Azoxystrobin (Amistar Top).</p>
               </div>
             </div>
           </div>
@@ -2310,7 +2309,7 @@
       <button class="modal-close-btn" onclick="closeModal('modalAbout')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div style="font-size:13.5px; line-height:1.6; color:#4b5563;">
-      <p><strong>ORYZATIX</strong> classifies supported rice leaf diseases. It does not measure affected leaf area; disease severity is marked for expert assessment until a validated area measurement is available.</p>
+      <p><strong>ORYZATIX</strong> classifies supported rice leaf diseases. Severity levels remain unassessed until a validated assessment is available.</p>
       <p>Developed by: John Paul College · Department of Information Technology</p>
     </div>
   </div>

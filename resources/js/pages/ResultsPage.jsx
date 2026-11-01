@@ -13,18 +13,18 @@ const RESULT_LOCALIZATION = {
             name: 'Rice Leaf Blast (Pumutok na Dahon / Blast ng Palay)',
             scientific: 'Sanhi ng fungal pathogen na Magnaporthe oryzae',
             symptoms: {
-                mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Maagang yugto (≤25%): may maliliit na kayumangging tuldok at hugis-diamanteng sugat sa dahon. Malusog at buo pa ang karamihan ng tanim. Mag-spray agad ng Tricyclazole o Isoprothiolane bilang proteksyon.',
-                moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Katamtamang yugto (26%-60%): aktibong hugis-bangkang sugat (spindle-shaped lesions) na may abong gitna at mapulang gilid na nagdurugtong. Mag-spray ng Azoxystrobin + Difenoconazole at itigil ang sobrang Urea.',
-                severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Malalang yugto (>60%): malawak na pagkasunog ng mga dahon (burnt appearance), collar rot, at matinding panganib ng neck blast sa uhay. Mag-spray agad ng therapeutic systemic fungicide.'
+                mild: 'Maagang yugto: may maliliit na kayumangging tuldok at hugis-diamanteng sugat sa dahon. Malusog at buo pa ang karamihan ng tanim. Mag-spray agad ng Tricyclazole o Isoprothiolane bilang proteksyon.',
+                moderate: 'Katamtamang yugto: aktibong hugis-bangkang sugat (spindle-shaped lesions) na may abong gitna at mapulang gilid na nagdurugtong. Mag-spray ng Azoxystrobin + Difenoconazole at itigil ang sobrang Urea.',
+                severe: 'Malalang yugto: malawak na pagkasunog ng mga dahon (burnt appearance), collar rot, at matinding panganib ng neck blast sa uhay. Mag-spray agad ng therapeutic systemic fungicide.'
             }
         },
         english: {
             name: 'Rice Leaf Blast',
             scientific: 'Caused by fungal pathogen Magnaporthe oryzae',
             symptoms: {
-                mild: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Early blast stage (≤25%): small initial brown specks and pinhead-sized diamond spots on leaf blades with mostly green intact canopy. Apply preventive Tricyclazole or Isoprothiolane.',
-                moderate: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Moderate blast stage (26%-60%): active spindle-shaped lesions with necrotic gray centers and reddish-brown margins coalescing across leaves. Spray Azoxystrobin + Difenoconazole and suspend nitrogen topdressing.',
-                severe: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Severe blast stage (>60%): extensive coalesced lesions, scorched/burnt foliage appearance, collar rot, and acute danger of neck and panicle blast failure. Apply therapeutic systemic fungicide immediately.'
+                mild: 'Early blast stage: small initial brown specks and pinhead-sized diamond spots on leaf blades with mostly green intact canopy. Apply preventive Tricyclazole or Isoprothiolane.',
+                moderate: 'Moderate blast stage: active spindle-shaped lesions with necrotic gray centers and reddish-brown margins coalescing across leaves. Spray Azoxystrobin + Difenoconazole and suspend nitrogen topdressing.',
+                severe: 'Severe blast stage: extensive coalesced lesions, scorched/burnt foliage appearance, collar rot, and acute danger of neck and panicle blast failure. Apply therapeutic systemic fungicide immediately.'
             }
         }
     },
@@ -33,18 +33,18 @@ const RESULT_LOCALIZATION = {
             name: 'Bacterial Leaf Blight (BLB / Pangungulubot ng Dahon)',
             scientific: 'Sanhi ng bakteryang Xanthomonas oryzae pv. oryzae',
             symptoms: {
-                mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Maagang yugto ng impeksyon: may bahagyang paninilaw at panunuyo sa dulo at gilid ng dahon. Agarang kontrolin gamit ang Copper Hydroxide bago kumalat sa buong taniman.',
-                moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Katamtamang yugto: may kapansin-pansing kulot at mala-alon na paninilaw na bumababa sa ugat ng dahon. Mag-spray ng Streptomycin Sulfate / Zinc Thiazole at patuyuin ang bukid nang 2-3 araw.',
-                severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Malalang yugto: malawak na panunuyo, abo/puting patay na tisyu ng dahon (kresek stage) na humahadlang sa photosynthesis. Mag-apply ng emergency therapeutic bactericide at itigil ang abono ng Urea.'
+                mild: 'Maagang yugto ng impeksyon: may bahagyang paninilaw at panunuyo sa dulo at gilid ng dahon. Agarang kontrolin gamit ang Copper Hydroxide bago kumalat sa buong taniman.',
+                moderate: 'Katamtamang yugto: may kapansin-pansing kulot at mala-alon na paninilaw na bumababa sa ugat ng dahon. Mag-spray ng Streptomycin Sulfate / Zinc Thiazole at patuyuin ang bukid nang 2-3 araw.',
+                severe: 'Malalang yugto: malawak na panunuyo, abo/puting patay na tisyu ng dahon (kresek stage) na humahadlang sa photosynthesis. Mag-apply ng emergency therapeutic bactericide at itigil ang abono ng Urea.'
             }
         },
         english: {
             name: 'Bacterial Leaf Blight (BLB)',
             scientific: 'Caused by bacteria Xanthomonas oryzae pv. oryzae',
             symptoms: {
-                mild: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Early infection stage: minor yellowing and water-soaked margins at leaf tips. Apply preventive Copper Hydroxide immediately to halt further spread.',
-                moderate: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Intermediate stage: prominent wavy water-soaked margins extending down leaf veins. Spray Streptomycin Sulfate / Zinc Thiazole and drain paddy water for 2–3 days.',
-                severe: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Advanced severe stage: extensive blighted, grayish-white necrotic tissue with severe photosynthetic disruption. Apply therapeutic bactericide and immediately suspend nitrogen fertilization.'
+                mild: 'Early infection stage: minor yellowing and water-soaked margins at leaf tips. Apply preventive Copper Hydroxide immediately to halt further spread.',
+                moderate: 'Intermediate stage: prominent wavy water-soaked margins extending down leaf veins. Spray Streptomycin Sulfate / Zinc Thiazole and drain paddy water for 2–3 days.',
+                severe: 'Advanced severe stage: extensive blighted, grayish-white necrotic tissue with severe photosynthetic disruption. Apply therapeutic bactericide and immediately suspend nitrogen fertilization.'
             }
         }
     },
@@ -53,18 +53,18 @@ const RESULT_LOCALIZATION = {
             name: 'Rice Brown Spot (Mantsang Kayumanggi)',
             scientific: 'Sanhi ng fungal pathogen na Bipolaris oryzae',
             symptoms: {
-                mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Maagang yugto (≤25%): maliliit na bilog na kayumangging batik sa dahon dahil sa kakulangan sa sustansya (Potassium/Zinc). Mag-abono ng Muriate of Potash (0-0-60) at mag-spray ng Mancozeb.',
-                moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Katamtamang yugto (26%-60%): malalaking bilog o hugis-itlog na mantsang kayumanggi na may manilaw-nilaw na paligid (chlorotic halo). Mag-spray ng Tebuconazole o Propiconazole at isagawa ang AWD patubig.',
-                severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Malalang yugto (>60%): malalaking patay na tisyu sa dahon at panunuyo ng uhay (pecky rice grain rot). Mag-spray ng Propiconazole + Difenoconazole tank mix at maglagay ng organikong pataba sa susunod na cropping.'
+                mild: 'Maagang yugto: maliliit na bilog na kayumangging batik sa dahon dahil sa kakulangan sa sustansya (Potassium/Zinc). Mag-abono ng Muriate of Potash (0-0-60) at mag-spray ng Mancozeb.',
+                moderate: 'Katamtamang yugto: malalaking bilog o hugis-itlog na mantsang kayumanggi na may manilaw-nilaw na paligid (chlorotic halo). Mag-spray ng Tebuconazole o Propiconazole at isagawa ang AWD patubig.',
+                severe: 'Malalang yugto: malalaking patay na tisyu sa dahon at panunuyo ng uhay (pecky rice grain rot). Mag-spray ng Propiconazole + Difenoconazole tank mix at maglagay ng organikong pataba sa susunod na cropping.'
             }
         },
         english: {
             name: 'Rice Brown Spot',
             scientific: 'Caused by fungal pathogen Bipolaris oryzae',
             symptoms: {
-                mild: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Early brown spot stage (≤25%): scattered small circular brown specks indicating soil nutrient stress. Apply Muriate of Potash (0-0-60) and spray Mancozeb.',
-                moderate: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Moderate brown spot stage (26%-60%): prominent oval to circular dark brown lesions with yellow chlorotic halos. Spray Tebuconazole or Propiconazole and practice AWD water management.',
-                severe: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Severe brown spot stage (>60%): extensive dark brown necrotic patches, leaf withering, and grain infection leading to pecky rice. Spray Propiconazole + Difenoconazole tank mix and incorporate organic compost.'
+                mild: 'Early brown spot stage: scattered small circular brown specks indicating soil nutrient stress. Apply Muriate of Potash (0-0-60) and spray Mancozeb.',
+                moderate: 'Moderate brown spot stage: prominent oval to circular dark brown lesions with yellow chlorotic halos. Spray Tebuconazole or Propiconazole and practice AWD water management.',
+                severe: 'Severe brown spot stage: extensive dark brown necrotic patches, leaf withering, and grain infection leading to pecky rice. Spray Propiconazole + Difenoconazole tank mix and incorporate organic compost.'
             }
         }
     },
@@ -73,18 +73,18 @@ const RESULT_LOCALIZATION = {
             name: 'Rice Tungro Disease (Paninilaw at Pagkabansot)',
             scientific: 'Sanhi ng RTBV at RTSV virus (hatid ng berdeng ngusong damo / GLH)',
             symptoms: {
-                mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Maagang yugto ng impeksyon: bahagyang paninilaw sa dulo ng itaas na dahon. Kontrolin agad ang berdeng ngusong damo (Green Leafhopper) gamit ang Imidacloprid o Thiamethoxam.',
-                moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Katamtamang yugto: kapansin-pansing dilaw-kahel (yellow-orange) na kulay sa mga dahon at may senyales ng pagkabansot ng suwi. Mag-spray ng Dinotefuran o Clothianidin at magkabit ng yellow sticky traps.',
-                severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Malalang yugto: matingkad na kahel na paninilaw, matinding pagkabansot, kakaunting suwi, at hindi paglabas ng uhay. Bunutin at sunugin ang mga grabeng apektadong tumpok (rogueing) upang hindi mahawa ang buong bukid.'
+                mild: 'Maagang yugto ng impeksyon: bahagyang paninilaw sa dulo ng itaas na dahon. Kontrolin agad ang berdeng ngusong damo (Green Leafhopper) gamit ang Imidacloprid o Thiamethoxam.',
+                moderate: 'Katamtamang yugto: kapansin-pansing dilaw-kahel (yellow-orange) na kulay sa mga dahon at may senyales ng pagkabansot ng suwi. Mag-spray ng Dinotefuran o Clothianidin at magkabit ng yellow sticky traps.',
+                severe: 'Malalang yugto: matingkad na kahel na paninilaw, matinding pagkabansot, kakaunting suwi, at hindi paglabas ng uhay. Bunutin at sunugin ang mga grabeng apektadong tumpok (rogueing) upang hindi mahawa ang buong bukid.'
             }
         },
         english: {
             name: 'Rice Tungro Disease',
             scientific: 'Caused by RTBV & RTSV viral complex (transmitted by Green Leafhopper)',
             symptoms: {
-                mild: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Early viral infection stage: light yellowing restricted to leaf tips. Control green leafhopper vectors immediately with Imidacloprid or Thiamethoxam.',
-                moderate: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Moderate stage: pronounced yellow-orange discoloration extending across leaf blade with visible plant stunting. Spray Dinotefuran or Clothianidin and deploy yellow sticky traps.',
-                severe: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Severe viral stage: intense orange-yellow discoloration, severe stunting, compact tillers, and failure of panicle emergence. Pull out and destroy severely infected hills (rogueing) to protect the crop.'
+                mild: 'Early viral infection stage: light yellowing restricted to leaf tips. Control green leafhopper vectors immediately with Imidacloprid or Thiamethoxam.',
+                moderate: 'Moderate stage: pronounced yellow-orange discoloration extending across leaf blade with visible plant stunting. Spray Dinotefuran or Clothianidin and deploy yellow sticky traps.',
+                severe: 'Severe viral stage: intense orange-yellow discoloration, severe stunting, compact tillers, and failure of panicle emergence. Pull out and destroy severely infected hills (rogueing) to protect the crop.'
             }
         }
     },
@@ -220,13 +220,22 @@ export default function ResultsPage() {
     const diseaseKey = RESULT_LOCALIZATION[scan.disease_key] ? scan.disease_key : inferredDiseaseKey;
     const localizedData = diseaseKey ? RESULT_LOCALIZATION[diseaseKey]?.[resultLang] : null;
 
-    const pct = scan.affected_percentage || (scan.severity === 'severe' ? '80' : (scan.severity === 'moderate' ? '45' : '15'));
+    const severityLevels = ['mild', 'moderate', 'severe'];
+    const area = Number(scan.affected_percentage);
+    const measuredSeverity = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== undefined && scan.affected_percentage !== '' && Number.isFinite(area) && area >= 0 && area <= 100
+        ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe')
+        : null;
+    const severityLevel = measuredSeverity || (scan.severity_status === 'user_assessed' && severityLevels.includes(scan.severity) ? scan.severity : null);
     let symptomsText = '';
     if (isHealthy && typeof localizedData?.symptoms === 'string') {
         symptomsText = localizedData.symptoms;
-    } else if (localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
-        const sevKey = scan.severity || 'moderate';
-        symptomsText = (localizedData.symptoms[sevKey] || localizedData.symptoms.moderate || '').replace('{pct}', pct);
+    } else if (severityLevel && localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
+        symptomsText = localizedData.symptoms[severityLevel] || localizedData.symptoms.moderate || '';
+    } else if (!isHealthy) {
+        symptomsText = t(
+            'Severity level has not been assessed. Ask an agriculturist before choosing severity-based treatment.',
+            'Hindi pa nasusuri ang antas ng tindi. Kumonsulta sa agriculturist bago pumili ng lunas ayon sa tindi.'
+        );
     } else {
         symptomsText = t(
             'No disease-specific guidance is available for this scan.',
@@ -277,27 +286,25 @@ export default function ResultsPage() {
                     </div>
                     <div className="diag-text">
                         <h3>{isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast')}</h3>
-                        <p>{isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Matched against a labeled reference image; severity is estimated from image colors.')}</p>
+                        <p>{isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Disease identified by the classifier.')}</p>
                     </div>
                 </div>
 
                 {!isHealthy && (
                     <div className="severity-meter fade-in">
-                        <h4>{resultLang === 'tagalog' ? 'Lebel ng Pinsala at Apektadong Bahagi ng Dahon' : 'Severity Level & Leaf Area Affected'}</h4>
-                        <div className="severity-bar-track">
-                            <div className={`severity-bar-fill ${scan.severity === 'severe' ? 'severe' : scan.severity === 'moderate' ? 'moderate' : 'mild'}`} />
-                        </div>
+                        <h4>{resultLang === 'tagalog' ? 'Antas ng Tindi' : 'Severity Level'}</h4>
                         <div className="severity-labels">
-                            <span className={`sev-label ${scan.severity === 'mild' ? 'active-sev green' : 'inactive'}`}>
-                                {resultLang === 'tagalog' ? 'Bahagya (≤ 25%)' : 'Mild (≤ 25%)'}
+                            <span className={`sev-label ${severityLevel === 'mild' ? 'active-sev green' : 'inactive'}`}>
+                                {resultLang === 'tagalog' ? 'Bahagya' : 'Mild'}
                             </span>
-                            <span className={`sev-label ${scan.severity === 'moderate' ? 'active-sev amber' : 'inactive'}`}>
-                                {resultLang === 'tagalog' ? 'Katamtaman (26% – 60%)' : 'Moderate (26% – 60%)'}
+                            <span className={`sev-label ${severityLevel === 'moderate' ? 'active-sev amber' : 'inactive'}`}>
+                                {resultLang === 'tagalog' ? 'Katamtaman' : 'Moderate'}
                             </span>
-                            <span className={`sev-label ${scan.severity === 'severe' ? 'active-sev' : 'inactive'}`}>
-                                {resultLang === 'tagalog' ? 'Malala (> 60%)' : 'Severe (> 60%)'}
+                            <span className={`sev-label ${severityLevel === 'severe' ? 'active-sev' : 'inactive'}`}>
+                                {resultLang === 'tagalog' ? 'Malala' : 'Severe'}
                             </span>
                         </div>
+                        {!severityLevel && <p role="status">{resultLang === 'tagalog' ? 'Hindi pa nasusuri ang antas ng tindi.' : 'Severity level has not been assessed.'}</p>}
                     </div>
                 )}
 

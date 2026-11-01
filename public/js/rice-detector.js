@@ -2444,7 +2444,7 @@ function makeOfflineScanResponse(prediction, localFileUrl) {
       orientation_agreement: prediction.orientationAgreement,
       severity: healthy ? 'healthy' : 'unassessed',
       severity_status: healthy ? 'not_applicable' : 'unassessed',
-      severity_message: healthy ? null : 'Disease detected: Not Healthy Leaf. The scanner does not measure affected leaf area or severity. Ask an agriculturist before using severity-based treatment advice.',
+      severity_message: healthy ? null : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
       severity_class: healthy ? 'healthy-bg' : 'unassessed-bg',
       affected_percentage: null,
       treatments: { chemical: [], organic: [] },
@@ -2801,7 +2801,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         ],
       };
     } else {
-      // Moderate (26% - 60%)
+      // Moderate
       return {
         chemical: [
           { name: 'Isoprothiolane 40% EC (Fuji-One)', desc: 'Apply 1.5–2.0 ml/L (750–1000 ml/ha) foliar spray. Systemic fungicide with strong translaminar and acropetal translocation that arrests active lesion expansion.', tag: 'Fungicide', tag_class: 'fungicide' },
@@ -2845,7 +2845,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         ],
       };
     } else {
-      // Moderate (26% - 60%)
+      // Moderate
       return {
         chemical: [
           { name: 'Streptomycin Sulfate + Oxytetracycline (Plantomycin / Agrimycin)', desc: 'Apply 150–200 ppm (1.5–2.0 g/L) foliar spray. Systemic agricultural antibiotic that penetrates vascular bundles to arrest bacterial replication. Repeat after 7–10 days.', tag: 'Antibiotic', tag_class: 'bactericide' },
@@ -2878,7 +2878,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         chemical: [
           { name: 'Propiconazole 25% EC + Mancozeb 80% WP Tank Mix', desc: 'Therapeutic emergency spray (1.0 ml + 2.0 g/L). Combines systemic curative eradication with protective surface contact against aggressive blighting.', tag: 'Emergency Fungicide', tag_class: 'fungicide' },
           { name: 'Carbendazim 50% WP + Tebuconazole 250 EC', desc: 'Apply 1.0–1.5 g/L spray targeted at flag leaves and emerging panicles to prevent glume discoloration and pecky rice grain damage.', tag: 'Systemic Fungicide', tag_class: 'fungicide' },
-          { name: 'Difenoconazole 250 EC (Score)', desc: 'Apply 1.0 ml/L to arrest extensive lesion coalescence and protect remaining functional leaf area.', tag: 'Curative Fungicide', tag_class: 'fungicide' },
+          { name: 'Difenoconazole 250 EC (Score)', desc: 'Apply 1.0 ml/L to arrest extensive lesion coalescence and protect remaining healthy tissue.', tag: 'Curative Fungicide', tag_class: 'fungicide' },
         ],
         organic: [
           { name: 'Certified Resistant Seeds Next Cropping', desc: 'Source certified disease-free seeds with high field tolerance against brown spot (NSIC Rc216, NSIC Rc222, PSB Rc14).', tag: 'Varietal Selection', tag_class: 'cultural' },
@@ -2888,7 +2888,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         ],
       };
     } else {
-      // Moderate (26% - 60%)
+      // Moderate
       return {
         chemical: [
           { name: 'Tebuconazole 250 EC (Folicur)', desc: 'Apply 1.0 ml/L foliar spray. Strong systemic triazole fungicide that halts mycelial elongation and controls spreading brown circular lesions.', tag: 'Systemic Fungicide', tag_class: 'fungicide' },
@@ -2930,7 +2930,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         ],
       };
     } else {
-      // Moderate (26% - 60%)
+      // Moderate
       return {
         chemical: [
           { name: 'Dinotefuran 20% SG', desc: 'Apply 0.5–1.0 g/L. Fast-acting 3rd-generation neonicotinoid with systemic and translaminar activity against leafhopper nymphs and adults.', tag: 'Insecticide', tag_class: 'bactericide' },
@@ -2971,7 +2971,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
         ],
       };
     } else {
-      // Moderate (26% - 60%)
+      // Moderate
       return {
         chemical: [
           { name: 'Azoxystrobin + Difenoconazole (Amistar Top 325 SC)', desc: 'Apply 1.0 ml/L spray directed at mid-canopy. Dual systemic strobilurin + triazole with powerful translaminar curative action.', tag: 'Systemic Fungicide', tag_class: 'fungicide' },
@@ -3008,29 +3008,15 @@ function scanSeverityLabel(scan) {
 function renderSeverityMeter(scan, isHealthy) {
   const meter = document.querySelector('.severity-meter');
   if (meter) meter.style.display = isHealthy ? 'none' : 'block';
-  const track = document.getElementById('resultSeverityTrack');
-  const fill = document.getElementById('resultSeverityFill');
   const labels = document.getElementById('resultSeverityLabels');
   const notice = document.getElementById('resultSeverityUnavailable');
   const levels = ['mild', 'moderate', 'severe'];
-  const area = scan.affected_percentage;
-  const measured = scan.severity_status === 'expert_validated' && area !== null && area !== undefined && area !== '' &&
-    Number.isFinite(Number(area)) && Number(area) >= 0 && Number(area) <= 100;
+  const area = Number(scan.affected_percentage);
+  const measured = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== '' &&
+    Number.isFinite(area) && area >= 0 && area <= 100;
   const manual = scan.severity_status === 'user_assessed' && levels.includes(scan.severity);
-  const level = measured ? (Number(area) <= 25 ? 'mild' : Number(area) <= 60 ? 'moderate' : 'severe') : manual ? scan.severity : null;
-  if (track) {
-    track.style.display = 'block';
-    track.setAttribute('role', 'img');
-    track.setAttribute('aria-label', measured ? `${level}: ${area}% affected leaf area` : manual ? `${level}: saved manual assessment` : 'Severity not assessed');
-  }
+  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : manual ? scan.severity : null;
   if (labels) labels.style.display = 'flex';
-  if (fill) {
-    fill.className = 'severity-bar-fill' + (level ? ' ' + level : '');
-    // A manual category marks its whole interval; it is not an exact area reading.
-    const range = { mild: [0, 25], moderate: [25, 35], severe: [60, 40] }[level];
-    fill.style.marginLeft = manual && !measured ? range[0] + '%' : '0%';
-    fill.style.width = measured ? Number(area) + '%' : manual ? range[1] + '%' : '0%';
-  }
   ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
     const label = document.getElementById(id);
     if (label) label.className = level === levels[index]
@@ -3040,8 +3026,8 @@ function renderSeverityMeter(scan, isHealthy) {
   if (notice) {
     notice.style.display = measured ? 'none' : 'block';
     notice.textContent = manual
-      ? 'Saved manual assessment. The bar marks its range; affected area has not been measured.'
-      : 'Not assessed. Affected leaf area has not been measured.';
+      ? 'Saved manual severity level.'
+      : 'Severity level has not been assessed.';
   }
 }
 
@@ -3173,80 +3159,80 @@ const RESULT_TRANSLATIONS = {
     blast: {
       tagalog: {
         symptoms: {
-          mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Maagang yugto (≤25%): may maliliit na kayumangging tuldok at hugis-diamanteng sugat sa dahon. Malusog at buo pa ang karamihan ng tanim. Mag-spray agad ng Tricyclazole o Isoprothiolane bilang proteksyon.',
-          moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Katamtamang yugto (26%-60%): aktibong hugis-bangkang sugat (spindle-shaped lesions) na may abong gitna at mapulang gilid na nagdurugtong. Mag-spray ng Azoxystrobin + Difenoconazole at itigil ang sobrang Urea.',
-          severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Leaf Blast. Malalang yugto (>60%): malawak na pagkasunog ng mga dahon (burnt appearance), collar rot, at matinding panganib ng neck blast sa uhay. Mag-spray agad ng therapeutic systemic fungicide.'
+          mild: 'Maagang yugto: may maliliit na kayumangging tuldok at hugis-diamanteng sugat sa dahon. Malusog at buo pa ang karamihan ng tanim. Mag-spray agad ng Tricyclazole o Isoprothiolane bilang proteksyon.',
+          moderate: 'Katamtamang yugto: aktibong hugis-bangkang sugat (spindle-shaped lesions) na may abong gitna at mapulang gilid na nagdurugtong. Mag-spray ng Azoxystrobin + Difenoconazole at itigil ang sobrang Urea.',
+          severe: 'Malalang yugto: malawak na pagkasunog ng mga dahon (burnt appearance), collar rot, at matinding panganib ng neck blast sa uhay. Mag-spray agad ng therapeutic systemic fungicide.'
         }
       },
       english: {
         symptoms: {
-          mild: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Early blast stage (≤25%): small initial brown specks and pinhead-sized diamond spots on leaf blades with mostly green intact canopy. Apply preventive Tricyclazole or Isoprothiolane.',
-          moderate: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Moderate blast stage (26%-60%): active spindle-shaped lesions with necrotic gray centers and reddish-brown margins coalescing across leaves. Spray Azoxystrobin + Difenoconazole and suspend nitrogen topdressing.',
-          severe: 'Rice Leaf Blast symptoms affect approximately {pct}% of the leaf area. Severe blast stage (>60%): extensive coalesced lesions, scorched/burnt foliage appearance, collar rot, and acute danger of neck and panicle blast failure. Apply therapeutic systemic fungicide immediately.'
+          mild: 'Early blast stage: small initial brown specks and pinhead-sized diamond spots on leaf blades with mostly green intact canopy. Apply preventive Tricyclazole or Isoprothiolane.',
+          moderate: 'Moderate blast stage: active spindle-shaped lesions with necrotic gray centers and reddish-brown margins coalescing across leaves. Spray Azoxystrobin + Difenoconazole and suspend nitrogen topdressing.',
+          severe: 'Severe blast stage: extensive coalesced lesions, scorched/burnt foliage appearance, collar rot, and acute danger of neck and panicle blast failure. Apply therapeutic systemic fungicide immediately.'
         }
       }
     },
     blb: {
       tagalog: {
         symptoms: {
-          mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Maagang yugto ng impeksyon: may bahagyang paninilaw at panunuyo sa dulo at gilid ng dahon. Agarang kontrolin gamit ang Copper Hydroxide bago kumalat sa buong taniman.',
-          moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Katamtamang yugto: may kapansin-pansing kulot at mala-alon na paninilaw na bumababa sa ugat ng dahon. Mag-spray ng Streptomycin Sulfate / Zinc Thiazole at patuyuin ang bukid nang 2-3 araw.',
-          severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Bacterial Leaf Blight. Malalang yugto: malawak na panunuyo, abo/puting patay na tisyu ng dahon (kresek stage) na humahadlang sa photosynthesis. Mag-apply ng emergency therapeutic bactericide at itigil ang abono ng Urea.'
+          mild: 'Maagang yugto ng impeksyon: may bahagyang paninilaw at panunuyo sa dulo at gilid ng dahon. Agarang kontrolin gamit ang Copper Hydroxide bago kumalat sa buong taniman.',
+          moderate: 'Katamtamang yugto: may kapansin-pansing kulot at mala-alon na paninilaw na bumababa sa ugat ng dahon. Mag-spray ng Streptomycin Sulfate / Zinc Thiazole at patuyuin ang bukid nang 2-3 araw.',
+          severe: 'Malalang yugto: malawak na panunuyo, abo/puting patay na tisyu ng dahon (kresek stage) na humahadlang sa photosynthesis. Mag-apply ng emergency therapeutic bactericide at itigil ang abono ng Urea.'
         }
       },
       english: {
         symptoms: {
-          mild: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Early infection stage: minor yellowing and water-soaked margins at leaf tips. Apply preventive Copper Hydroxide immediately to halt further spread.',
-          moderate: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Intermediate stage: prominent wavy water-soaked margins extending down leaf veins. Spray Streptomycin Sulfate / Zinc Thiazole and drain paddy water for 2–3 days.',
-          severe: 'Bacterial blight lesions affect approximately {pct}% of the leaf blade. Advanced severe stage: extensive blighted, grayish-white necrotic tissue with severe photosynthetic disruption. Apply therapeutic bactericide and immediately suspend nitrogen fertilization.'
+          mild: 'Early infection stage: minor yellowing and water-soaked margins at leaf tips. Apply preventive Copper Hydroxide immediately to halt further spread.',
+          moderate: 'Intermediate stage: prominent wavy water-soaked margins extending down leaf veins. Spray Streptomycin Sulfate / Zinc Thiazole and drain paddy water for 2–3 days.',
+          severe: 'Advanced severe stage: extensive blighted, grayish-white necrotic tissue with severe photosynthetic disruption. Apply therapeutic bactericide and immediately suspend nitrogen fertilization.'
         }
       }
     },
     brown_spot: {
       tagalog: {
         symptoms: {
-          mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Maagang yugto (≤25%): maliliit na bilog na kayumangging batik sa dahon dahil sa kakulangan sa sustansya (Potassium/Zinc). Mag-abono ng Muriate of Potash (0-0-60) at mag-spray ng Mancozeb.',
-          moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Katamtamang yugto (26%-60%): malalaking bilog o hugis-itlog na mantsang kayumanggi na may manilaw-nilaw na paligid (chlorotic halo). Mag-spray ng Tebuconazole o Propiconazole at isagawa ang AWD patubig.',
-          severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Brown Spot. Malalang yugto (>60%): malalaking patay na tisyu sa dahon at panunuyo ng uhay (pecky rice grain rot). Mag-spray ng Propiconazole + Difenoconazole tank mix at maglagay ng organikong pataba sa susunod na cropping.'
+          mild: 'Maagang yugto: maliliit na bilog na kayumangging batik sa dahon dahil sa kakulangan sa sustansya (Potassium/Zinc). Mag-abono ng Muriate of Potash (0-0-60) at mag-spray ng Mancozeb.',
+          moderate: 'Katamtamang yugto: malalaking bilog o hugis-itlog na mantsang kayumanggi na may manilaw-nilaw na paligid (chlorotic halo). Mag-spray ng Tebuconazole o Propiconazole at isagawa ang AWD patubig.',
+          severe: 'Malalang yugto: malalaking patay na tisyu sa dahon at panunuyo ng uhay (pecky rice grain rot). Mag-spray ng Propiconazole + Difenoconazole tank mix at maglagay ng organikong pataba sa susunod na cropping.'
         }
       },
       english: {
         symptoms: {
-          mild: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Early brown spot stage (≤25%): scattered small circular brown specks indicating soil nutrient stress. Apply Muriate of Potash (0-0-60) and spray Mancozeb.',
-          moderate: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Moderate brown spot stage (26%-60%): prominent oval to circular dark brown lesions with yellow chlorotic halos. Spray Tebuconazole or Propiconazole and practice AWD water management.',
-          severe: 'Rice Brown Spot symptoms affect approximately {pct}% of the leaf area. Severe brown spot stage (>60%): extensive dark brown necrotic patches, leaf withering, and grain infection leading to pecky rice. Spray Propiconazole + Difenoconazole tank mix and incorporate organic compost.'
+          mild: 'Early brown spot stage: scattered small circular brown specks indicating soil nutrient stress. Apply Muriate of Potash (0-0-60) and spray Mancozeb.',
+          moderate: 'Moderate brown spot stage: prominent oval to circular dark brown lesions with yellow chlorotic halos. Spray Tebuconazole or Propiconazole and practice AWD water management.',
+          severe: 'Severe brown spot stage: extensive dark brown necrotic patches, leaf withering, and grain infection leading to pecky rice. Spray Propiconazole + Difenoconazole tank mix and incorporate organic compost.'
         }
       }
     },
     tungro: {
       tagalog: {
         symptoms: {
-          mild: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Maagang yugto ng impeksyon: bahagyang paninilaw sa dulo ng itaas na dahon. Kontrolin agad ang berdeng ngusong damo (Green Leafhopper) gamit ang Imidacloprid o Thiamethoxam.',
-          moderate: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Katamtamang yugto: kapansin-pansing dilaw-kahel (yellow-orange) na kulay sa mga dahon at may senyales ng pagkabansot ng suwi. Mag-spray ng Dinotefuran o Clothianidin at magkabit ng yellow sticky traps.',
-          severe: 'Umaabot sa humigit-kumulang {pct}% ng dahon ang apektado ng Tungro. Malalang yugto: matingkad na kahel na paninilaw, matinding pagkabansot, kakaunting suwi, at hindi paglabas ng uhay. Bunutin at sunugin ang mga grabeng apektadong tumpok (rogueing) upang hindi mahawa ang buong bukid.'
+          mild: 'Maagang yugto ng impeksyon: bahagyang paninilaw sa dulo ng itaas na dahon. Kontrolin agad ang berdeng ngusong damo (Green Leafhopper) gamit ang Imidacloprid o Thiamethoxam.',
+          moderate: 'Katamtamang yugto: kapansin-pansing dilaw-kahel (yellow-orange) na kulay sa mga dahon at may senyales ng pagkabansot ng suwi. Mag-spray ng Dinotefuran o Clothianidin at magkabit ng yellow sticky traps.',
+          severe: 'Malalang yugto: matingkad na kahel na paninilaw, matinding pagkabansot, kakaunting suwi, at hindi paglabas ng uhay. Bunutin at sunugin ang mga grabeng apektadong tumpok (rogueing) upang hindi mahawa ang buong bukid.'
         }
       },
       english: {
         symptoms: {
-          mild: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Early viral infection stage: light yellowing restricted to leaf tips. Control green leafhopper vectors immediately with Imidacloprid or Thiamethoxam.',
-          moderate: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Moderate stage: pronounced yellow-orange discoloration extending across leaf blade with visible plant stunting. Spray Dinotefuran or Clothianidin and deploy yellow sticky traps.',
-          severe: 'Rice Tungro viral symptoms affect approximately {pct}% of the leaf blade. Severe viral stage: intense orange-yellow discoloration, severe stunting, compact tillers, and failure of panicle emergence. Pull out and destroy severely infected hills (rogueing) to protect the crop.'
+          mild: 'Early viral infection stage: light yellowing restricted to leaf tips. Control green leafhopper vectors immediately with Imidacloprid or Thiamethoxam.',
+          moderate: 'Moderate stage: pronounced yellow-orange discoloration extending across leaf blade with visible plant stunting. Spray Dinotefuran or Clothianidin and deploy yellow sticky traps.',
+          severe: 'Severe viral stage: intense orange-yellow discoloration, severe stunting, compact tillers, and failure of panicle emergence. Pull out and destroy severely infected hills (rogueing) to protect the crop.'
         }
       }
     },
     sheath_blight: {
       tagalog: {
         symptoms: {
-          mild: 'Umaabot sa humigit-kumulang {pct}% ng saha at dahon ang apektado ng Sheath Blight. Maagang yugto (≤25%): may hugis-itlog na kulay berdeng-abo na basa-basang sugat (water-soaked lesions) sa ibaba ng puno malapit sa tubig. Mag-spray agad ng Validamycin 3% L o Hexaconazole bilang proteksyon.',
-          moderate: 'Umaabot sa humigit-kumulang {pct}% ng saha at dahon ang apektado ng Sheath Blight. Katamtamang yugto (26%-60%): may mala-balat ng ahas (snake-skin pattern) na mga sugat na may maputing gitna at mamulang kayumangging gilid na umaakyat sa itaas na dahon. Mag-spray ng Azoxystrobin + Difenoconazole o Thifluzamide at isagawa ang AWD patubig.',
-          severe: 'Umaabot sa humigit-kumulang {pct}% ng saha at dahon ang apektado ng Sheath Blight. Malalang yugto (>60%): umabot na ang mga sugat sa flag leaf sheath, nagdudulot ng paghiga ng palay (lodging), pagkabulok ng puno, at pagkasira ng uhay. Mag-spray agad ng therapeutic systemic fungicide at linisin ang bukid.'
+          mild: 'Maagang yugto: may hugis-itlog na kulay berdeng-abo na basa-basang sugat (water-soaked lesions) sa ibaba ng puno malapit sa tubig. Mag-spray agad ng Validamycin 3% L o Hexaconazole bilang proteksyon.',
+          moderate: 'Katamtamang yugto: may mala-balat ng ahas (snake-skin pattern) na mga sugat na may maputing gitna at mamulang kayumangging gilid na umaakyat sa itaas na dahon. Mag-spray ng Azoxystrobin + Difenoconazole o Thifluzamide at isagawa ang AWD patubig.',
+          severe: 'Malalang yugto: umabot na ang mga sugat sa flag leaf sheath, nagdudulot ng paghiga ng palay (lodging), pagkabulok ng puno, at pagkasira ng uhay. Mag-spray agad ng therapeutic systemic fungicide at linisin ang bukid.'
         }
       },
       english: {
         symptoms: {
-          mild: 'Rice Sheath Blight symptoms affect approximately {pct}% of the culm and sheath area. Early stage (≤25%): initial oval greenish-gray water-soaked spots on leaf sheaths near the water level. Apply preventive Validamycin or Hexaconazole.',
-          moderate: 'Rice Sheath Blight symptoms affect approximately {pct}% of the culm and sheath area. Moderate stage (26%-60%): characteristic irregular ellipsoid snake-skin lesions ascending to upper sheaths and leaves. Spray Azoxystrobin + Difenoconazole or Thifluzamide and practice AWD irrigation.',
-          severe: 'Rice Sheath Blight symptoms affect approximately {pct}% of the culm and sheath area. Severe stage (>60%): extensive blighting reaching flag leaf sheaths, causing widespread lodging, tiller death, and sclerotial formation. Apply emergency therapeutic systemic fungicide.'
+          mild: 'Early stage: initial oval greenish-gray water-soaked spots on leaf sheaths near the water level. Apply preventive Validamycin or Hexaconazole.',
+          moderate: 'Moderate stage: characteristic irregular ellipsoid snake-skin lesions ascending to upper sheaths and leaves. Spray Azoxystrobin + Difenoconazole or Thifluzamide and practice AWD irrigation.',
+          severe: 'Severe stage: extensive blighting reaching flag leaf sheaths, causing widespread lodging, tiller death, and sclerotial formation. Apply emergency therapeutic systemic fungicide.'
         }
       }
     },
@@ -3282,7 +3268,7 @@ function renderResultLanguage() {
   const scan = currentScanResult;
   const lang = currentResultLang || 'english';
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
-  const severityNeedsAssessment = !isHealthy && scan.severity_status !== 'expert_validated';
+  const severityNeedsAssessment = !isHealthy && !['expert_validated', 'user_assessed'].includes(scan.severity_status);
   const key = scan.disease_key || (isHealthy ? 'healthy' : 'blast');
   const diseaseData = RESULT_TRANSLATIONS.diseases[key] || (isHealthy ? RESULT_TRANSLATIONS.diseases.healthy : RESULT_TRANSLATIONS.diseases.blast);
   const localized = diseaseData[lang] || diseaseData.english;
@@ -3304,12 +3290,11 @@ function renderResultLanguage() {
       symp = localized.symptoms;
     } else if (severityNeedsAssessment) {
       symp = lang === 'tagalog'
-        ? 'Natukoy ng disease classifier ang ' + (scan.disease || 'sakit sa palay') + ', ngunit hindi nasukat ang bahaging apektado ng dahon. Ipasuri ang dahon sa agriculturist bago pumili ng lunas ayon sa tindi.'
-        : (scan.disease || 'The disease classifier') + ' was detected, but the affected leaf area was not measured. Ask an agriculturist to assess severity before choosing a severity-based treatment.';
+        ? 'Natukoy ng disease classifier ang ' + (scan.disease || 'sakit sa palay') + ', ngunit hindi pa nasusuri ang antas ng tindi. Ipasuri muna sa agriculturist bago pumili ng lunas ayon sa tindi.'
+        : (scan.disease || 'The disease classifier') + ' was detected, but its severity level has not been assessed. Ask an agriculturist before choosing severity-based treatment.';
     } else if (localized.symptoms) {
-      const pct = scan.affected_percentage;
       const sevKey = scan.severity;
-      symp = (localized.symptoms[sevKey] || localized.symptoms.moderate || '').replace('{pct}', pct ?? '');
+      symp = localized.symptoms[sevKey] || localized.symptoms.moderate || '';
     }
     symptomsText.textContent = symp || scan.symptoms || '';
   }
@@ -3384,14 +3369,14 @@ function renderResultTreatments(scan, lang) {
   }
 
   const key = scan.disease_key || 'blast';
-  const severityNeedsAssessment = !isHealthy && scan.severity_status !== 'expert_validated';
+  const severityNeedsAssessment = !isHealthy && !['expert_validated', 'user_assessed'].includes(scan.severity_status);
   const severity = scan.severity || 'unassessed';
   const data = severityNeedsAssessment
     ? (scan.treatments || { chemical: [], organic: [] })
     : getLocalizedTreatmentsData(key, severity, lang);
 
   let html = severityNeedsAssessment
-    ? `<div style="margin-bottom:10px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; font-size:12px; line-height:1.5;">${lang === 'tagalog' ? 'Hindi nasukat ang bahaging apektado ng dahon, kaya walang piniling gamot o dosis batay sa tindi. Ipasuri muna ang dahon sa agriculturist.' : 'Affected leaf area was not measured, so this scan cannot select severity-based treatment or dosage. Have the leaf assessed by an agriculturist first.'}</div>`
+      ? `<div style="margin-bottom:10px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; font-size:12px; line-height:1.5;">${lang === 'tagalog' ? 'Hindi pa nasusuri ang antas ng tindi, kaya pangkalahatan lamang ang gabay sa lunas. Ipasuri muna sa agriculturist bago pumili ng gamot o dosis.' : 'The severity level has not been assessed, so this guidance is general. Ask an agriculturist before choosing treatment or dosage.'}</div>`
     : '';
 
   // Chemical Treatments / Recommended Sprays
@@ -4048,11 +4033,10 @@ function loadCurrentTreatment() {
   if (name) name.textContent = s.disease;
   const sub = document.getElementById('treatDiseaseSub');
   if (sub) {
-    const rangeText = isMultiSev && !severityNeedsAssessment ? (curSeverity === 'mild' ? ' (≤ 25%)' : (curSeverity === 'moderate' ? ' (26% – 60%)' : ' (> 60%)')) : '';
     if (severityNeedsAssessment && !manualGuide) {
       sub.textContent = (s.scientific || s.disease) + ' · Status: Not Healthy Leaf';
     } else {
-      const severityText = severityNeedsAssessment ? 'Select a level' : curSeverity.toUpperCase() + rangeText;
+      const severityText = severityNeedsAssessment ? 'Not assessed' : curSeverity.charAt(0).toUpperCase() + curSeverity.slice(1);
       sub.textContent = (s.scientific || s.disease) + ' · Severity: ' + severityText;
     }
   }
@@ -4062,8 +4046,8 @@ function loadCurrentTreatment() {
     severityNotice.style.display = severityNeedsAssessment || (manualGuide && s.severity_status === 'user_selected') ? 'block' : 'none';
     if (manualGuide) {
       severityNotice.textContent = severityNeedsAssessment
-        ? 'Choose a level only after visually assessing the leaf. The scanner does not measure affected leaf area.'
-        : 'These guide suggestions use the level you selected manually; the scanner has not verified the affected leaf area.';
+        ? 'Choose a level only after visually assessing the leaf. The scanner has not assessed severity.'
+        : 'These guide suggestions use the level you selected manually; the scanner has not verified it.';
     } else {
       severityNotice.textContent = 'Severity has not been assessed. The guidance below is general; do not choose severity-based treatment or dosage from this scan.';
     }
