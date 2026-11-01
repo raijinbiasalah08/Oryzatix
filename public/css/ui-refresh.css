@@ -439,10 +439,10 @@ button:disabled { cursor: not-allowed; }
 #consultation.voice-companion .ai-avatar {
   width: 46px;
   height: 46px;
-  border-radius: 15px;
-  border: 1px solid #cce8d2;
-  background: linear-gradient(145deg, #f2ffe5, #d9f99d);
-  box-shadow: 0 7px 16px rgba(8, 123, 72, .13);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 #consultation.voice-companion .ai-avatar img { width: 100%; height: 100%; object-fit: contain; }
 #consultation.voice-companion .chat-header-info h3 {

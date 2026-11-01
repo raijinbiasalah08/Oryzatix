@@ -391,6 +391,10 @@ function setUILanguage(lang) {
     introBubble.setAttribute('data-raw-content', introText.textContent || '');
     introBubble.setAttribute('data-lang', lang === 'english' ? 'english' : 'tagalog');
   }
+  const mascotGreeting = document.getElementById('oryAssistantIntro');
+  if (mascotGreeting) {
+    mascotGreeting.textContent = mascotGreeting.getAttribute(lang === 'english' ? 'data-en' : 'data-tl') || '';
+  }
 
   const welcomeTag = document.getElementById('welcomeLangTag');
   if (welcomeTag) {
@@ -461,17 +465,33 @@ function setAuthMode(isAuthScreen) {
   }
 }
 
-let oryAssistantOpenTimer = null;
+let oryAssistantGreetingInterval = null;
+let oryAssistantGreetingHideTimer = null;
 
-function openOryAssistant() {
+function hideOryAssistantGreeting() {
   const shortcut = document.querySelector('.oryzatix-assistant-shortcut');
   const intro = document.getElementById('oryAssistantIntro');
-  if (!shortcut || !intro) {
-    showScreen('consultation');
-    return;
+  if (oryAssistantGreetingHideTimer) {
+    window.clearTimeout(oryAssistantGreetingHideTimer);
+    oryAssistantGreetingHideTimer = null;
   }
+  if (shortcut) shortcut.classList.remove('is-introducing');
+  if (intro) {
+    intro.hidden = true;
+    intro.setAttribute('aria-hidden', 'true');
+  }
+}
 
-  if (oryAssistantOpenTimer) window.clearTimeout(oryAssistantOpenTimer);
+function showOryAssistantGreeting() {
+  if (document.hidden) return;
+  const shell = document.querySelector('.web-app-shell');
+  const activeScreen = document.querySelector('.web-app-shell .screen.active');
+  if (!shell || shell.classList.contains('auth-mode') || !activeScreen || activeScreen.id === 'consultation') return;
+
+  const shortcut = document.querySelector('.oryzatix-assistant-shortcut');
+  const intro = document.getElementById('oryAssistantIntro');
+  if (!shortcut || !intro) return;
+
   const lang = (document.getElementById('uiLanguage') || {}).value || 'english';
   intro.textContent = intro.getAttribute(lang === 'tagalog' ? 'data-tl' : 'data-en') || '';
   intro.hidden = false;
@@ -480,27 +500,22 @@ function openOryAssistant() {
   void shortcut.offsetWidth;
   shortcut.classList.add('is-introducing');
 
-  oryAssistantOpenTimer = window.setTimeout(() => {
-    oryAssistantOpenTimer = null;
-    shortcut.classList.remove('is-introducing');
-    intro.hidden = true;
-    intro.setAttribute('aria-hidden', 'true');
-    showScreen('consultation');
-  }, 1050);
+  if (oryAssistantGreetingHideTimer) window.clearTimeout(oryAssistantGreetingHideTimer);
+  oryAssistantGreetingHideTimer = window.setTimeout(hideOryAssistantGreeting, 4500);
+}
+
+function startOryAssistantGreetingLoop() {
+  if (oryAssistantGreetingInterval) window.clearInterval(oryAssistantGreetingInterval);
+  oryAssistantGreetingInterval = window.setInterval(showOryAssistantGreeting, 15000);
+}
+
+function openOryAssistant() {
+  hideOryAssistantGreeting();
+  showScreen('consultation');
 }
 
 function showScreen(id) {
-  if (oryAssistantOpenTimer) {
-    window.clearTimeout(oryAssistantOpenTimer);
-    oryAssistantOpenTimer = null;
-    const shortcut = document.querySelector('.oryzatix-assistant-shortcut');
-    const intro = document.getElementById('oryAssistantIntro');
-    if (shortcut) shortcut.classList.remove('is-introducing');
-    if (intro) {
-      intro.hidden = true;
-      intro.setAttribute('aria-hidden', 'true');
-    }
-  }
+  if (id === 'consultation' || AUTH_SCREENS.includes(id)) hideOryAssistantGreeting();
 
   // Redirect old saved links to the dashboard after the admin chatbot screen is removed.
   if (id === 'admin-chatbot') {
@@ -7710,6 +7725,7 @@ function finishInitialRender() {
 document.addEventListener('DOMContentLoaded', async function () {
   initLiveClock();
   initNetworkStatusMonitoring();
+  startOryAssistantGreetingLoop();
 
   const savedLang = window.localStorage ? window.localStorage.getItem('oryzatix_ui_lang') : null;
   if (savedLang) setUILanguage(savedLang);
