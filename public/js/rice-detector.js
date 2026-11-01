@@ -7757,8 +7757,10 @@ function syncMobileConsultationKeyboardLayout() {
   const shell = document.querySelector('.web-app-shell');
   if (!shell) return;
 
-  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const viewport = window.visualViewport;
+  const viewportHeight = viewport ? viewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--mobile-visual-height', Math.round(viewportHeight) + 'px');
+  document.documentElement.style.setProperty('--mobile-visual-offset', Math.round(viewport ? viewport.offsetTop : 0) + 'px');
 
   const chatInputFocused = document.activeElement && document.activeElement.id === 'chatInput';
   if (!chatInputFocused) mobileConsultationViewportBaseline = viewportHeight;

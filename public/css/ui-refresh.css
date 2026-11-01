@@ -848,11 +848,28 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media (max-width: 768px) {
-  .web-app-shell.mobile-keyboard-open,
-  .web-app-shell.mobile-keyboard-open .web-main-workspace {
+  .web-app-shell.mobile-keyboard-open {
+    position: fixed !important;
+    top: var(--mobile-visual-offset, 0px) !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    width: 100% !important;
     height: var(--mobile-visual-height, 100dvh) !important;
     min-height: 0 !important;
     overflow: hidden !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open .web-main-workspace {
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open .web-topbar {
+    flex: 0 0 auto !important;
   }
 
   .web-app-shell.mobile-keyboard-open .mobile-bottom-nav {
@@ -860,18 +877,34 @@ button:disabled { cursor: not-allowed; }
   }
 
   .web-app-shell.mobile-keyboard-open .web-page-content {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 0 !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
+    padding: 8px !important;
   }
 
   .web-app-shell.mobile-keyboard-open #consultation.voice-companion {
-    height: calc(var(--mobile-visual-height, 100dvh) - var(--topbar-height) - env(safe-area-inset-top, 0px) - 24px) !important;
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    height: auto !important;
     min-height: 0 !important;
-    max-height: 100% !important;
+    max-height: none !important;
     margin: 0 !important;
     border-radius: 12px !important;
+  }
+
+  .web-app-shell.mobile-keyboard-open #consultation .chat-messages {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overscroll-behavior: contain;
+  }
+
+  .web-app-shell.mobile-keyboard-open #consultation .chat-input-bar {
+    flex: 0 0 auto !important;
   }
 
   .web-app-shell.mobile-keyboard-open #consultation .voice-input-prompt {
