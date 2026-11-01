@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RiceScanController;
 use App\Http\Controllers\ConsultationController;
+use App\Http\Controllers\NarrationController;
 use App\Http\Controllers\AuthController;
 
 use App\Http\Controllers\AdminController;
@@ -119,6 +120,11 @@ Route::get('/dashboard/public-stats', [RiceScanController::class, 'dashboardStat
 
 // Public translation endpoint (accessible for both logged-in and guest users)
 Route::post('/consultation/translate', [ConsultationController::class, 'translate'])->name('consultation.translate');
+
+// The voice proxy supports guest scan results and is rate-limited to protect provider usage.
+Route::post('/consultation/narrate', [NarrationController::class, 'synthesize'])
+    ->middleware('throttle:12,1')
+    ->name('consultation.narrate');
 
 // Scans require an authenticated owner so every accepted diagnosis can be recorded in history.
 Route::post('/rice-detector/upload', [RiceScanController::class, 'upload'])->name('rice-detector.upload');

@@ -4700,6 +4700,10 @@ let currentSpeakingBtn = null;
 let isConsultationSending = false;
 let speechPlaybackToken = 0;
 let isSpeechPlaybackActive = false;
+let currentNarrationAudio = null;
+let currentNarrationObjectUrl = null;
+let currentNarrationController = null;
+let currentNarrationCancel = null;
 
 function initAiVoiceMuteUI() {
   const btn = document.getElementById('aiMuteToggleBtn');
@@ -4738,6 +4742,27 @@ function toggleAiVoiceMute() {
 
 function stopAiSpeech() {
   speechPlaybackToken += 1;
+  if (currentNarrationCancel) {
+    const cancelPlayback = currentNarrationCancel;
+    currentNarrationCancel = null;
+    cancelPlayback();
+  }
+  if (currentNarrationController) {
+    currentNarrationController.abort();
+    currentNarrationController = null;
+  }
+  if (currentNarrationAudio) {
+    currentNarrationAudio.onended = null;
+    currentNarrationAudio.onerror = null;
+    currentNarrationAudio.pause();
+    currentNarrationAudio.removeAttribute('src');
+    currentNarrationAudio.load();
+    currentNarrationAudio = null;
+  }
+  if (currentNarrationObjectUrl) {
+    URL.revokeObjectURL(currentNarrationObjectUrl);
+    currentNarrationObjectUrl = null;
+  }
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
@@ -4789,7 +4814,7 @@ function getSpeechLanguageCode(language) {
 }
 
 function getPreferredSpeechVoice(languageCode) {
-  if (typeof window.speechSynthesis.getVoices !== 'function') return null;
+  if (!window.speechSynthesis || typeof window.speechSynthesis.getVoices !== 'function') return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
 
@@ -4815,20 +4840,6 @@ function getPreferredSpeechVoice(languageCode) {
 
 function speakText(rawText, lang, btnElement) {
   if (!isConsultationOnline()) return;
-  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
-    if (btnElement) {
-      const label = btnElement.querySelector('span');
-      const originalLabel = label ? label.textContent : '';
-      if (label) label.textContent = 'Audio unavailable';
-      btnElement.title = 'Text-to-speech is not available in this browser';
-      setTimeout(() => {
-        if (label && label.textContent === 'Audio unavailable') label.textContent = originalLabel || 'Read';
-        btnElement.title = 'Read aloud / Stop';
-      }, 2500);
-    }
-    return;
-  }
-
   // Toggle stop if already speaking this bubble
   if (btnElement && currentSpeakingBtn === btnElement && isSpeechPlaybackActive) {
     stopAiSpeech();
@@ -4845,60 +4856,213 @@ function speakText(rawText, lang, btnElement) {
   const clean = getCleanSpeechText(rawText);
   if (!clean) return;
 
-  const languageCode = getSpeechLanguageCode(lang);
-  const voice = getPreferredSpeechVoice(languageCode);
-  const utter = new SpeechSynthesisUtterance(clean);
-  utter.lang = voice && voice.lang ? voice.lang : languageCode;
-  if (voice) utter.voice = voice;
-  utter.rate = 0.88;
-  utter.pitch = 1.0;
-  utter.volume = 1.0;
-
   const playbackToken = speechPlaybackToken;
   isSpeechPlaybackActive = true;
+  currentSpeakingBtn = btnElement || null;
 
   if (btnElement) {
-    currentSpeakingBtn = btnElement;
     btnElement.classList.add('speaking');
-    btnElement.title = 'Stop reading';
+    btnElement.title = 'Generating ElevenLabs narration…';
     const span = btnElement.querySelector('span');
-    if (span) span.textContent = 'Stop';
+    if (span) span.textContent = 'Preparing…';
   }
 
-  utter.onend = () => {
-    if (playbackToken !== speechPlaybackToken) return;
-    isSpeechPlaybackActive = false;
-    if (btnElement) {
-      btnElement.classList.remove('speaking');
-      btnElement.title = 'Read aloud / Stop';
-      const span = btnElement.querySelector('span');
-      if (span) span.textContent = 'Read';
-    }
-    if (currentSpeakingBtn === btnElement) currentSpeakingBtn = null;
-  };
+  playElevenLabsNarration(clean, lang, btnElement, playbackToken);
+}
 
-  utter.onerror = () => {
-    if (playbackToken !== speechPlaybackToken) return;
-    isSpeechPlaybackActive = false;
-    if (btnElement) {
-      btnElement.classList.remove('speaking');
-      const span = btnElement.querySelector('span');
-      if (span) span.textContent = 'Audio unavailable';
-      btnElement.title = 'Audio playback failed. Check that your device has a speech voice installed.';
-      setTimeout(() => {
-        if (span && !btnElement.classList.contains('speaking') && span.textContent === 'Audio unavailable') {
-          span.textContent = 'Read';
-          btnElement.title = 'Read aloud / Stop';
-        }
-      }, 2500);
+function splitNarrationText(text, maxLength = 1800) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const chunks = [];
+  let chunk = '';
+
+  words.forEach((word) => {
+    if (word.length > maxLength) {
+      if (chunk) chunks.push(chunk);
+      for (let index = 0; index < word.length; index += maxLength) {
+        chunks.push(word.slice(index, index + maxLength));
+      }
+      chunk = '';
+      return;
     }
-    if (currentSpeakingBtn === btnElement) currentSpeakingBtn = null;
-  };
+
+    const next = chunk ? `${chunk} ${word}` : word;
+    if (next.length > maxLength) {
+      chunks.push(chunk);
+      chunk = word;
+    } else {
+      chunk = next;
+    }
+  });
+
+  if (chunk) chunks.push(chunk);
+  return chunks;
+}
+
+function finishNarration(playbackToken, btnElement) {
+  if (playbackToken !== speechPlaybackToken) return;
+  isSpeechPlaybackActive = false;
+  if (btnElement) {
+    btnElement.classList.remove('speaking');
+    btnElement.title = 'Read aloud / Stop';
+    const span = btnElement.querySelector('span');
+    if (span) span.textContent = 'Read';
+  }
+  if (currentSpeakingBtn === btnElement) currentSpeakingBtn = null;
+}
+
+function showNarrationUnavailable(playbackToken, btnElement) {
+  finishNarration(playbackToken, btnElement);
+  if (!btnElement || playbackToken !== speechPlaybackToken) return;
+
+  const span = btnElement.querySelector('span');
+  if (span) span.textContent = 'Audio unavailable';
+  btnElement.title = 'Narration is unavailable. Check your connection and try again.';
+  setTimeout(() => {
+    if (playbackToken === speechPlaybackToken && span && span.textContent === 'Audio unavailable') {
+      span.textContent = 'Read';
+      btnElement.title = 'Read aloud / Stop';
+    }
+  }, 2500);
+}
+
+async function playElevenLabsClip(text, lang, btnElement, playbackToken) {
+  const controller = new AbortController();
+  currentNarrationController = controller;
+  let objectUrl = null;
+  let audio = null;
+  let cancelPlayback = null;
 
   try {
-    window.speechSynthesis.speak(utter);
+    const response = await fetch(apiUrl('/consultation/narrate'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders({
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+      }),
+      body: JSON.stringify({ text, language: /^(tl|fil|tagalog|filipino)/i.test(String(lang || '')) ? 'tagalog' : 'english' }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) throw new Error(`ElevenLabs narration failed (${response.status}).`);
+    const blob = await response.blob();
+    if (!blob.size || (blob.type && !blob.type.toLowerCase().includes('audio'))) {
+      throw new Error('ElevenLabs returned an invalid audio response.');
+    }
+    if (playbackToken !== speechPlaybackToken) return;
+
+    objectUrl = URL.createObjectURL(blob);
+    audio = new Audio(objectUrl);
+    currentNarrationAudio = audio;
+    currentNarrationObjectUrl = objectUrl;
+    audio.volume = 1;
+
+    await new Promise((resolve, reject) => {
+      cancelPlayback = () => {
+        const error = new Error('Narration playback stopped.');
+        error.name = 'AbortError';
+        reject(error);
+      };
+      currentNarrationCancel = cancelPlayback;
+      audio.onplay = () => {
+        if (playbackToken !== speechPlaybackToken) return;
+        if (btnElement) {
+          btnElement.title = 'Stop reading';
+          const span = btnElement.querySelector('span');
+          if (span) span.textContent = 'Stop';
+        }
+      };
+      audio.onended = () => {
+        if (currentNarrationCancel === cancelPlayback) currentNarrationCancel = null;
+        resolve();
+      };
+      audio.onerror = () => {
+        if (currentNarrationCancel === cancelPlayback) currentNarrationCancel = null;
+        reject(new Error('Narration audio playback failed.'));
+      };
+      audio.play().catch(reject);
+    });
+  } finally {
+    if (audio) {
+      audio.onplay = null;
+      audio.onended = null;
+      audio.onerror = null;
+      if (currentNarrationAudio === audio) {
+        currentNarrationAudio = null;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      }
+    }
+    if (objectUrl && currentNarrationObjectUrl === objectUrl) {
+      currentNarrationObjectUrl = null;
+      URL.revokeObjectURL(objectUrl);
+    }
+    if (currentNarrationController === controller) currentNarrationController = null;
+    if (currentNarrationCancel === cancelPlayback) currentNarrationCancel = null;
+  }
+}
+
+function playDeviceSpeechFallback(text, lang, btnElement, playbackToken) {
+  if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+    return Promise.reject(new Error('Device speech is unavailable.'));
+  }
+
+  const languageCode = getSpeechLanguageCode(lang);
+  const voice = getPreferredSpeechVoice(languageCode);
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = voice && voice.lang ? voice.lang : languageCode;
+  if (voice) utterance.voice = voice;
+  utterance.rate = 0.9;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  return new Promise((resolve, reject) => {
+    utterance.onstart = () => {
+      if (playbackToken !== speechPlaybackToken) return;
+      if (btnElement) {
+        btnElement.title = 'ElevenLabs unavailable; using the device voice.';
+        const span = btnElement.querySelector('span');
+        if (span) span.textContent = 'Stop';
+      }
+    };
+    utterance.onend = () => {
+      finishNarration(playbackToken, btnElement);
+      resolve();
+    };
+    utterance.onerror = () => {
+      finishNarration(playbackToken, btnElement);
+      reject(new Error('Device speech playback failed.'));
+    };
+
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function playElevenLabsNarration(text, lang, btnElement, playbackToken) {
+  const chunks = splitNarrationText(text);
+  let nextChunk = 0;
+
+  try {
+    for (; nextChunk < chunks.length; nextChunk += 1) {
+      if (playbackToken !== speechPlaybackToken) return;
+      await playElevenLabsClip(chunks[nextChunk], lang, btnElement, playbackToken);
+    }
+    finishNarration(playbackToken, btnElement);
   } catch (error) {
-    utter.onerror(error);
+    if (playbackToken !== speechPlaybackToken || error?.name === 'AbortError') return;
+
+    console.warn('ElevenLabs narration failed; trying the device voice.', error);
+    const remainingText = chunks.slice(nextChunk).join(' ');
+    try {
+      await playDeviceSpeechFallback(remainingText || text, lang, btnElement, playbackToken);
+    } catch (_) {
+      showNarrationUnavailable(playbackToken, btnElement);
+    }
   }
 }
 
