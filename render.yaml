@@ -28,7 +28,7 @@ services:
       - key: CACHE_STORE
         value: array
       - key: RUN_MIGRATIONS
-        value: "false"
+        value: "true"
       - key: DB_CONNECTION
         value: mysql
       - key: DB_HOST

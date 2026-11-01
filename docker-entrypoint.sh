@@ -28,7 +28,7 @@ fi
 # Run migrations if configured
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "[Oryzatix] Running database migrations..."
-    php artisan migrate --force || echo "[Oryzatix] Migrations encountered an error, continuing startup..."
+    php artisan migrate --force
 fi
 
 # Optimize Laravel caches
