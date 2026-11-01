@@ -430,7 +430,7 @@
             <div class="auth-logo-badge">
               <img src="{{ asset('images/logo.png') }}" alt="Oryzatix Logo" class="auth-app-logo">
             </div>
-            <h1>Welcome Back</h1>
+            <h1>Oryzatix</h1>
             <p>Rice Leaf Disease Detection</p>
           </div>
 
