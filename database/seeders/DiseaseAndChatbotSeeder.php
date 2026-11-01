@@ -75,7 +75,7 @@ class DiseaseAndChatbotSeeder extends Seeder
                 'name' => 'Sheath Blight',
                 'code' => 'sheath_blight',
                 'scientific_name' => 'Rhizoctonia solani (Thanatephorus cucumeris)',
-                'image_path' => 'images/diseases/sheath_blight.jpg',
+                'image_path' => 'images/diseases/sheath_blight-disease-info.jpg',
                 'description' => 'A fungal disease caused by Rhizoctonia solani that commonly starts on rice leaf sheaths near the waterline and may spread to leaf blades.',
                 'symptoms' => 'Small greenish-gray oval lesions on leaf sheaths, often near the waterline, that can enlarge into irregular lesions with grayish-white centers and dark brown borders.',
                 'causes' => 'Caused by Rhizoctonia solani. The fungus forms small sclerotia on or near lesions; dense canopies and humid conditions can favor disease development.',
