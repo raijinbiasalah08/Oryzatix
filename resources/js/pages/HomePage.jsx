@@ -78,7 +78,7 @@ export default function HomePage() {
                                     <div className="disease-name">{s.disease}</div>
                                     <div className="scan-meta">{s.time}</div>
                                 </div>
-                                <span className={`severity-badge ${getSeverityBadgeClass(s.severity)}`}>{s.severity}{s.severity_status === 'model_estimated' ? ' (experimental)' : ''}</span>
+                                <span className={`severity-badge ${getSeverityBadgeClass(s.severity)}`}>{s.severity}</span>
                             </div>
                         ))
                     )}

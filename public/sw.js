@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v16';
+const CACHE_NAME = 'oryzatix-pwa-v17';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -89,14 +89,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Static assets (CSS, JS, Fonts, Images): Cache-first with network fallback
+    // Static assets (CSS, JS, Fonts, Images): Cache-first with network fallback.
+    // Prefer exact URLs so a cache-busting query cannot be served stale content.
     event.respondWith(
-        caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+        caches.open(CACHE_NAME).then(async (cache) => {
+            const cached = await cache.match(event.request)
+                || await cache.match(event.request, { ignoreSearch: true });
             if (cached) {
                 // Fetch fresh copy in background to update cache (stale-while-revalidate)
                 fetch(event.request).then((res) => {
                     if (res && res.ok && event.request.url.startsWith(self.location.origin)) {
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, res));
+                        cache.put(event.request, res);
                     }
                 }).catch(() => {});
                 return cached;
@@ -105,10 +108,14 @@ self.addEventListener('fetch', (event) => {
             return fetch(event.request).then((response) => {
                 if (response && response.ok && event.request.url.startsWith(self.location.origin)) {
                     const copy = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+                    cache.put(event.request, copy);
                 }
                 return response;
-            }).catch(() => cached);
+            }).catch(async () =>
+                (await cache.match(event.request))
+                || (await cache.match(event.request, { ignoreSearch: true }))
+                || Response.error()
+            );
         })
     );
 });

@@ -826,9 +826,6 @@
             <span class="sev-label inactive" id="sevLabelMod">Moderate</span>
             <span class="sev-label inactive" id="sevLabelSev">Severe</span>
           </div>
-          <div id="resultSeverityUnavailable" role="status" style="margin-top:8px; color:var(--neutral-500); font-size:11px; line-height:1.4;">
-            Severity level has not been assessed.
-          </div>
         </div>
 
         <div class="symptoms-card">
