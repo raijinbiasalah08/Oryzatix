@@ -2821,12 +2821,34 @@ function formatConfidencePercent(value) {
 }
 
 function resolvedSeverityLevel(scan) {
+  const rawArea = scan && scan.affected_percentage;
+  if (scan && scan.severity_status === 'expert_validated' && rawArea !== null && rawArea !== undefined && rawArea !== '') {
+    const area = Number(rawArea);
+    if (Number.isFinite(area) && area >= 0 && area <= 100) {
+      return area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe';
+    }
+  }
   const level = String(scan && scan.severity || '').trim().toLowerCase();
   return ['mild', 'moderate', 'severe'].includes(level) ? level : null;
 }
 
 function hasResolvedSeverity(scan) {
   return resolvedSeverityLevel(scan) !== null;
+}
+
+function updateSeverityReadout(scan, lang = 'english', level = resolvedSeverityLevel(scan)) {
+  const meter = document.querySelector('.severity-meter');
+  const readout = document.getElementById('resultSeverityReadout');
+  if (meter) meter.dataset.severity = level || 'unassessed';
+  if (!readout) return;
+
+  const labels = lang === 'tagalog'
+    ? { mild: 'Bahagya', moderate: 'Katamtaman', severe: 'Malala' }
+    : { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
+  readout.className = 'severity-readout' + (level ? ' level-' + level : '');
+  readout.textContent = level
+    ? (lang === 'tagalog' ? 'Resulta · ' : 'Current · ') + labels[level]
+    : (lang === 'tagalog' ? 'Hindi pa natatasa' : 'Not assessed');
 }
 
 function getDefaultTreatments(key, severity = 'moderate') {
@@ -3070,24 +3092,23 @@ function renderSeverityMeter(scan, isHealthy) {
   const labels = document.getElementById('resultSeverityLabels');
   const notice = document.getElementById('resultSeverityUnavailable');
   const levels = ['mild', 'moderate', 'severe'];
-  const area = Number(scan.affected_percentage);
-  const measured = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== '' &&
-    Number.isFinite(area) && area >= 0 && area <= 100;
-  const manual = scan.severity_status === 'user_assessed' && levels.includes(scan.severity);
-  const estimated = scan.severity_status === 'model_estimated' && levels.includes(scan.severity);
-  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : resolvedSeverityLevel(scan);
+  const level = resolvedSeverityLevel(scan);
+  updateSeverityReadout(scan, currentResultLang || 'english', level);
   if (labels) labels.style.display = 'flex';
   ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
     const label = document.getElementById(id);
-    if (label) label.className = level === levels[index]
-      ? 'sev-label active-sev' + (index === 0 ? ' green' : index === 1 ? ' amber' : '')
-      : 'sev-label inactive';
+    if (label) {
+      const active = level === levels[index];
+      label.className = active
+        ? 'sev-label active-sev' + (index === 0 ? ' green' : index === 1 ? ' amber' : '')
+        : 'sev-label inactive';
+      if (active) label.setAttribute('aria-current', 'true');
+      else label.removeAttribute('aria-current');
+    }
   });
   if (notice) {
-    notice.style.display = measured || estimated ? 'none' : 'block';
-    notice.textContent = manual
-      ? 'Saved manual severity level.'
-      : 'Severity level has not been assessed.';
+    notice.style.display = level ? 'none' : 'block';
+    notice.textContent = 'Severity level has not been assessed.';
   }
 }
 
@@ -3327,6 +3348,7 @@ function renderResultLanguage() {
   if (!currentScanResult) return;
   const scan = currentScanResult;
   const lang = currentResultLang || 'english';
+  updateSeverityReadout(scan, lang);
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
   const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
   const key = scan.disease_key || (isHealthy ? 'healthy' : 'blast');

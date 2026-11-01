@@ -819,12 +819,15 @@
           <span id="resultSaveStatusText"></span>
         </div>
 
-        <div class="severity-meter">
-          <h4 id="resultSeverityHeading">Severity Level</h4>
-          <div class="severity-labels" id="resultSeverityLabels">
-            <span class="sev-label inactive" id="sevLabelMild">Mild</span>
-            <span class="sev-label inactive" id="sevLabelMod">Moderate</span>
-            <span class="sev-label inactive" id="sevLabelSev">Severe</span>
+        <div class="severity-meter" data-severity="unassessed">
+          <div class="severity-meter-head">
+            <h4 id="resultSeverityHeading">Severity Level</h4>
+            <span class="severity-readout" id="resultSeverityReadout" role="status" aria-live="polite">Not assessed</span>
+          </div>
+          <div class="severity-labels" id="resultSeverityLabels" role="list" aria-label="Severity levels">
+            <span class="sev-label inactive" id="sevLabelMild" role="listitem">Mild</span>
+            <span class="sev-label inactive" id="sevLabelMod" role="listitem">Moderate</span>
+            <span class="sev-label inactive" id="sevLabelSev" role="listitem">Severe</span>
           </div>
         </div>
 

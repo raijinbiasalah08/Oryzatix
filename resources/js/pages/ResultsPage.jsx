@@ -292,20 +292,26 @@ export default function ResultsPage() {
                 </div>
 
                 {!isHealthy && (
-                    <div className="severity-meter fade-in">
-                        <h4>{resultLang === 'tagalog' ? 'Antas ng Tindi' : 'Severity Level'}</h4>
-                        <div className="severity-labels">
-                            <span className={`sev-label ${severityLevel === 'mild' ? 'active-sev green' : 'inactive'}`}>
+                    <div className="severity-meter fade-in" data-severity={severityLevel || 'unassessed'}>
+                        <div className="severity-meter-head">
+                            <h4>{resultLang === 'tagalog' ? 'Antas ng Tindi' : 'Severity Level'}</h4>
+                            <span className={`severity-readout${severityLevel ? ` level-${severityLevel}` : ''}`} role="status" aria-live="polite">
+                                {severityLevel
+                                    ? `${resultLang === 'tagalog' ? 'Resulta' : 'Current'} · ${resultLang === 'tagalog' ? ({ mild: 'Bahagya', moderate: 'Katamtaman', severe: 'Malala' }[severityLevel]) : severityLevel.charAt(0).toUpperCase() + severityLevel.slice(1)}`
+                                    : (resultLang === 'tagalog' ? 'Hindi pa natatasa' : 'Not assessed')}
+                            </span>
+                        </div>
+                        <div className="severity-labels" role="list" aria-label={resultLang === 'tagalog' ? 'Mga antas ng tindi' : 'Severity levels'}>
+                            <span role="listitem" className={`sev-label ${severityLevel === 'mild' ? 'active-sev green' : 'inactive'}`}>
                                 {resultLang === 'tagalog' ? 'Bahagya' : 'Mild'}
                             </span>
-                            <span className={`sev-label ${severityLevel === 'moderate' ? 'active-sev amber' : 'inactive'}`}>
+                            <span role="listitem" className={`sev-label ${severityLevel === 'moderate' ? 'active-sev amber' : 'inactive'}`}>
                                 {resultLang === 'tagalog' ? 'Katamtaman' : 'Moderate'}
                             </span>
-                            <span className={`sev-label ${severityLevel === 'severe' ? 'active-sev' : 'inactive'}`}>
+                            <span role="listitem" className={`sev-label ${severityLevel === 'severe' ? 'active-sev' : 'inactive'}`}>
                                 {resultLang === 'tagalog' ? 'Malala' : 'Severe'}
                             </span>
                         </div>
-                        {!severityLevel && <p role="status">{resultLang === 'tagalog' ? 'Hindi pa nasusuri ang antas ng tindi.' : 'Severity level has not been assessed.'}</p>}
                     </div>
                 )}
 

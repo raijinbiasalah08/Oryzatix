@@ -21,7 +21,17 @@ export default function TreatmentPage() {
 
     if (!scan || scan.recognized === false) return null;
 
-    const severityLevel = String(scan.severity || '').trim().toLowerCase();
+    const affectedArea = Number(scan.affected_percentage);
+    const measuredSeverity = scan.severity_status === 'expert_validated'
+        && scan.affected_percentage !== null
+        && scan.affected_percentage !== undefined
+        && scan.affected_percentage !== ''
+        && Number.isFinite(affectedArea)
+        && affectedArea >= 0
+        && affectedArea <= 100
+        ? (affectedArea <= 25 ? 'mild' : affectedArea <= 60 ? 'moderate' : 'severe')
+        : null;
+    const severityLevel = measuredSeverity || String(scan.severity || '').trim().toLowerCase();
     const hasSeverityResult = ['mild', 'moderate', 'severe'].includes(severityLevel);
     const suppliedTreatments = scan.treatments || {};
     const hasSuppliedTreatments = (suppliedTreatments.chemical || []).length > 0 || (suppliedTreatments.organic || []).length > 0;
