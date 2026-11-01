@@ -40,6 +40,7 @@
 <meta name="google-signin-client_id" content="{{ config('services.google.client_id') ?? env('GOOGLE_CLIENT_ID', '') }}">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 @php
+  $assistantMascotAssetVersion = substr(hash_file('sha256', public_path('images/oryzatix-farm-assistant.png')) ?: '1', 0, 12);
   $currentUserData = null;
   $tokenParam = request()->query('auth_token') ?: session('auth_token');
   $u = null;
@@ -1058,7 +1059,7 @@
       <section class="screen voice-companion" id="consultation">
         <div class="chat-header">
           <div class="ai-avatar">
-            <img src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="Oryzatix farm robot assistant" width="46" height="46" decoding="async">
+            <img src="{{ asset('images/oryzatix-farm-assistant.png') }}?v={{ $assistantMascotAssetVersion }}" alt="Oryzatix farm robot assistant" width="50" height="50" decoding="async">
           </div>
           <div class="chat-header-info">
             <h3 data-en="Ory · Rice AI Assistant" data-tl="Ory · Katulong sa pagsasaka ng palay">Ory · Rice AI Assistant</h3>
@@ -1812,7 +1813,7 @@
     aria-label="Meet Ory and open AI Consultant"
   >
     <span class="oryzatix-assistant-shortcut__intro" id="oryAssistantIntro" data-en="Hi, I'm Ory! Your rice-farming helper is ready." data-tl="Kumusta, ako si Ory! Handa akong tumulong sa pagsasaka ng palay." aria-hidden="true" hidden>Hi, I'm Ory! Your rice-farming helper is ready.</span>
-    <img class="oryzatix-assistant-shortcut__character" src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="" width="539" height="384" decoding="async">
+    <img class="oryzatix-assistant-shortcut__character" src="{{ asset('images/oryzatix-farm-assistant.png') }}?v={{ $assistantMascotAssetVersion }}" alt="" width="333" height="284" decoding="async">
   </button>
 </div><!-- /.web-app-shell -->
 

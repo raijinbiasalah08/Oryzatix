@@ -437,8 +437,8 @@ button:disabled { cursor: not-allowed; }
   border-bottom: 1px solid #e2ebe5;
 }
 #consultation.voice-companion .ai-avatar {
-  width: 46px;
-  height: 46px;
+  width: 50px;
+  height: 50px;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -639,8 +639,8 @@ button:disabled { cursor: not-allowed; }
     border-bottom: 1px solid #e2ebe5 !important;
   }
   #consultation.voice-companion .ai-avatar {
-    width: 38px !important;
-    height: 38px !important;
+    width: 42px !important;
+    height: 42px !important;
     border-radius: 13px !important;
   }
   #consultation.voice-companion .chat-header-info h3 { font-size: 13px !important; }
@@ -738,8 +738,8 @@ button:disabled { cursor: not-allowed; }
   z-index: 990;
   display: grid;
   place-items: center;
-  width: 144px;
-  height: 112px;
+  width: 160px;
+  height: 128px;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -765,8 +765,8 @@ button:disabled { cursor: not-allowed; }
 
 .oryzatix-assistant-shortcut__character {
   display: block;
-  width: 140px;
-  height: 104px;
+  width: 156px;
+  height: 124px;
   object-fit: contain;
   filter: drop-shadow(0 6px 5px rgba(23, 48, 61, .16));
   transform-origin: 50% 76%;
@@ -920,13 +920,13 @@ button:disabled { cursor: not-allowed; }
   .oryzatix-assistant-shortcut {
     right: max(6px, env(safe-area-inset-right, 0px));
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    width: 132px;
-    height: 98px;
+    width: 148px;
+    height: 116px;
   }
 
   .oryzatix-assistant-shortcut__character {
-    width: 128px;
-    height: 94px;
+    width: 144px;
+    height: 112px;
   }
 
   .oryzatix-assistant-shortcut__intro {
