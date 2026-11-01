@@ -25,11 +25,10 @@ if [ ! -L /var/www/html/public/storage ]; then
     php artisan storage:link || true
 fi
 
-# Run migrations if configured
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
-    echo "[Oryzatix] Running database migrations..."
-    php artisan migrate --force
-fi
+# Scan writes depend on the current scans-table schema. Apply pending
+# migrations before Apache accepts requests, regardless of service overrides.
+echo "[Oryzatix] Running database migrations..."
+php artisan migrate --force
 
 # Optimize Laravel caches
 echo "[Oryzatix] Caching configuration and routes..."
