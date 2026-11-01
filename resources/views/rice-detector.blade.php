@@ -820,11 +820,23 @@
         </div>
 
         <div class="severity-meter">
-          <h4 id="resultSeverityHeading">Severity Level & Leaf Area Affected</h4>
+          <h4 id="resultSeverityHeading">Severity Level</h4>
+          <div id="manualSeverityAssessment" style="margin:12px 0;">
+            <label for="scanSeveritySelection">Your visual assessment</label>
+            <select id="scanSeveritySelection" style="padding:10px; margin:8px;" aria-describedby="severityAssessmentHelp">
+              <option value="unassessed">Not assessed</option>
+              <option value="mild">Mild (up to 25%)</option>
+              <option value="moderate">Moderate (over 25% to 60%)</option>
+              <option value="severe">Severe (over 60%)</option>
+            </select>
+            <button type="button" class="auth-btn" id="saveSeverityButton" style="width:auto; display:inline-flex; padding:10px 16px;" onclick="saveScanSeverity()">Save severity</button>
+            <p id="severityAssessmentHelp">Select a level after visually assessing affected leaf area. This is your assessment; the AI disease classifier does not measure severity.</p>
+            <p id="severityAssessmentStatus" role="status" aria-live="polite"></p>
+          </div>
           <div class="severity-bar-track" id="resultSeverityTrack"><div class="severity-bar-fill severe" id="resultSeverityFill"></div></div>
           <div class="severity-labels" id="resultSeverityLabels">
             <span class="sev-label inactive" id="sevLabelMild">Mild (≤ 25%)</span>
-            <span class="sev-label inactive" id="sevLabelMod">Moderate (26% – 60%)</span>
+            <span class="sev-label inactive" id="sevLabelMod">Moderate (> 25% – 60%)</span>
             <span class="sev-label active-sev" id="sevLabelSev">Severe (> 60%)</span>
           </div>
           <div id="resultSeverityUnavailable" style="display:none; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #cbd5e1; color:#334155; font-size:13px; line-height:1.5;">
@@ -993,7 +1005,7 @@
         <div class="history-stats">
           <div class="stat-card"><div class="stat-num green" id="statHealthy">0</div><div class="stat-label">Healthy</div></div>
           <div class="stat-card"><div class="stat-num mild" id="statMild">0</div><div class="stat-label">Mild (≤ 25%)</div></div>
-          <div class="stat-card"><div class="stat-num amber" id="statModerate">0</div><div class="stat-label">Moderate (26–60%)</div></div>
+          <div class="stat-card"><div class="stat-num amber" id="statModerate">0</div><div class="stat-label">Moderate (>25–60%)</div></div>
           <div class="stat-card"><div class="stat-num red" id="statSevere">0</div><div class="stat-label">Severe (> 60%)</div></div>
         </div>
         <div class="history-load-status" id="historyLoadStatus" role="status" aria-live="polite" style="display:none;"></div>
@@ -1010,9 +1022,9 @@
                 <option value="all">All Scans</option>
                 <option value="healthy">Healthy</option>
                 <option value="mild">Mild (≤ 25%)</option>
-                <option value="moderate">Moderate (26% – 60%)</option>
+                <option value="moderate">Moderate (>25% – 60%)</option>
                 <option value="severe">Severe (> 60%)</option>
-                <option value="unassessed">Not Healthy Leaf</option>
+                <option value="unassessed">Severity not assessed</option>
                 <option value="blast">Leaf Blast</option>
                 <option value="blb">BLB</option>
                 <option value="brown_spot">Brown Spot</option>

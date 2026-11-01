@@ -1036,10 +1036,10 @@ class RiceScanController extends Controller
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
                 // Older disease severities came from unvalidated color rules.
-                'mild' => 0,
-                'moderate' => 0,
-                'severe' => 0,
-                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->count(),
+                'mild' => (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count(),
+                'moderate' => (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count(),
+                'severe' => (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count(),
+                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count(),
                 'total' => (clone $query)->count(),
             ];
         } catch (Exception $e) {
@@ -1507,10 +1507,10 @@ class RiceScanController extends Controller
 
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
-                'mild' => 0,
-                'moderate' => 0,
-                'severe' => 0,
-                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->count(),
+                'mild' => (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count(),
+                'moderate' => (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count(),
+                'severe' => (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count(),
+                'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count(),
                 'total' => (clone $query)->count(),
             ];
 
@@ -1518,8 +1518,9 @@ class RiceScanController extends Controller
                 $formattedScans[$date] = $dateScans->map(function ($scan) {
                     $diseaseLower = strtolower($scan->disease_name);
                     $isHealthy = $scan->severity === 'healthy' || str_contains($diseaseLower, 'healthy');
-                    $displaySeverity = $isHealthy ? 'healthy' : 'unassessed';
-                    $severityClass = $isHealthy ? 'healthy-bg' : 'unassessed-bg';
+                    $manual = $scan->severity_source === 'user_assessed' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
+                    $displaySeverity = $isHealthy ? 'healthy' : ($manual ? $scan->severity : 'unassessed');
+                    $severityClass = $displaySeverity . '-bg';
 
                     $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
 
@@ -1532,8 +1533,8 @@ class RiceScanController extends Controller
                         'date' => $scan->created_at->format('M j, Y'),
                         'created_at_raw' => $scan->created_at->toISOString(),
                         'severity' => $displaySeverity,
-                        'severity_status' => $isHealthy ? 'not_applicable' : 'unassessed',
-                        'severity_label' => $isHealthy ? 'Healthy Leaf' : 'Not Healthy Leaf',
+                        'severity_status' => $isHealthy ? 'not_applicable' : ($manual ? 'user_assessed' : 'unassessed'),
+                        'severity_label' => $isHealthy ? 'Healthy Leaf' : ($manual ? ucfirst($displaySeverity) . ' (manual)' : 'Not assessed'),
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,
                         'image_url' => $scanImageUrl,
@@ -1553,6 +1554,22 @@ class RiceScanController extends Controller
             'stats' => $stats,
             'scans' => $formattedScans,
         ]);
+    }
+
+    public function updateSeverity(Request $request, $id): JsonResponse
+    {
+        $userId = auth('sanctum')->id() ?: auth()->id();
+        abort_unless($userId, 401);
+        $data = $request->validate(['severity' => 'required|in:mild,moderate,severe,unassessed']);
+        $scan = RiceScan::where('user_id', $userId)->findOrFail($id);
+        if ($scan->severity === 'healthy' || str_contains(strtolower($scan->disease_name), 'healthy')) {
+            return response()->json(['message' => 'Healthy scans do not need a disease severity assessment.'], 422);
+        }
+        $scan->severity = $data['severity'];
+        $scan->severity_source = $scan->severity === 'unassessed' ? null : 'user_assessed';
+        $scan->save();
+        return response()->json(['success' => true, 'severity' => $scan->severity,
+            'severity_status' => $scan->severity === 'unassessed' ? 'unassessed' : 'user_assessed']);
     }
 
     public function destroy($id): JsonResponse
@@ -1690,10 +1707,10 @@ class RiceScanController extends Controller
         $totalScans = (clone $query)->count();
         $healthyCount = (clone $query)->where('severity', 'healthy')->count();
         // No disease-area model has been validated against expert labels.
-        $mildCount = 0;
-        $moderateCount = 0;
-        $severeCount = 0;
-        $unassessedCount = (clone $query)->where('severity', '!=', 'healthy')->count();
+        $mildCount = (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count();
+        $moderateCount = (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count();
+        $severeCount = (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count();
+        $unassessedCount = (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count();
 
         // The public stats endpoint may show aggregate totals, but never individual
         // scan records or uploaded image URLs.
@@ -1705,8 +1722,8 @@ class RiceScanController extends Controller
                         'disease_key' => $this->diseaseKeyFromName($scan->disease_name),
                 'scientific' => $scan->scientific_name,
                 'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
-                'severity' => $scan->severity === 'healthy' ? 'healthy' : 'unassessed',
-                'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : 'unassessed',
+                'severity' => $scan->severity === 'healthy' ? 'healthy' : ($scan->severity_source === 'user_assessed' ? $scan->severity : 'unassessed'),
+                'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : ($scan->severity_source === 'user_assessed' ? 'user_assessed' : 'unassessed'),
                 'time' => $scan->created_at->format('g:i A'),
                 'date' => $scan->created_at->format('M j, Y'),
                 'image_url' => $imageUrl,
