@@ -2498,6 +2498,47 @@ async function scanWithOfflineModel(file, localFileUrl) {
   await displayScanResponse(response, file, localFileUrl, true);
 }
 
+async function estimateAndSaveSeverity(scan, file) {
+  const levels = ['mild', 'moderate', 'severe'];
+  if (!scan || !file || scan.disease_key === 'healthy' || scan.severity === 'healthy') return false;
+  if (['model_estimated', 'user_assessed', 'expert_validated'].includes(scan.severity_status) &&
+      levels.includes(scan.severity)) return false;
+
+  const scanner = window.OryzatixOfflineScanner;
+  if (!scanner || typeof scanner.estimateSeverity !== 'function') return false;
+  const estimate = await scanner.estimateSeverity(file, scan.disease_key);
+  if (!estimate || estimate.source !== 'model_estimated' || !levels.includes(estimate.level)) return false;
+
+  scan.severity = estimate.level;
+  scan.severity_status = 'model_estimated';
+  scan.severity_model_version = estimate.version;
+  scan.severity_class = estimate.level + '-bg';
+  scan.severity_message = 'Experimental AI estimate; accuracy has not been verified.';
+
+  const scanId = Number(scan.id);
+  if (Number.isInteger(scanId) && scanId > 0 && !scan.local_only) {
+    try {
+      await ensureCsrfCookie();
+      const response = await fetch(apiUrl(`/rice-detector/scan/${scanId}/severity`), {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          severity: estimate.level,
+          source: 'model_estimated',
+          model_version: estimate.version,
+        }),
+      });
+      if (!response.ok) {
+        console.warn('The severity estimate is shown but could not be saved to scan history.');
+      }
+    } catch (error) {
+      console.warn('The severity estimate is shown but could not be saved to scan history:', error);
+    }
+  }
+  return true;
+}
+
 async function displayScanResponse(data, file, localFileUrl, localOnly = false) {
   await new Promise(resolve => setTimeout(resolve, 450));
   const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
@@ -2514,6 +2555,9 @@ async function displayScanResponse(data, file, localFileUrl, localOnly = false) 
   const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
 
   if (diagnosisIsValid && (recordWasSaved || isGuestMode() || localOnly || data.local_only === true)) {
+    if (!isGuestMode() && !localOnly && data.local_only !== true) {
+      await estimateAndSaveSeverity(scan, file);
+    }
     if (isGuestMode() || localOnly || data.local_only === true) {
       scan.local_only = true;
       scan.saved = false;

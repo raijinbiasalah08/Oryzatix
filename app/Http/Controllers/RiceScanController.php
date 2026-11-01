@@ -1557,16 +1557,34 @@ class RiceScanController extends Controller
     {
         $userId = auth('sanctum')->id() ?: auth()->id();
         abort_unless($userId, 401);
-        $data = $request->validate(['severity' => 'required|in:mild,moderate,severe,unassessed']);
+        $data = $request->validate([
+            'severity' => 'required|in:mild,moderate,severe,unassessed',
+            'source' => 'sometimes|in:user_assessed,model_estimated',
+            'model_version' => 'required_if:source,model_estimated|in:severity_experimental_v1',
+        ]);
         $scan = RiceScan::where('user_id', $userId)->findOrFail($id);
         if ($scan->severity === 'healthy' || str_contains(strtolower($scan->disease_name), 'healthy')) {
             return response()->json(['message' => 'Healthy scans do not need a disease severity assessment.'], 422);
         }
+        $source = $data['source'] ?? 'user_assessed';
+        if ($source === 'model_estimated' && $data['severity'] === 'unassessed') {
+            return response()->json(['message' => 'A model estimate must contain a severity category.'], 422);
+        }
+        if ($source === 'model_estimated' && $scan->severity_source === 'user_assessed') {
+            return response()->json([
+                'success' => true,
+                'severity' => $scan->severity,
+                'severity_status' => 'user_assessed',
+            ]);
+        }
         $scan->severity = $data['severity'];
-        $scan->severity_source = $scan->severity === 'unassessed' ? null : 'user_assessed';
+        $scan->severity_source = $scan->severity === 'unassessed'
+            ? null
+            : ($source === 'model_estimated' ? 'model_estimated' : 'user_assessed');
         $scan->save();
         return response()->json(['success' => true, 'severity' => $scan->severity,
-            'severity_status' => $scan->severity === 'unassessed' ? 'unassessed' : 'user_assessed']);
+            'severity_status' => $scan->severity === 'unassessed' ? 'unassessed' : $scan->severity_source,
+            'severity_model_version' => $source === 'model_estimated' ? $data['model_version'] : null]);
     }
 
     public function destroy($id): JsonResponse

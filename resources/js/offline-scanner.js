@@ -13,6 +13,17 @@ const SUPPORTED_DISEASES = new Set([
 
 let scannerModelsPromise;
 let severityModelPromise;
+let liteRtPromise;
+
+function ensureLiteRt(runtime) {
+    if (!liteRtPromise) {
+        liteRtPromise = loadLiteRt(runtime).catch(error => {
+            liteRtPromise = null;
+            throw error;
+        });
+    }
+    return liteRtPromise;
+}
 
 async function estimateSeverity(file, diseaseKey, preparedPixels = null) {
     if (!SUPPORTED_DISEASES.has(diseaseKey) || diseaseKey === 'healthy') return null;
@@ -21,7 +32,7 @@ async function estimateSeverity(file, diseaseKey, preparedPixels = null) {
             severityModelPromise = (async () => {
                 const assets = window.ORYZATIX_OFFLINE_ASSETS;
                 if (!assets?.models || !assets?.runtime) throw new Error('Severity assets unavailable');
-                await loadLiteRt(assets.runtime);
+                await ensureLiteRt(assets.runtime);
                 const bytes = await readBytes(assetUrl(assets.models, `${SEVERITY_VERSION}.tflite`));
                 if (await sha256(bytes) !== SEVERITY_HASH) throw new Error('Severity model hash mismatch');
                 const model = await loadAndCompile(bytes, { accelerator: 'wasm', cpuOptions: { numThreads: 2 } });
@@ -74,7 +85,7 @@ function loadScannerModels() {
                 throw new Error('The offline scanner asset paths are missing.');
             }
 
-            await loadLiteRt(assets.runtime);
+            await ensureLiteRt(assets.runtime);
 
             const [labels, thresholds, validatorBytes, diseaseBytes] = await Promise.all([
                 readJson(assetUrl(assets.models, 'class_labels.json')),
