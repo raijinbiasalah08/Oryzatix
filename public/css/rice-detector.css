@@ -2787,6 +2787,7 @@ select {
   width: 50%;
 }
 
+.severity-bar-fill.mild,
 .severity-bar-fill.healthy {
   background: var(--green-500);
   width: 15%;

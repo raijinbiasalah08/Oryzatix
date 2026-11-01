@@ -3005,60 +3005,43 @@ function scanSeverityLabel(scan) {
   return 'Not assessed';
 }
 
-async function saveScanSeverity() {
-  const scan = currentScanResult;
-  const selection = document.getElementById('scanSeveritySelection');
-  const status = document.getElementById('severityAssessmentStatus');
-  const button = document.getElementById('saveSeverityButton');
-  if (!scan || !selection || !button || button.disabled) return;
-  const severity = selection.value;
-  if (!['mild', 'moderate', 'severe', 'unassessed'].includes(severity)) return;
-  button.disabled = true;
-  status.textContent = 'Saving assessment…';
-  const changes = {
-    severity,
-    severity_status: severity === 'unassessed' ? 'unassessed' : 'user_assessed',
-    severity_class: severity + '-bg',
-    affected_percentage: null,
-    severity_message: severity === 'unassessed' ? 'Severity has not been assessed.' : 'Manually assessed by the user. The AI has not measured affected leaf area.',
-  };
-  try {
-    if (scan.local_only && Number(scan.id) < 0) {
-      const db = await openGuestScanDatabase();
-      await new Promise((resolve, reject) => {
-        const transaction = db.transaction('scans', 'readwrite');
-        const store = transaction.objectStore('scans');
-        const request = store.get(Number(scan.id));
-        request.onsuccess = () => {
-          if (!request.result) { transaction.abort(); return; }
-          store.put({ ...request.result, scan: { ...request.result.scan, ...changes } });
-        };
-        transaction.oncomplete = resolve;
-        transaction.onerror = () => reject(transaction.error || new Error('Could not save this assessment.'));
-        transaction.onabort = () => reject(new Error('This scan is no longer stored on the device.'));
-      });
-    } else if (Number(scan.id) > 0) {
-      if (navigator.onLine === false) throw new Error('Connect to the internet to update this account record. Your selected level has not been saved.');
-      await ensureCsrfCookie();
-      const response = await fetch(apiUrl('/rice-detector/scan/' + scan.id + '/severity'), {
-        method: 'PATCH', credentials: 'include',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ severity }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.message || 'Could not save this assessment.');
-    } else {
-      throw new Error('Save the scan first before adding an assessment.');
-    }
-    Object.assign(scan, changes);
-    if (currentScanResult === scan) {
-      applyScanResult(scan);
-      status.textContent = 'Severity assessment saved.';
-    }
-  } catch (error) {
-    status.textContent = error.message || 'Could not save this assessment. Please try again.';
-  } finally {
-    button.disabled = false;
+function renderSeverityMeter(scan, isHealthy) {
+  const meter = document.querySelector('.severity-meter');
+  if (meter) meter.style.display = isHealthy ? 'none' : 'block';
+  const track = document.getElementById('resultSeverityTrack');
+  const fill = document.getElementById('resultSeverityFill');
+  const labels = document.getElementById('resultSeverityLabels');
+  const notice = document.getElementById('resultSeverityUnavailable');
+  const levels = ['mild', 'moderate', 'severe'];
+  const area = scan.affected_percentage;
+  const measured = scan.severity_status === 'expert_validated' && area !== null && area !== undefined && area !== '' &&
+    Number.isFinite(Number(area)) && Number(area) >= 0 && Number(area) <= 100;
+  const manual = scan.severity_status === 'user_assessed' && levels.includes(scan.severity);
+  const level = measured ? (Number(area) <= 25 ? 'mild' : Number(area) <= 60 ? 'moderate' : 'severe') : manual ? scan.severity : null;
+  if (track) {
+    track.style.display = 'block';
+    track.setAttribute('role', 'img');
+    track.setAttribute('aria-label', measured ? `${level}: ${area}% affected leaf area` : manual ? `${level}: saved manual assessment` : 'Severity not assessed');
+  }
+  if (labels) labels.style.display = 'flex';
+  if (fill) {
+    fill.className = 'severity-bar-fill' + (level ? ' ' + level : '');
+    // A manual category marks its whole interval; it is not an exact area reading.
+    const range = { mild: [0, 25], moderate: [25, 35], severe: [60, 40] }[level];
+    fill.style.marginLeft = manual && !measured ? range[0] + '%' : '0%';
+    fill.style.width = measured ? Number(area) + '%' : manual ? range[1] + '%' : '0%';
+  }
+  ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
+    const label = document.getElementById(id);
+    if (label) label.className = level === levels[index]
+      ? 'sev-label active-sev' + (index === 0 ? ' green' : index === 1 ? ' amber' : '')
+      : 'sev-label inactive';
+  });
+  if (notice) {
+    notice.style.display = measured ? 'none' : 'block';
+    notice.textContent = manual
+      ? 'Saved manual assessment. The bar marks its range; affected area has not been measured.'
+      : 'Not assessed. Affected leaf area has not been measured.';
   }
 }
 
@@ -3131,16 +3114,6 @@ function applyScanResult(scan) {
   }
 
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
-  const measuredArea = Number(scan.affected_percentage);
-  const manualAssessment = document.getElementById('manualSeverityAssessment');
-  if (manualAssessment) manualAssessment.style.display = isHealthy ? 'none' : 'block';
-  const severitySelection = document.getElementById('scanSeveritySelection');
-  if (severitySelection) severitySelection.value = scan.severity_status === 'user_assessed' ? scan.severity : 'unassessed';
-  const assessmentStatus = document.getElementById('severityAssessmentStatus');
-  if (assessmentStatus) assessmentStatus.textContent = '';
-  const hasMeasuredSeverity = !isHealthy && scan.severity_status === 'expert_validated' &&
-    ['mild', 'moderate', 'severe'].includes(scan.severity) && Number.isFinite(measuredArea) && measuredArea >= 0 && measuredArea <= 100;
-
   const conf = document.getElementById('resultConfidence');
   if (conf) {
     conf.style.display = 'none';
@@ -3173,59 +3146,7 @@ function applyScanResult(scan) {
     illustrationImage.alt = (scan.disease || 'Rice leaf') + ' illustration';
   }
 
-  // Only render a severity scale when an expert-validated area measurement exists.
-  const sevMeter = document.querySelector('.severity-meter');
-  if (sevMeter) {
-    sevMeter.style.display = isHealthy ? 'none' : 'block';
-  }
-
-  const severityTrack = document.getElementById('resultSeverityTrack');
-  const severityLabels = document.getElementById('resultSeverityLabels');
-  const severityUnavailable = document.getElementById('resultSeverityUnavailable');
-  if (severityTrack) severityTrack.style.display = hasMeasuredSeverity ? 'block' : 'none';
-  if (severityLabels) severityLabels.style.display = !isHealthy ? 'flex' : 'none';
-  ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
-    const label = document.getElementById(id);
-    if (label) label.className = scan.severity_status === 'user_assessed' && scan.severity === ['mild', 'moderate', 'severe'][index]
-      ? 'sev-label active-sev' : 'sev-label inactive';
-  });
-  if (severityUnavailable) {
-    severityUnavailable.style.display = isHealthy || hasMeasuredSeverity ? 'none' : 'block';
-    severityUnavailable.textContent = scan.severity_status === 'user_assessed'
-      ? scanSeverityLabel(scan) + '. The AI has not measured affected leaf area.'
-      : 'Select a severity level after visually assessing the leaf, or leave it as Not assessed.';
-  }
-
-  if (hasMeasuredSeverity) {
-    const fill = document.getElementById('resultSeverityFill');
-    if (fill) {
-      fill.classList.remove('severe', 'moderate', 'mild', 'healthy');
-      fill.style.width = measuredArea + '%';
-
-      if (scan.severity === 'severe') fill.classList.add('severe');
-      else if (scan.severity === 'moderate') fill.classList.add('moderate');
-      else fill.classList.add('healthy');
-    }
-
-    const labels = document.getElementById('resultSeverityLabels');
-    if (labels) {
-      const lMild = document.getElementById('sevLabelMild') || labels.children[0];
-      const lMod = document.getElementById('sevLabelMod') || labels.children[1];
-      const lSev = document.getElementById('sevLabelSev') || labels.children[2];
-
-      if (lMild) { lMild.className = 'sev-label inactive'; }
-      if (lMod) { lMod.className = 'sev-label inactive'; }
-      if (lSev) { lSev.className = 'sev-label inactive'; }
-
-      if (scan.severity === 'severe' && lSev) {
-        lSev.className = 'sev-label active-sev';
-      } else if (scan.severity === 'moderate' && lMod) {
-        lMod.className = 'sev-label active-sev amber';
-      } else if (lMild) {
-        lMild.className = 'sev-label active-sev green';
-      }
-    }
-  }
+  renderSeverityMeter(scan, isHealthy);
 
   const dname = document.getElementById('resultDiseaseName');
   if (dname) dname.textContent = isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast');
