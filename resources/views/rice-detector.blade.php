@@ -63,7 +63,9 @@
           'admin' => 'Administrator / Researcher',
           default => ucfirst($u->role),
       };
-      $avatarUrl = $u->avatar_url;
+      $avatarUrl = $u->avatar_data
+          ? 'data:image/jpeg;base64,' . $u->avatar_data
+          : $u->avatar_url;
       $currentUserData = [
           'id' => $u->id,
           'name' => $u->name,

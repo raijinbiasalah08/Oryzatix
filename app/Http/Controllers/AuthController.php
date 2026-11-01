@@ -800,7 +800,11 @@ class AuthController extends Controller
             },
             'location' => $user->location ?: 'Not specified',
             'avatar' => $user->avatar,
-            'avatar_url' => $user->avatar_url,
+            // Inline the compact private profile image for the signed-in user so
+            // the UI does not depend on a second image request after an upload.
+            'avatar_url' => $user->avatar_data
+                ? 'data:image/jpeg;base64,' . $user->avatar_data
+                : $user->avatar_url,
             'created_at' => $user->created_at ? $user->created_at->format('M j, Y') : 'N/A',
         ];
     }
