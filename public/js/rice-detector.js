@@ -4193,7 +4193,11 @@ function selectAndShowTreatment(diseaseKey) {
 
 function loadCurrentTreatment() {
   if (!currentScanResult) {
-    applyScanResult(getFallbackResult());
+    // The guide can be opened before any scan exists. Initialize its default
+    // disease as a manual, unassessed guide so severity controls render on the
+    // first visit instead of trying to use a missing scan fallback.
+    switchTreatmentDisease('blast');
+    return;
   }
   const s = currentScanResult;
   const key = s.disease_key || 'blast';
