@@ -985,6 +985,7 @@
           <div class="stat-card"><div class="stat-num amber" id="statModerate">0</div><div class="stat-label">Moderate (26–60%)</div></div>
           <div class="stat-card"><div class="stat-num red" id="statSevere">0</div><div class="stat-label">Severe (> 60%)</div></div>
         </div>
+        <div class="history-load-status" id="historyLoadStatus" role="status" aria-live="polite" style="display:none;"></div>
 
         <div class="history-filter-card">
           <div class="history-search-input-wrap">
@@ -1008,7 +1009,7 @@
                 <option value="tungro">Tungro</option>
               </select>
             </div>
-            <button class="btn-refresh" onclick="loadHistory()" title="Refresh Scan History">
+            <button class="btn-refresh" id="historyRefreshButton" type="button" onclick="loadHistory()" title="Refresh Scan History" aria-label="Refresh Scan History">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               <span>Refresh</span>
             </button>

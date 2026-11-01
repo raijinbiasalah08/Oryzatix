@@ -45,7 +45,9 @@ class HistoryItem {
       time: json['time']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
-      treatments: json['treatments'] is Map<String, dynamic> ? json['treatments'] : null,
+      treatments: json['treatments'] is Map
+          ? (json['treatments'] as Map).map((key, value) => MapEntry(key.toString(), value))
+          : null,
     );
   }
 }
@@ -75,6 +77,44 @@ class HistoryStats {
       moderate: int.tryParse(json['moderate']?.toString() ?? '0') ?? 0,
       severe: int.tryParse(json['severe']?.toString() ?? '0') ?? 0,
       unassessed: int.tryParse(json['unassessed']?.toString() ?? '0') ?? 0,
+    );
+  }
+
+  factory HistoryStats.fromScans(Iterable<HistoryItem> scans) {
+    var total = 0;
+    var healthy = 0;
+    var mild = 0;
+    var moderate = 0;
+    var severe = 0;
+    var unassessed = 0;
+
+    for (final scan in scans) {
+      total++;
+      switch (scan.severity.toLowerCase()) {
+        case 'healthy':
+          healthy++;
+          break;
+        case 'mild':
+          mild++;
+          break;
+        case 'moderate':
+          moderate++;
+          break;
+        case 'severe':
+          severe++;
+          break;
+        default:
+          unassessed++;
+      }
+    }
+
+    return HistoryStats(
+      total: total,
+      healthy: healthy,
+      mild: mild,
+      moderate: moderate,
+      severe: severe,
+      unassessed: unassessed,
     );
   }
 }

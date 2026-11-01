@@ -3819,37 +3819,95 @@ function consultAboutCurrentDisease() {
 let historyCurrentPage = 1;
 const historyPageSize = 10;
 let currentFilteredHistory = [];
+let historyLoadPromise = null;
+let historyStatusTimer = null;
+
+function setHistoryLoadStatus(message, type = 'info') {
+  const status = document.getElementById('historyLoadStatus');
+  if (!status) return;
+
+  window.clearTimeout(historyStatusTimer);
+  status.textContent = message || '';
+  status.dataset.state = type;
+  status.style.display = message ? 'block' : 'none';
+  if (message && type === 'success') {
+    historyStatusTimer = window.setTimeout(() => {
+      if (status.dataset.state === 'success') status.style.display = 'none';
+    }, 2500);
+  }
+}
 
 async function loadHistory() {
-  await ensureCsrfCookie();
-  fetch(apiUrl('/rice-detector/history'), {
-    credentials: 'include',
-    headers: authHeaders(),
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (!data || !data.success) return;
-      const stats = data.stats || { healthy: 0, mild: 0, moderate: 0, severe: 0 };
-      const h = document.getElementById('statHealthy');
-      const mild = document.getElementById('statMild');
-      const m = document.getElementById('statModerate');
-      const s = document.getElementById('statSevere');
-      if (h) h.textContent = stats.healthy || 0;
-      if (mild) mild.textContent = stats.mild || 0;
-      if (m) m.textContent = stats.moderate || 0;
-      if (s) s.textContent = stats.severe || 0;
+  if (historyLoadPromise) return historyLoadPromise;
 
-      allHistoryScans = [];
-      const groups = data.scans || {};
+  const button = document.getElementById('historyRefreshButton');
+  const buttonLabel = button ? button.querySelector('span') : null;
+  if (button) {
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.setAttribute('aria-busy', 'true');
+  }
+  if (buttonLabel) buttonLabel.textContent = 'Refreshing…';
+  setHistoryLoadStatus('Loading scan records…', 'loading');
+
+  historyLoadPromise = (async () => {
+    await ensureCsrfCookie();
+    const response = await fetch(apiUrl('/rice-detector/history'), {
+      credentials: 'include',
+      headers: authHeaders(),
+    });
+    let data;
+    try {
+      data = await response.json();
+    } catch (_) {
+      throw new Error('The server returned an unreadable response.');
+    }
+    if (!response.ok || !data || data.success !== true) {
+      throw new Error(data?.message || 'Could not load scan records. Please try again.');
+    }
+
+    const stats = data.stats || {};
+    const h = document.getElementById('statHealthy');
+    const mild = document.getElementById('statMild');
+    const m = document.getElementById('statModerate');
+    const s = document.getElementById('statSevere');
+    if (h) h.textContent = stats.healthy || 0;
+    if (mild) mild.textContent = stats.mild || 0;
+    if (m) m.textContent = stats.moderate || 0;
+    if (s) s.textContent = stats.severe || 0;
+
+    const loadedScans = [];
+    const groups = data.scans || {};
+    if (Array.isArray(groups)) {
+      groups.forEach(scan => loadedScans.push({ ...scan, dateLabel: scan.date || '' }));
+    } else if (typeof groups === 'object') {
       Object.keys(groups).forEach(dateLabel => {
-        (groups[dateLabel] || []).forEach(scan => {
-          allHistoryScans.push({ ...scan, dateLabel: dateLabel });
-        });
+        const scans = Array.isArray(groups[dateLabel]) ? groups[dateLabel] : [];
+        scans.forEach(scan => loadedScans.push({ ...scan, dateLabel }));
       });
+    }
 
-      filterHistoryList();
-    })
-    .catch(() => { });
+    allHistoryScans = loadedScans;
+    filterHistoryList();
+    setHistoryLoadStatus('Scan records updated.', 'success');
+    return true;
+  })();
+
+  try {
+    return await historyLoadPromise;
+  } catch (error) {
+    setHistoryLoadStatus(error?.message || 'Could not load scan records. Please try again.', 'error');
+    renderHistoryList(allHistoryScans);
+    return false;
+  } finally {
+    historyLoadPromise = null;
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-loading');
+      button.removeAttribute('aria-busy');
+    }
+    if (buttonLabel) buttonLabel.textContent = 'Refresh';
+  }
 }
 
 function renderHistoryList(scans) {
@@ -4028,20 +4086,22 @@ function viewHistoryScanDetail(scanId) {
 
 async function deleteScan(id) {
   if (!confirm('Are you sure you want to delete this scan record?')) return;
-  await ensureCsrfCookie();
-  fetch(apiUrl('/rice-detector/scan/' + id), {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: authHeaders(),
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.success) {
-        loadHistory();
-        loadHomeRecentScans();
-      }
-    })
-    .catch(() => loadHistory());
+  try {
+    await ensureCsrfCookie();
+    const response = await fetch(apiUrl('/rice-detector/scan/' + id), {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: authHeaders(),
+    });
+    const data = await response.json();
+    if (!response.ok || !data || data.success !== true) {
+      throw new Error(data?.message || 'Could not delete this scan record.');
+    }
+    await loadHistory();
+    await loadHomeRecentScans();
+  } catch (error) {
+    setHistoryLoadStatus(error?.message || 'Could not delete this scan record. Please try again.', 'error');
+  }
 }
 
 async function loadHomeRecentScans() {

@@ -22,39 +22,48 @@ class HistoryProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  HistoryProvider() {
-    loadHistory();
-  }
+  Future<void> loadHistory() async {
+    if (_isLoading) return;
 
-  Future<void> loadHistory({bool isSilent = false}) async {
-    if (!isSilent) {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-    }
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
     try {
       final res = await ApiClient.get(ApiEndpoints.scanHistory);
-      if (res is Map<String, dynamic> && res['success'] == true) {
-        if (res['stats'] != null) {
-          _stats = HistoryStats.fromJson(res['stats']);
+      if (res is! Map || res['success'] != true) {
+        throw ApiException(
+          message: res is Map
+              ? (res['message']?.toString() ?? 'The server could not load scan history.')
+              : 'The server returned an invalid scan-history response.',
+        );
+      }
+
+      final grouped = <String, List<HistoryItem>>{};
+      final rawScans = res['scans'];
+
+      if (rawScans is Map) {
+        for (final entry in rawScans.entries) {
+          if (entry.value is List) {
+            grouped[entry.key.toString()] = (entry.value as List)
+                .whereType<Map>()
+                .map((item) => HistoryItem.fromJson(_stringKeyedMap(item)))
+                .toList();
+          }
         }
-
-        final rawScans = res['scans'];
-        final Map<String, List<HistoryItem>> grouped = {};
-
-        if (rawScans is Map) {
-          rawScans.forEach((dateKey, items) {
-            if (items is List) {
-              grouped[dateKey.toString()] = items
-                  .map((it) => HistoryItem.fromJson(it as Map<String, dynamic>))
-                  .toList();
-            }
-          });
+      } else if (rawScans is List) {
+        for (final value in rawScans.whereType<Map>()) {
+          final item = HistoryItem.fromJson(_stringKeyedMap(value));
+          final dateKey = item.date.isEmpty ? 'Other dates' : item.date;
+          (grouped[dateKey] ??= <HistoryItem>[]).add(item);
         }
+      }
 
-        _scansByDate = grouped;
-        _errorMessage = null;
+      _scansByDate = grouped;
+      if (res['stats'] is Map) {
+        _stats = HistoryStats.fromJson(_stringKeyedMap(res['stats'] as Map));
+      } else {
+        _stats = HistoryStats.fromScans(grouped.values.expand((items) => items));
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -70,16 +79,19 @@ class HistoryProvider extends ChangeNotifier {
     try {
       final res = await ApiClient.delete(ApiEndpoints.deleteScan(id));
       if (res is Map && res['success'] == true) {
-        // Remove locally from map
         _scansByDate.forEach((key, list) {
           list.removeWhere((item) => item.id == id);
         });
         _scansByDate.removeWhere((key, list) => list.isEmpty);
+        _stats = HistoryStats.fromScans(_scansByDate.values.expand((items) => items));
         notifyListeners();
-        await loadHistory(isSilent: true);
+        await loadHistory();
         return true;
       }
     } catch (_) {}
     return false;
   }
+
+  static Map<String, dynamic> _stringKeyedMap(Map value) =>
+      value.map((key, item) => MapEntry(key.toString(), item));
 }

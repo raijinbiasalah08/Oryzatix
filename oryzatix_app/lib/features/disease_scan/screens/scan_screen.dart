@@ -374,6 +374,36 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: result.saved ? AppColors.primaryContainer : AppColors.severeBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    result.saved ? Icons.history : Icons.warning_amber_rounded,
+                    size: 17,
+                    color: result.saved ? AppColors.primary : AppColors.severe,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      result.saved
+                          ? 'Saved to Scan History.'
+                          : 'This scan was not saved to history. Please try again.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: result.saved ? AppColors.primary : AppColors.severe,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
 
             // Disease Name & Scientific Name

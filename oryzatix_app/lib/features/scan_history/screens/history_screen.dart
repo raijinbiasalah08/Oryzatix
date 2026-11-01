@@ -16,6 +16,14 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedSeverityFilter = 'all';
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<HistoryProvider>().loadHistory();
+    });
+  }
+
   void _showDetailDialog(HistoryItem item) {
     final sevColor = AppColors.getSeverityColor(item.severity);
     final sevBg = AppColors.getSeverityBg(item.severity);
@@ -111,8 +119,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
               );
               if (confirm == true && mounted) {
                 final historyProvider = context.read<HistoryProvider>();
-                await historyProvider.deleteScan(item.id);
+                final deleted = await historyProvider.deleteScan(item.id);
                 if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(deleted ? 'Scan record deleted.' : 'Could not delete this scan record. Please try again.'),
+                    ),
+                  );
+                }
               }
             },
             icon: const Icon(Icons.delete_outline, color: AppColors.severe, size: 18),
@@ -176,12 +191,43 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.refresh, color: AppColors.primary),
+                    icon: history.isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                          )
+                        : const Icon(Icons.refresh, color: AppColors.primary),
                     tooltip: 'Refresh Records',
-                    onPressed: () => history.loadHistory(),
+                    onPressed: history.isLoading ? null : () => history.loadHistory(),
                   ),
                 ],
               ),
+              if (history.errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Card(
+                  color: AppColors.severeBg,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.severe),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            history.errorMessage!,
+                            style: const TextStyle(color: AppColors.severe, fontSize: 12),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: history.isLoading ? null : () => history.loadHistory(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               // Filter Chips
@@ -207,7 +253,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 )
-              else if (history.scansByDate.isEmpty)
+              else if (history.scansByDate.isEmpty && history.errorMessage == null)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(40),
@@ -236,7 +282,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                   ),
                 )
-              else ...[
+              else if (history.scansByDate.isNotEmpty) ...[
                 ...history.scansByDate.entries.map((entry) {
                   final dateHeader = entry.key;
                   final rawItems = entry.value;
