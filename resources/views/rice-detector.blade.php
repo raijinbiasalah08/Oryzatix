@@ -1061,7 +1061,7 @@
       <section class="screen voice-companion" id="consultation">
         <div class="chat-header">
           <div class="ai-avatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            <img src="{{ asset('images/oryzatix-rice-leaf-mascot.png') }}" alt="Oryzatix rice-leaf assistant" width="46" height="46" decoding="async">
           </div>
           <div class="chat-header-info">
             <h3>Rice AI Agricultural Assistant</h3>
@@ -1816,27 +1816,7 @@
     title="Open AI Consultant"
   >
     <span class="oryzatix-leaf-assistant__mascot" aria-hidden="true">
-      <svg viewBox="0 0 64 64" role="presentation" focusable="false">
-        <defs>
-          <linearGradient id="oryzatixLeafGradient" x1="14" y1="50" x2="49" y2="9" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#84cc16" />
-            <stop offset="1" stop-color="#22a447" />
-          </linearGradient>
-        </defs>
-        <path d="M51 6C28 8 11 19 11 36c0 12 9 21 20 19C46 52 55 31 51 6Z" fill="url(#oryzatixLeafGradient)" stroke="#075b35" stroke-width="2.5" stroke-linejoin="round" />
-        <path d="M16 48C27 37 38 24 49 10" fill="none" stroke="#d9f99d" stroke-width="2.2" stroke-linecap="round" />
-        <path d="m25 39-1-10m9 3 3-10m-9 13-9-2m14-3 9 1" fill="none" stroke="#d9f99d" stroke-width="1.4" stroke-linecap="round" />
-        <path d="M14 38c-5 0-7 4-4 7 2 2 5 2 7 0m32-7c5 0 7 4 4 7-2 2-5 2-7 0" fill="none" stroke="#16803b" stroke-width="3" stroke-linecap="round" />
-        <circle cx="25" cy="34" r="6.6" fill="#f8fff1" stroke="#174b32" stroke-width="2" />
-        <circle cx="40" cy="32" r="6.6" fill="#f8fff1" stroke="#174b32" stroke-width="2" />
-        <path d="m31.5 33.5 2.2-.3" fill="none" stroke="#174b32" stroke-width="2.2" stroke-linecap="round" />
-        <circle cx="26.6" cy="34" r="2.2" fill="#183b2b" />
-        <circle cx="41.6" cy="32" r="2.2" fill="#183b2b" />
-        <circle cx="27.3" cy="33.2" r=".8" fill="#fff" />
-        <circle cx="42.3" cy="31.2" r=".8" fill="#fff" />
-        <path d="M31 43c2.1 2.3 5.1 2.3 7.2-.2" fill="none" stroke="#164b31" stroke-width="2" stroke-linecap="round" />
-        <path d="m26 53-2 3m13-4 1 3" fill="none" stroke="#9a6b22" stroke-width="2.4" stroke-linecap="round" />
-      </svg>
+      <img src="{{ asset('images/oryzatix-rice-leaf-mascot.png') }}" alt="" width="64" height="64" decoding="async">
     </span>
     <span class="oryzatix-leaf-assistant__copy">
       <span class="oryzatix-leaf-assistant__eyebrow">AI Consultant</span>
