@@ -119,6 +119,6 @@ Route::get('/dashboard/public-stats', [RiceScanController::class, 'dashboardStat
 // Public translation endpoint (accessible for both logged-in and guest users)
 Route::post('/consultation/translate', [ConsultationController::class, 'translate'])->name('consultation.translate');
 
-// Scan upload with optional user attachment (accessible for seamless scanning across all auth modes)
+// Scans require an authenticated owner so every accepted diagnosis can be recorded in history.
 Route::post('/rice-detector/upload', [RiceScanController::class, 'upload'])->name('rice-detector.upload');
 

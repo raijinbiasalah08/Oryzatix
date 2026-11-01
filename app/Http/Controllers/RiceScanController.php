@@ -1235,6 +1235,15 @@ class RiceScanController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
 
+        $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'reason' => 'authentication_required',
+                'message' => 'Sign in before scanning so the result can be saved to your history.',
+            ], 401);
+        }
+
         $file = $request->file('image');
         $fullPath = $file->getRealPath();
 
@@ -1379,27 +1388,24 @@ class RiceScanController extends Controller
         $dataUrl = $this->createOptimizedDataUrl($fullPath);
 
         try {
-            $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
-            if ($user) {
-                $path = $file->store('scans', 'public');
-                if (!$path) {
-                    throw new \RuntimeException('Uploaded scan image could not be stored.');
-                }
-
-                $scan = RiceScan::create([
-                    'user_id' => $user->id,
-                    // Keep only the storage path in the VARCHAR column. The
-                    // optimized data URL is for the immediate response image.
-                    'image_path' => $path,
-                    'disease_name' => $disease['name'],
-                    'scientific_name' => $disease['scientific'],
-                    'confidence' => $confidence !== null ? round($confidence, 2) : null,
-                    'severity' => $severity,
-                    'treatment_recommendation' => $treatments,
-                ]);
-                $scanId = $scan->id;
-                $saved = true;
+            $path = $file->store('scans', 'public');
+            if (!$path) {
+                throw new \RuntimeException('Uploaded scan image could not be stored.');
             }
+
+            $scan = RiceScan::create([
+                'user_id' => $user->id,
+                // Keep only the storage path in the VARCHAR column. The
+                // optimized data URL is for the immediate response image.
+                'image_path' => $path,
+                'disease_name' => $disease['name'],
+                'scientific_name' => $disease['scientific'],
+                'confidence' => $confidence !== null ? round($confidence, 2) : null,
+                'severity' => $severity,
+                'treatment_recommendation' => $treatments,
+            ]);
+            $scanId = $scan->id;
+            $saved = true;
         } catch (\Throwable $e) {
             if ($path) {
                 try {
@@ -1409,6 +1415,11 @@ class RiceScanController extends Controller
                 }
             }
             Log::error('Failed to save scan to database: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'reason' => 'record_save_failed',
+                'message' => 'The scan could not be saved to history. Please try again.',
+            ], 500);
         }
 
         $imageUrl = $dataUrl ?: ($path ? url('storage/' . ltrim($path, '/')) : $this->getDiseaseReferenceImageUrl($disease['name']));

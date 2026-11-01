@@ -128,7 +128,9 @@ class ScanProvider extends ChangeNotifier {
         final diagnosisIsValid = res['success'] == true &&
             res['recognized'] == true &&
             res['rice_leaf_validated'] == true &&
+            res['saved'] == true &&
             scan['recognized'] == true &&
+            int.tryParse(scan['id']?.toString() ?? '') != null &&
             supportedDiseaseKeys.contains(scan['disease_key']) &&
             (scan['disease']?.toString().trim().isNotEmpty ?? false) &&
             confidenceIsValid;
@@ -141,7 +143,9 @@ class ScanProvider extends ChangeNotifier {
         }
 
         _errorMessage = res['message']?.toString() ??
-            'The scanner did not confirm a clear rice-leaf image and a supported diagnosis.';
+            (res['success'] == true && res['saved'] != true
+                ? 'The scan could not be saved to history. Please try again.'
+                : 'The scanner did not confirm a clear rice-leaf image and a supported diagnosis.');
       }
     } on ApiException catch (e) {
       _errorMessage = e.message;

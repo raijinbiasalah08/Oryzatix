@@ -2276,7 +2276,12 @@ async function uploadAndAnalyze(file) {
       } else if (res.status === 401 || res.status === 403) {
         reason = 'authentication_required';
       }
-      showUnrecognizedScreen({ reason });
+      showUnrecognizedScreen({
+        ...data,
+        reason,
+        message: data.message || data.message_en,
+        message_tl: data.message_tl,
+      });
       return;
     }
 
@@ -2300,8 +2305,9 @@ async function uploadAndAnalyze(file) {
         data.quality && data.quality.status === 'passed' && scan && scan.recognized === true &&
         supportedDiseaseKeys.has(scan.disease_key) && typeof scan.disease === 'string' &&
         scan.disease.trim().length > 0 && confidenceIsValid;
+      const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
 
-      if (diagnosisIsValid) {
+      if (diagnosisIsValid && recordWasSaved) {
         data.scan.saved = data.saved === true;
         if (!data.scan.image_url || (data.scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
           data.scan.image_url = localFileUrl || data.scan.image_url;
@@ -2310,7 +2316,9 @@ async function uploadAndAnalyze(file) {
       } else {
         showUnrecognizedScreen({
           ...data,
-          reason: data.reason || 'uncertain_prediction',
+          reason: diagnosisIsValid && !recordWasSaved
+            ? 'record_save_failed'
+            : (data.reason || 'uncertain_prediction'),
         });
       }
     }, 450);
@@ -2332,6 +2340,7 @@ function showUnrecognizedScreen(data) {
     upload_too_large: { en: 'Image File Too Large', tl: 'Masyadong Malaki ang Larawan' },
     unsupported_image: { en: 'Unsupported Image', tl: 'Hindi Suportadong Uri ng Larawan' },
     authentication_required: { en: 'Sign-in Required', tl: 'Kailangang Mag-sign In' },
+    record_save_failed: { en: 'Scan Not Saved', tl: 'Hindi Na-save ang Scan' },
     server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
   };
   const selectedTitle = titles[reason] || { en: 'Scan Result Needs Review', tl: 'Kailangang Suriin ang Resulta' };
@@ -2371,6 +2380,10 @@ function showUnrecognizedScreen(data) {
       authentication_required: {
         en: 'Your session may have expired. Sign in again, then retry the scan.',
         tl: 'Maaaring nag-expire ang iyong session. Mag-sign in muli at subukan ang pag-scan.',
+      },
+      record_save_failed: {
+        en: 'The diagnosis was not added to Scan History & Records. Please retry the scan.',
+        tl: 'Hindi naidagdag ang diagnosis sa Kasaysayan at Mga Tala ng Scan. Subukang muli.',
       },
       server_error: {
         en: 'The scan could not be completed because of a server or network error. Please try again later.',
