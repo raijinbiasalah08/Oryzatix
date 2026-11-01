@@ -1067,7 +1067,7 @@
           </div>
           <div class="chat-header-info">
             <h3>Rice AI Agricultural Assistant</h3>
-            <p data-en="Rice farming help · English / Tagalog" data-tl="Gabay sa pagsasaka ng palay · Ingles / Tagalog">Rice farming help · English / Tagalog</p>
+            <p id="consultationStatusText" data-online-en="Rice farming help · English / Tagalog" data-online-tl="Gabay sa pagsasaka ng palay · Ingles / Tagalog" data-offline-en="Internet required for AI consultation" data-offline-tl="Kailangan ng internet para sa AI consultation">Rice farming help · English / Tagalog</p>
           </div>
           <div class="chat-header-actions">
             <button type="button" class="chat-mute-btn" id="aiMuteToggleBtn" onclick="toggleAiVoiceMute()" title="Mute/Unmute AI Voice">
@@ -1079,6 +1079,10 @@
               <span class="clear-chat-text">Clear Chat</span>
             </button>
           </div>
+        </div>
+
+        <div class="consultation-offline-notice" id="consultationOfflineNotice" role="status" aria-live="polite" hidden>
+          AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.
         </div>
 
         <div class="chat-messages" id="chatMessages">
@@ -2639,7 +2643,7 @@
 <div class="offline-indicator-banner" id="offlineIndicatorBanner" style="display: none;">
   <div class="offline-banner-pill">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-    <span>Offline mode: scan with the on-device model and view this device’s records. Online services need internet.</span>
+    <span>Offline mode: scan with the on-device model and view this device’s records. AI Consultant and other online services need internet.</span>
   </div>
 </div>
 

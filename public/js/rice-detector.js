@@ -4601,6 +4601,7 @@ function renderHomeEmptyScans() {
 
 /* ═══════════ AI CONSULTATION ═══════════ */
 function sendQuickQuestion(text) {
+  if (!isConsultationOnline()) return;
   const input = document.getElementById('chatInput');
   if (input) {
     input.value = text;
@@ -4609,6 +4610,7 @@ function sendQuickQuestion(text) {
 }
 
 function confirmClearChat() {
+  if (!isConsultationOnline()) return;
   if (!confirm('Clear all chat conversation history?')) return;
   ensureCsrfCookie().then(() => fetch(apiUrl('/consultation/clear'), {
     method: 'DELETE',
@@ -4652,6 +4654,7 @@ function initAiVoiceMuteUI() {
 }
 
 function toggleAiVoiceMute() {
+  if (!isConsultationOnline()) return;
   isAiVoiceMuted = !isAiVoiceMuted;
   if (window.localStorage) {
     window.localStorage.setItem('oryzatix_ai_voice_muted', isAiVoiceMuted ? 'true' : 'false');
@@ -4682,6 +4685,7 @@ function getCleanSpeechText(rawText) {
 }
 
 function speakText(rawText, lang, btnElement) {
+  if (!isConsultationOnline()) return;
   if (!('speechSynthesis' in window)) return;
 
   // Toggle stop if already speaking this bubble
@@ -4734,6 +4738,7 @@ function speakText(rawText, lang, btnElement) {
 }
 
 function toggleSpeechBubble(btn) {
+  if (!isConsultationOnline()) return;
   const bubble = btn.closest('.chat-bubble');
   const contentEl = bubble ? bubble.querySelector('.chat-text-content') : btn.previousElementSibling;
   const text = contentEl ? (contentEl.innerHTML || contentEl.textContent) : '';
@@ -4833,6 +4838,7 @@ function formatAiMessage(rawText) {
 }
 
 async function sendMessage() {
+  if (!isConsultationOnline()) return;
   const input = document.getElementById('chatInput');
   if (!input || isConsultationSending) return;
   const msg = input.value.trim();
@@ -4916,8 +4922,7 @@ async function sendMessage() {
     appendAIBubble(failureMessage, language, container);
   } finally {
     isConsultationSending = false;
-    input.disabled = false;
-    if (sendButton) sendButton.disabled = false;
+    updateConsultationAvailability();
   }
 }
 
@@ -4948,6 +4953,7 @@ function appendAIBubble(content, language, container) {
 }
 
 async function translateAiBubble(btn) {
+  if (!isConsultationOnline()) return;
   const bubble = btn.closest('.chat-bubble.ai');
   if (!bubble) return;
   const contentEl = bubble.querySelector('.chat-text-content');
@@ -5024,6 +5030,7 @@ async function translateAiBubble(btn) {
   } finally {
     btn.disabled = false;
     btn.classList.remove('translating');
+    updateConsultationAvailability();
   }
 }
 
@@ -5045,7 +5052,9 @@ function languageLabel(lang) {
 }
 
 async function loadChatMessages() {
+  if (!isConsultationOnline()) return;
   await ensureCsrfCookie();
+  if (!isConsultationOnline()) return;
   fetch(apiUrl('/consultation/messages'), {
     credentials: 'include',
     headers: authHeaders(),
@@ -5076,6 +5085,7 @@ async function loadChatMessages() {
 }
 
 function toggleVoiceRecognition() {
+  if (!isConsultationOnline()) return;
   const btn = document.getElementById('voiceBtn');
   if (!btn) return;
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5114,7 +5124,11 @@ function toggleVoiceRecognition() {
       isRecording = false;
       btn.classList.remove('recording');
       const ci = document.getElementById('chatInput');
-      if (ci) ci.placeholder = 'Ask about rice diseases...';
+      if (ci) {
+        ci.placeholder = isConsultationOnline()
+          ? (ci.dataset.onlinePlaceholder || 'Ask about rice symptoms, crop care, irrigation...')
+          : 'Internet required for AI Consultant';
+      }
     };
 
     try { speechRecognition.start(); } catch (e) { }
@@ -7179,15 +7193,67 @@ async function triggerPwaInstall() {
 function initNetworkStatusMonitoring() {
   const banner = document.getElementById('offlineIndicatorBanner');
   function updateStatus() {
-    if (!navigator.onLine) {
+    const isOnline = navigator.onLine !== false;
+    if (!isOnline) {
       if (banner) banner.style.display = 'block';
     } else {
       if (banner) banner.style.display = 'none';
     }
+    updateConsultationAvailability(isOnline);
   }
   window.addEventListener('online', updateStatus);
   window.addEventListener('offline', updateStatus);
   updateStatus();
+}
+
+function isConsultationOnline() {
+  return typeof navigator === 'undefined' || navigator.onLine !== false;
+}
+
+function updateConsultationAvailability(isOnline = isConsultationOnline()) {
+  const notice = document.getElementById('consultationOfflineNotice');
+  const status = document.getElementById('consultationStatusText');
+  const input = document.getElementById('chatInput');
+  const language = (document.getElementById('uiLanguage') || {}).value || 'english';
+
+  if (notice) {
+    notice.hidden = isOnline;
+    notice.textContent = language === 'tagalog'
+      ? 'Kailangan ng internet para magamit ang AI Consultant. Magagamit pa rin offline ang rice-leaf scanner at mga scan record na naka-save sa device.'
+      : 'AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.';
+  }
+  if (status) {
+    const key = isOnline ? 'online' : 'offline';
+    const languageKey = language === 'tagalog' ? 'tl' : 'en';
+    status.textContent = status.getAttribute(`data-${key}-${languageKey}`) || status.textContent;
+  }
+  if (input) {
+    if (!input.dataset.onlinePlaceholder) input.dataset.onlinePlaceholder = input.placeholder;
+    input.disabled = !isOnline || isConsultationSending;
+    input.placeholder = isOnline
+      ? input.dataset.onlinePlaceholder
+      : (language === 'tagalog' ? 'Kailangan ng internet para sa AI Consultant' : 'Internet required for AI Consultant');
+  }
+
+  const sendButton = document.querySelector('#consultation .send-btn');
+  if (sendButton) sendButton.disabled = !isOnline || isConsultationSending;
+  ['#voiceBtn', '#aiMuteToggleBtn', '#consultation .clear-chat-btn'].forEach(selector => {
+    const button = document.querySelector(selector);
+    if (button) button.disabled = !isOnline;
+  });
+  document.querySelectorAll('#consultation .translate-bubble-btn, #consultation .audio-speaker-btn').forEach(button => {
+    button.disabled = !isOnline || button.classList.contains('translating');
+  });
+
+  if (!isOnline) {
+    if (typeof stopAiSpeech === 'function') stopAiSpeech();
+    if (isRecording && speechRecognition) {
+      try { speechRecognition.stop(); } catch (_) {}
+      isRecording = false;
+      const voiceButton = document.getElementById('voiceBtn');
+      if (voiceButton) voiceButton.classList.remove('recording');
+    }
+  }
 }
 
 function getBestLanUrl() {

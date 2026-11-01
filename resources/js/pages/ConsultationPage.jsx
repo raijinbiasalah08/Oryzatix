@@ -40,6 +40,7 @@ export default function ConsultationPage() {
     const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
+    const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
     const [recording, setRecording] = useState(false);
     const [isMuted, setIsMuted] = useState(() => {
         return typeof window !== 'undefined' && localStorage.getItem('oryzatix_ai_voice_muted') === 'true';
@@ -59,12 +60,31 @@ export default function ConsultationPage() {
     }, []);
 
     useEffect(() => {
+        const updateOnlineStatus = () => setIsOnline(navigator.onLine !== false);
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        return () => {
+            window.removeEventListener('online', updateOnlineStatus);
+            window.removeEventListener('offline', updateOnlineStatus);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isOnline) return;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        recognitionRef.current?.stop();
+        setRecording(false);
+        setSpeakingIndex(null);
+    }, [isOnline]);
+
+    useEffect(() => {
+        if (!isOnline || navigator.onLine === false) return;
         api.get('/consultation/messages')
             .then(({ data }) => {
                 if (data.success && data.messages?.length) setMessages(data.messages);
             })
             .catch(() => {});
-    }, []);
+    }, [isOnline]);
 
     useEffect(() => {
         if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -78,6 +98,7 @@ export default function ConsultationPage() {
     };
 
     const toggleMute = () => {
+        if (!isOnline || navigator.onLine === false) return;
         const next = !isMuted;
         setIsMuted(next);
         localStorage.setItem('oryzatix_ai_voice_muted', next ? 'true' : 'false');
@@ -85,6 +106,7 @@ export default function ConsultationPage() {
     };
 
     const speakText = (text, language, msgIdx = null) => {
+        if (!isOnline || navigator.onLine === false) return;
         if (!('speechSynthesis' in window)) return;
         
         if (speakingIndex === msgIdx && window.speechSynthesis.speaking) {
@@ -112,6 +134,7 @@ export default function ConsultationPage() {
     };
 
     const sendMessage = async (text) => {
+        if (!isOnline || navigator.onLine === false) return;
         const msg = (text || input).trim();
         if (!msg) return;
         const language = detectLanguage(msg);
@@ -138,6 +161,7 @@ export default function ConsultationPage() {
     };
 
     const translateMessage = async (index) => {
+        if (!isOnline || navigator.onLine === false) return;
         const msg = messages[index];
         if (!msg || msg.role !== 'ai') return;
         const currentLang = (msg.language || 'tagalog').toLowerCase();
@@ -188,6 +212,7 @@ export default function ConsultationPage() {
     };
 
     const toggleVoice = () => {
+        if (!isOnline || navigator.onLine === false) return;
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             alert(t('Speech recognition not supported. Use Chrome or Edge.', 'Hindi suportado ang speech recognition. Gamitin ang Chrome o Edge.'));
@@ -220,12 +245,13 @@ export default function ConsultationPage() {
                     </div>
                     <div className="chat-header-info">
                         <h3>{t('Rice AI Assistant', 'Rice AI Assistant')}</h3>
-                        <p>{t('Online · Tagalog / English', 'Online · Tagalog / English')}</p>
+                        <p>{isOnline ? t('Online · Tagalog / English', 'Online · Tagalog / English') : t('Internet required for AI consultation', 'Kailangan ng internet para sa AI consultation')}</p>
                     </div>
                     <button 
                         type="button" 
                         className={`chat-mute-btn ${isMuted ? 'muted' : ''}`}
                         onClick={toggleMute}
+                        disabled={!isOnline}
                         title={isMuted ? 'Unmute AI Voice' : 'Mute AI Voice'}
                     >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
@@ -245,6 +271,11 @@ export default function ConsultationPage() {
                         <span>{isMuted ? 'Voice: Muted' : 'Voice: On'}</span>
                     </button>
                 </div>
+                {!isOnline && (
+                    <div role="status" aria-live="polite" style={{ margin: '12px 20px 0', padding: '11px 14px', border: '1px solid #f3d08b', borderRadius: '12px', background: '#fff8e8', color: '#765111', fontSize: '13px', lineHeight: 1.5 }}>
+                        {t('AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.', 'Kailangan ng internet para magamit ang AI Consultant. Magagamit pa rin offline ang rice-leaf scanner at mga scan record na naka-save sa device.')}
+                    </div>
+                )}
                 <div className="chat-messages" ref={containerRef}>
                     {messages.length === 0 && (
                         <div className="chat-bubble ai">
@@ -255,6 +286,7 @@ export default function ConsultationPage() {
                                 <button 
                                     className={`audio-speaker-btn ${speakingIndex === 'init' ? 'speaking' : ''}`}
                                     onClick={() => speakText("Kumusta! Ako ang inyong Rice AI Assistant. Pwede ninyo akong tanungin tungkol sa mga sakit ng palay.", 'tagalog', 'init')}
+                                    disabled={!isOnline}
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                                     <span>{speakingIndex === 'init' ? 'Stop' : 'Read'}</span>
@@ -276,7 +308,7 @@ export default function ConsultationPage() {
                                             type="button"
                                             className={`translate-bubble-btn ${translatingIndex === i ? 'translating' : ''}`}
                                             onClick={() => translateMessage(i)}
-                                            disabled={translatingIndex === i}
+                                            disabled={!isOnline || translatingIndex === i}
                                             title="Translate message"
                                         >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
@@ -289,6 +321,7 @@ export default function ConsultationPage() {
                                         <button 
                                             className={`audio-speaker-btn ${speakingIndex === i ? 'speaking' : ''}`}
                                             onClick={() => speakText(m.content, m.language || 'tagalog', i)}
+                                            disabled={!isOnline}
                                         >
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                                             <span>{speakingIndex === i ? 'Stop' : 'Read'}</span>
@@ -300,7 +333,7 @@ export default function ConsultationPage() {
                     ))}
                 </div>
                 <div className="chat-input-bar">
-                    <button type="button" className={`voice-btn ${recording ? 'recording' : ''}`} onClick={toggleVoice}>
+                    <button type="button" className={`voice-btn ${recording ? 'recording' : ''}`} onClick={toggleVoice} disabled={!isOnline}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /></svg>
                     </button>
                     <input
@@ -308,9 +341,10 @@ export default function ConsultationPage() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                        placeholder={t('Ask about rice diseases...', 'Magtanong tungkol sa sakit ng palay...')}
+                        placeholder={isOnline ? t('Ask about rice diseases...', 'Magtanong tungkol sa sakit ng palay...') : t('Internet required for AI consultation', 'Kailangan ng internet para sa AI consultation')}
+                        disabled={!isOnline}
                     />
-                    <button type="button" className="send-btn" onClick={() => sendMessage()}>
+                    <button type="button" className="send-btn" onClick={() => sendMessage()} disabled={!isOnline}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                     </button>
                 </div>

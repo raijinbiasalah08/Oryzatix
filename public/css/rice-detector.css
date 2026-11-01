@@ -3835,6 +3835,28 @@ select {
   -webkit-overflow-scrolling: touch;
 }
 
+.consultation-offline-notice {
+  margin: 12px 20px 0;
+  padding: 11px 14px;
+  border: 1px solid #f3d08b;
+  border-radius: 12px;
+  background: #fff8e8;
+  color: #765111;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.consultation-offline-notice[hidden] {
+  display: none !important;
+}
+
+.chat-input-bar :disabled,
+.chat-header-actions :disabled,
+.chat-bubble-footer :disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .chat-time {
   font-size: 11px;
   color: var(--neutral-400);
