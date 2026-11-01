@@ -2,3 +2,15 @@ public/index.php
 public/hot
 .env
 .git
+outputs/
+training/
+.venv-training/
+**/__pycache__/
+*.zip
+Bacterial Leaf Blight/
+Brown Spot/
+Healthy Rice Leaf/
+Sheath Blight/
+Tungro/
+Not Rice Leaf/
+leaf_blast/

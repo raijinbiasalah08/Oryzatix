@@ -2,11 +2,18 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "engines": {
+        "node": "22.x"
+    },
     "scripts": {
         "build": "vite build",
+        "build:vercel": "npm run build && node scripts/build-vercel.mjs",
+        "test:vercel": "node --test tests/vercel-runtime.test.cjs",
         "dev": "vite"
     },
     "devDependencies": {
+        "@vercel/build-utils": "15.2.1",
+        "vercel-php": "0.7.4",
         "@tailwindcss/forms": "^0.5.2",
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.7.0",

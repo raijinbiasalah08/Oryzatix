@@ -1,13 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "outputDirectory": "public",
-  "functions": {
-    "api/index.php": {
-      "runtime": "vercel-php@0.7.1",
-      "includeFiles": "{storage/app/datasets/**,database/certs/**,storage/certs/**}"
-    }
-  },
+  "buildCommand": "npm run build:vercel",
   "routes": [
     {
       "src": "/build/(.*)",
