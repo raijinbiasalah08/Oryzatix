@@ -247,7 +247,6 @@ export default function HistoryPage() {
                                             </td>
                                             <td>
                                                 {renderSeverityBadge(scan.severity)}
-                                                {scan.severity_status === 'model_estimated' && <small>{t('Experimental estimate', 'Eksperimental na pagtataya')}</small>}
                                             </td>
                                             <td>
                                                 <div className="ht-date">{scan.date || scan.dateLabel || 'Today'}</div>

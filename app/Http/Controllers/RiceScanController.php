@@ -1530,7 +1530,7 @@ class RiceScanController extends Controller
                         'created_at_raw' => $scan->created_at->toISOString(),
                         'severity' => $displaySeverity,
                         'severity_status' => $isHealthy ? 'not_applicable' : ($estimated ? 'model_estimated' : ($manual ? 'user_assessed' : 'unassessed')),
-                        'severity_label' => $isHealthy ? 'Healthy Leaf' : ($estimated ? ucfirst($displaySeverity) . ' (experimental estimate)' : ($manual ? ucfirst($displaySeverity) . ' (manual)' : 'Not assessed')),
+                        'severity_label' => $isHealthy ? 'Healthy Leaf' : (($estimated || $manual) ? ucfirst($displaySeverity) : 'Not assessed'),
                         'severity_model_version' => $estimated ? 'severity_experimental_v1' : null,
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,

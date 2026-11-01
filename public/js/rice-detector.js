@@ -2447,7 +2447,7 @@ function makeOfflineScanResponse(prediction, localFileUrl) {
       severity: healthy ? 'healthy' : estimated ? prediction.severity.level : 'unassessed',
       severity_status: healthy ? 'not_applicable' : estimated ? 'model_estimated' : 'unassessed',
       severity_model_version: estimated ? prediction.severity.version : null,
-      severity_message: healthy ? null : estimated ? 'Experimental AI severity estimate; accuracy has not been verified.' : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
+      severity_message: healthy ? null : estimated ? null : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
       severity_class: healthy ? 'healthy-bg' : estimated ? prediction.severity.level + '-bg' : 'unassessed-bg',
       affected_percentage: null,
       treatments: { chemical: [], organic: [] },
@@ -2513,7 +2513,7 @@ async function estimateAndSaveSeverity(scan, file) {
   scan.severity_status = 'model_estimated';
   scan.severity_model_version = estimate.version;
   scan.severity_class = estimate.level + '-bg';
-  scan.severity_message = 'Experimental AI estimate; accuracy has not been verified.';
+  scan.severity_message = null;
 
   const scanId = Number(scan.id);
   if (Number.isInteger(scanId) && scanId > 0 && !scan.local_only) {
@@ -3047,7 +3047,7 @@ function getDefaultTreatments(key, severity = 'moderate') {
 function scanSeverityLabel(scan) {
   if (scan.severity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')) return 'Healthy Leaf';
   if (scan.severity_status === 'model_estimated' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
-    return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1) + ' (experimental estimate)';
+    return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1);
   }
   if (scan.severity_status === 'user_assessed' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
     return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1) + ' (manual)';
@@ -3075,8 +3075,8 @@ function renderSeverityMeter(scan, isHealthy) {
       : 'sev-label inactive';
   });
   if (notice) {
-    notice.style.display = measured ? 'none' : 'block';
-    notice.textContent = estimated ? 'Experimental AI estimate — accuracy has not been verified. Have an agriculturist confirm the severity.' : manual
+    notice.style.display = measured || estimated ? 'none' : 'block';
+    notice.textContent = manual
       ? 'Saved manual severity level.'
       : 'Severity level has not been assessed.';
   }

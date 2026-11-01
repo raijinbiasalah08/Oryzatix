@@ -306,7 +306,6 @@ export default function ResultsPage() {
                             </span>
                         </div>
                         {!severityLevel && <p role="status">{resultLang === 'tagalog' ? 'Hindi pa nasusuri ang antas ng tindi.' : 'Severity level has not been assessed.'}</p>}
-                        {experimentalSeverity && <p role="status">{t('Experimental AI estimate. Accuracy has not been verified; have an agriculturist confirm the severity.', 'Eksperimental na pagtataya ng AI. Hindi pa nasusukat ang katumpakan; ipasuri sa agriculturist.')}</p>}
                     </div>
                 )}
 
