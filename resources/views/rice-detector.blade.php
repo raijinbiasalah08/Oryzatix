@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=optional" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ filemtime(public_path('css/rice-detector.css')) ?: '1' }}">
+<link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ substr(hash_file('sha256', public_path('css/rice-detector.css')) ?: '1', 0, 12) }}">
 <link rel="stylesheet" href="{{ asset('css/ui-refresh.css') }}?v={{ filemtime(public_path('css/ui-refresh.css')) ?: '1' }}">
 <style>
   html.app-booting .web-app-shell {

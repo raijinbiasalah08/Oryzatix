@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="{{ asset('images/icons/icon-192.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ substr(hash_file('sha256', public_path('css/rice-detector.css')) ?: '1', 0, 12) }}">
     <title>ORYZATIX — Rice Leaf Disease Detection</title>
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])
 </head>
