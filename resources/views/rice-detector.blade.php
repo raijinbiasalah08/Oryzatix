@@ -1816,12 +1816,12 @@
   >
     <span class="oryzatix-leaf-assistant__mascot" aria-hidden="true">
       <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--left">
-        <img src="{{ asset('images/oryzatix-rice-leaf-arm.png') }}" alt="" width="20" height="24" decoding="async">
+        <img src="{{ asset('images/oryzatix-rice-leaf-arm.png') }}" alt="" width="24" height="32" decoding="async">
       </span>
       <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--right">
-        <img src="{{ asset('images/oryzatix-rice-leaf-arm-right.png') }}" alt="" width="20" height="24" decoding="async">
+        <img src="{{ asset('images/oryzatix-rice-leaf-arm-right.png') }}" alt="" width="24" height="32" decoding="async">
       </span>
-      <img class="oryzatix-leaf-assistant__body" src="{{ asset('images/oryzatix-rice-leaf-body.png') }}" alt="" width="64" height="64" decoding="async">
+      <img class="oryzatix-leaf-assistant__body" src="{{ asset('images/oryzatix-rice-leaf-body.png') }}" alt="" width="72" height="72" decoding="async">
     </span>
   </button>
 </div><!-- /.web-app-shell -->

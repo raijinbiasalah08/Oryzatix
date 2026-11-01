@@ -784,19 +784,19 @@ button:disabled { cursor: not-allowed; }
 
 .oryzatix-leaf-assistant__arm {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   top: 30px;
-  width: 20px;
-  height: 24px;
+  width: 24px;
+  height: 32px;
 }
 
-.oryzatix-leaf-assistant__arm--left { left: -4px; }
-.oryzatix-leaf-assistant__arm--right { right: -4px; transform: scaleX(-1); }
+.oryzatix-leaf-assistant__arm--left { left: -8px; }
+.oryzatix-leaf-assistant__arm--right { right: -8px; transform: scaleX(-1); }
 
 .oryzatix-leaf-assistant__arm img {
   display: block;
-  width: 20px;
-  height: 24px;
+  width: 24px;
+  height: 32px;
   object-fit: contain;
   image-rendering: pixelated;
   transform-origin: 80% 90%;
@@ -809,9 +809,9 @@ button:disabled { cursor: not-allowed; }
 
 @keyframes oryzatix-leaf-wave {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-18deg); }
-  50% { transform: rotate(12deg); }
-  75% { transform: rotate(-14deg); }
+  25% { transform: rotate(-24deg); }
+  50% { transform: rotate(18deg); }
+  75% { transform: rotate(-16deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
