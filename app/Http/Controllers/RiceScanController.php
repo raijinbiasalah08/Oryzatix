@@ -1364,8 +1364,7 @@ class RiceScanController extends Controller
         $agriculturalStrategies = null;
         $productivityImpact = null;
 
-        if (in_array($severityStatus, ['expert_validated', 'user_assessed', 'model_estimated'], true)
-            && in_array($severity, ['mild', 'moderate', 'severe'], true)
+        if (in_array($severity, ['mild', 'moderate', 'severe'], true)
             && in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true)
             && isset($disease['severity_levels'][$severity])) {
             $treatments = [

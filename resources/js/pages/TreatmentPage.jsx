@@ -21,14 +21,14 @@ export default function TreatmentPage() {
 
     if (!scan || scan.recognized === false) return null;
 
-    const hasSeverityResult = ['expert_validated', 'user_assessed', 'user_selected', 'model_estimated'].includes(scan.severity_status)
-        && ['mild', 'moderate', 'severe'].includes(scan.severity);
+    const severityLevel = String(scan.severity || '').trim().toLowerCase();
+    const hasSeverityResult = ['mild', 'moderate', 'severe'].includes(severityLevel);
     const suppliedTreatments = scan.treatments || {};
     const hasSuppliedTreatments = (suppliedTreatments.chemical || []).length > 0 || (suppliedTreatments.organic || []).length > 0;
     const treatments = hasSuppliedTreatments
         ? suppliedTreatments
         : hasSeverityResult
-            ? getDefaultTreatments(scan.disease_key || 'blast', scan.severity)
+            ? getDefaultTreatments(scan.disease_key || 'blast', severityLevel)
             : suppliedTreatments;
 
     const lower = (scan.disease || '').toLowerCase();

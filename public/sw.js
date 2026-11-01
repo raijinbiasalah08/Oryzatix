@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v18';
+const CACHE_NAME = 'oryzatix-pwa-v19';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -93,16 +93,38 @@ self.addEventListener('fetch', (event) => {
     // Prefer exact URLs so a cache-busting query cannot be served stale content.
     event.respondWith(
         caches.open(CACHE_NAME).then(async (cache) => {
-            const cached = await cache.match(event.request)
-                || await cache.match(event.request, { ignoreSearch: true });
-            if (cached) {
+            const exactCached = await cache.match(event.request);
+            const unversionedFallback = exactCached
+                ? null
+                : await cache.match(event.request, { ignoreSearch: true });
+            if (exactCached) {
                 // Fetch fresh copy in background to update cache (stale-while-revalidate)
                 fetch(event.request).then((res) => {
                     if (res && res.ok && event.request.url.startsWith(self.location.origin)) {
                         cache.put(event.request, res);
                     }
                 }).catch(() => {});
-                return cached;
+                return exactCached;
+            }
+
+            // Hashed/versioned URLs must go to the network first. Use the
+            // unversioned precache only when offline so releases take effect.
+            if (url.search) {
+                return fetch(event.request).then((response) => {
+                    if (response && response.ok && event.request.url.startsWith(self.location.origin)) {
+                        cache.put(event.request, response.clone());
+                    }
+                    return response;
+                }).catch(() => unversionedFallback || Response.error());
+            }
+
+            if (unversionedFallback) {
+                fetch(event.request).then((res) => {
+                    if (res && res.ok && event.request.url.startsWith(self.location.origin)) {
+                        cache.put(event.request, res);
+                    }
+                }).catch(() => {});
+                return unversionedFallback;
             }
 
             return fetch(event.request).then((response) => {

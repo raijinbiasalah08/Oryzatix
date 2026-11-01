@@ -2820,10 +2820,13 @@ function formatConfidencePercent(value) {
   return confidence.toFixed(1) + '%';
 }
 
+function resolvedSeverityLevel(scan) {
+  const level = String(scan && scan.severity || '').trim().toLowerCase();
+  return ['mild', 'moderate', 'severe'].includes(level) ? level : null;
+}
+
 function hasResolvedSeverity(scan) {
-  return !!scan
-    && ['expert_validated', 'user_assessed', 'user_selected', 'model_estimated'].includes(scan.severity_status)
-    && ['mild', 'moderate', 'severe'].includes(scan.severity);
+  return resolvedSeverityLevel(scan) !== null;
 }
 
 function getDefaultTreatments(key, severity = 'moderate') {
@@ -3072,7 +3075,7 @@ function renderSeverityMeter(scan, isHealthy) {
     Number.isFinite(area) && area >= 0 && area <= 100;
   const manual = scan.severity_status === 'user_assessed' && levels.includes(scan.severity);
   const estimated = scan.severity_status === 'model_estimated' && levels.includes(scan.severity);
-  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : (manual || estimated) ? scan.severity : null;
+  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : resolvedSeverityLevel(scan);
   if (labels) labels.style.display = 'flex';
   ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
     const label = document.getElementById(id);
@@ -3350,7 +3353,7 @@ function renderResultLanguage() {
         ? 'Natukoy ng disease classifier ang ' + (scan.disease || 'sakit sa palay') + ', ngunit hindi pa nasusuri ang antas ng tindi. Ipasuri muna sa agriculturist bago pumili ng lunas ayon sa tindi.'
         : (scan.disease || 'The disease classifier') + ' was detected, but its severity level has not been assessed. Ask an agriculturist before choosing severity-based treatment.';
     } else if (localized.symptoms) {
-      const sevKey = scan.severity;
+      const sevKey = resolvedSeverityLevel(scan);
       symp = localized.symptoms[sevKey] || localized.symptoms.moderate || '';
     }
     symptomsText.textContent = symp || scan.symptoms || '';
@@ -3427,7 +3430,7 @@ function renderResultTreatments(scan, lang) {
 
   const key = scan.disease_key || 'blast';
   const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
-  const severity = scan.severity || 'unassessed';
+  const severity = resolvedSeverityLevel(scan) || 'unassessed';
   const data = severityNeedsAssessment
     ? (scan.treatments || { chemical: [], organic: [] })
     : getLocalizedTreatmentsData(key, severity, lang);
@@ -4083,7 +4086,7 @@ function loadCurrentTreatment() {
   const key = s.disease_key || 'blast';
   const manualGuide = s.treatment_source === 'manual_guide';
   const severityNeedsAssessment = s.severity !== 'healthy' && !hasResolvedSeverity(s);
-  const curSeverity = severityNeedsAssessment ? 'unassessed' : (s.severity || 'moderate');
+  const curSeverity = resolvedSeverityLevel(s) || 'unassessed';
   const isMultiSev = (key === 'blb' || key === 'tungro' || key === 'blast' || key === 'brown_spot' || key === 'sheath_blight');
 
   const name = document.getElementById('treatDiseaseName');

@@ -2779,6 +2779,15 @@ window.ORYZATIX_OFFLINE_ASSETS = {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
+    let hadServiceWorkerController = Boolean(navigator.serviceWorker.controller);
+    let isReloadingForUpdate = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (hadServiceWorkerController && !isReloadingForUpdate) {
+        isReloadingForUpdate = true;
+        window.location.reload();
+      }
+      hadServiceWorkerController = true;
+    });
     navigator.serviceWorker.register('{{ asset('sw.js') }}', { updateViaCache: 'none' }).catch(function() {});
   });
 }
