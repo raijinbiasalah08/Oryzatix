@@ -780,6 +780,19 @@ button:disabled { cursor: not-allowed; }
 
 .oryzatix-leaf-assistant__mascot img { width: 47px; height: 47px; object-fit: contain; image-rendering: pixelated; }
 
+@keyframes oryzatix-leaf-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-3px) rotate(1.5deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .oryzatix-leaf-assistant__mascot img,
+  #consultation.voice-companion .ai-avatar img {
+    animation: oryzatix-leaf-bob 2.4s ease-in-out infinite;
+    transform-origin: 50% 80%;
+  }
+}
+
 .oryzatix-leaf-assistant__copy {
   display: flex;
   flex-direction: column;
