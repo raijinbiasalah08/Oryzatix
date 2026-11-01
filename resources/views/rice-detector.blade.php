@@ -1083,17 +1083,6 @@
           AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.
         </div>
 
-        <div class="consultation-intro">
-          <div class="consultation-intro-copy">
-            <span class="consultation-eyebrow" data-en="YOUR FIELD · YOUR QUESTION" data-tl="IYONG PALAYAN · IYONG TANONG">YOUR FIELD · YOUR QUESTION</span>
-            <h2 data-en="What’s happening in your rice field?" data-tl="Ano ang nangyayari sa iyong palayan?">What’s happening in your rice field?</h2>
-            <p data-en="Ask by voice or type a question in English or Tagalog." data-tl="Magtanong gamit ang boses o mag-type sa Ingles o Tagalog.">Ask by voice or type a question in English or Tagalog.</p>
-          </div>
-          <div class="consultation-intro-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M9 8a3 3 0 0 0-3 3c0 1.8 1.2 3 3 3 0-1.8.3-3.7 1.8-5.5A3 3 0 0 0 9 8Z"/><path d="M15 3a5 5 0 0 0-5 5c0 2.7 1.7 4.5 4 4.5S18 11 18 8a5 5 0 0 0-3-5Z"/></svg>
-          </div>
-        </div>
-
         <div class="chat-messages" id="chatMessages">
           <div class="chat-time">Today · AI Assistant Active</div>
           <div class="chat-bubble ai" data-lang="tagalog" data-raw-content="Kumusta! Ako ang Rice AI Assistant. Sabihin ang yugto ng palay, mga sintomas, at kondisyon sa bukid. Tutulong ako sa ligtas na gabay sa sakit at pangangalaga ng palay. Mag-type o mag-voice message lang!">
@@ -1120,7 +1109,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
               <span data-en="Speak" data-tl="Magsalita">Speak</span>
             </button>
-            <input type="text" id="chatInput" placeholder="Ask about rice symptoms, crop care, irrigation..." data-en-placeholder="Ask about rice symptoms, crop care, irrigation..." data-tl-placeholder="Magtanong tungkol sa sintomas, pag-aalaga, o patubig..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <input type="text" id="chatInput" placeholder="Type a question..." data-en-placeholder="Type a question..." data-tl-placeholder="Mag-type ng tanong..." onkeypress="if(event.key==='Enter')sendMessage()">
             <button class="send-btn" onclick="sendMessage()" title="Send" aria-label="Send question">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
