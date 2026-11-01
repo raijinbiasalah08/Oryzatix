@@ -415,7 +415,7 @@ const SCREEN_TITLES = {
   'staff-dashboard': { en: 'Staff Extension Dashboard', tl: 'Staff Dashboard' },
   scan: { en: 'Leaf Disease Scanner', tl: 'Scanner ng Dahon' },
   loading: { en: 'Analyzing Leaf Image', tl: 'Sinusuri ang Larawan' },
-  results: { en: 'Detection Info', tl: 'Impormasyon sa Resulta' },
+  results: { en: 'Disease Info', tl: 'Impormasyon tungkol sa Sakit' },
   treatment: { en: 'Treatment & Care Guide', tl: 'Gabay sa Gamutan' },
   history: { en: 'Scan History & Records', tl: 'Kasaysayan ng mga Scan' },
   consultation: { en: 'AI Agricultural Consult', tl: 'AI Konsulta' },

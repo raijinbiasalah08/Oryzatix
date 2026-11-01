@@ -963,8 +963,8 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media (max-width: 768px) {
-  #mobileDetectionInfoNav { padding-inline: 4px; }
-  #mobileDetectionInfoNav span { font-size: 10px; white-space: nowrap; }
+  #mobileDiseaseInfoNav { padding-inline: 4px; }
+  #mobileDiseaseInfoNav span { font-size: 10px; white-space: nowrap; }
 
   .oryzatix-assistant-shortcut {
     right: max(6px, env(safe-area-inset-right, 0px));
