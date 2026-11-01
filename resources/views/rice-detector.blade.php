@@ -500,7 +500,7 @@
               </svg>
               <span>Continue as Guest</span>
             </button>
-            <p class="guest-auth-note">No account needed. Guest records stay on this device. Browser scans need internet; the mobile app can scan offline.</p>
+            <p class="guest-auth-note">No account needed. Guest scans and records stay on this device. Connect once to download the offline scanner files.</p>
 
             <div class="auth-or-divider">
               <span></span>
@@ -2639,7 +2639,7 @@
 <div class="offline-indicator-banner" id="offlineIndicatorBanner" style="display: none;">
   <div class="offline-banner-pill">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-    <span>Offline Mode Active — This device’s guest records remain available. Browser diagnosis and online services need internet.</span>
+    <span>Offline mode: scan with the on-device model and view this device’s records. Online services need internet.</span>
   </div>
 </div>
 
@@ -2767,6 +2767,13 @@
   </div>
 </div>
 
+<script>
+window.ORYZATIX_OFFLINE_ASSETS = {
+  models: @json(asset('models/')),
+  runtime: @json(asset('litert/litert_wasm_internal.js')),
+};
+</script>
+@vite('resources/js/offline-scanner.js')
 <script src="{{ asset('js/qrcode.min.js') }}"></script>
 <script src="{{ asset('js/rice-detector.js') }}?v={{ filemtime(public_path('js/rice-detector.js')) ?: '1' }}"></script>
 <script>

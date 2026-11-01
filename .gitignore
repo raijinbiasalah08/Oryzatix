@@ -17,6 +17,8 @@
 /.venv-training
 /public/build
 /public/hot
+/public/litert
+/public/models
 /public/storage
 /storage/*.key
 /storage/pail

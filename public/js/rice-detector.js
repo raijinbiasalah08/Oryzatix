@@ -2406,14 +2406,141 @@ function handleFileUpload(event) {
   event.target.value = '';
 }
 
-async function uploadAndAnalyze(file) {
-  if (file && file.size > 10 * 1024 * 1024) {
-    showUnrecognizedScreen({ reason: 'upload_too_large' });
+function completeScanProgress() {
+  ['step1', 'step2', 'step3', 'step4'].forEach(id => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.classList.add('done');
+    const check = element.querySelector('.step-check');
+    if (check) check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  });
+}
+
+function makeOfflineScanResponse(prediction, localFileUrl) {
+  const disease = ALL_DISEASES[prediction.diseaseKey];
+  if (!disease) throw new Error('The offline model returned an unsupported disease label.');
+  const now = new Date();
+  const healthy = prediction.diseaseKey === 'healthy';
+  const confidence = Number(prediction.confidence);
+  const minimumConfidence = prediction.minimumConfidence === null || prediction.minimumConfidence === undefined
+    ? null
+    : Number(prediction.minimumConfidence);
+  return {
+    success: true,
+    recognized: true,
+    rice_leaf_validated: true,
+    validation: { rice_leaf: true, rice_leaf_probability: prediction.riceProbability },
+    quality: { status: 'passed', focus_score: prediction.qualityScore },
+    saved: false,
+    local_only: true,
+    scan: {
+      recognized: true,
+      id: 0,
+      disease_key: disease.key,
+      disease: disease.name,
+      scientific: disease.scientific,
+      confidence: (confidence * 100).toFixed(1),
+      minimum_confidence: Number.isFinite(minimumConfidence) ? (minimumConfidence * 100).toFixed(1) : null,
+      orientation_agreement: prediction.orientationAgreement,
+      severity: healthy ? 'healthy' : 'unassessed',
+      severity_status: healthy ? 'not_applicable' : 'unassessed',
+      severity_message: healthy ? null : 'Disease detected: Not Healthy Leaf. The scanner does not measure affected leaf area or severity. Ask an agriculturist before using severity-based treatment advice.',
+      severity_class: healthy ? 'healthy-bg' : 'unassessed-bg',
+      affected_percentage: null,
+      treatments: { chemical: [], organic: [] },
+      treatment_source: 'offline_model',
+      analysis_source: 'on_device_litert_wasm',
+      saved: false,
+      local_only: true,
+      image_url: localFileUrl,
+      date: now.toLocaleDateString(),
+      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      created_at: now.toISOString(),
+    },
+  };
+}
+
+function offlineFailureReason(status) {
+  if (status === 'blurry_image') return 'blurry_image';
+  if (status === 'not_rice_leaf') return 'not_rice_leaf';
+  if (status === 'uncertain_prediction') return 'uncertain_prediction';
+  return 'offline_model_unavailable';
+}
+
+async function scanWithOfflineModel(file, localFileUrl) {
+  const scanner = window.OryzatixOfflineScanner;
+  if (!scanner || typeof scanner.classify !== 'function') {
+    throw new Error('The offline scanner has not finished loading.');
+  }
+  const prediction = await scanner.classify(file);
+  if (prediction.status !== 'diagnosed') {
+    showUnrecognizedScreen({
+      reason: offlineFailureReason(prediction.status),
+      rice_leaf_validated: prediction.riceProbability >= prediction.riceThreshold,
+      validation: { rice_leaf: prediction.riceProbability >= prediction.riceThreshold },
+      scan: prediction.diseaseKey ? {
+        disease_key: prediction.diseaseKey,
+        disease: prediction.diseaseName,
+        confidence: (Number(prediction.confidence) * 100).toFixed(1),
+        minimum_confidence: prediction.minimumConfidence !== null && prediction.minimumConfidence !== undefined && Number.isFinite(Number(prediction.minimumConfidence))
+          ? (Number(prediction.minimumConfidence) * 100).toFixed(1)
+          : null,
+      } : null,
+    });
     return;
   }
 
-  if (isGuestMode() && typeof navigator !== 'undefined' && navigator.onLine === false) {
-    showUnrecognizedScreen({ reason: 'offline_browser_scan' });
+  completeScanProgress();
+  const response = makeOfflineScanResponse(prediction, localFileUrl);
+  await displayScanResponse(response, file, localFileUrl, true);
+}
+
+async function displayScanResponse(data, file, localFileUrl, localOnly = false) {
+  await new Promise(resolve => setTimeout(resolve, 450));
+  const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
+  const supportedDiseaseKeys = new Set(['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro']);
+  const confidence = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== ''
+    ? Number(scan.confidence)
+    : null;
+  const confidenceIsValid = confidence === null || (Number.isFinite(confidence) && confidence >= 0 && confidence <= 100);
+  const diagnosisIsValid = data && data.success === true && data.recognized === true &&
+    data.rice_leaf_validated === true && data.validation && data.validation.rice_leaf === true &&
+    data.quality && data.quality.status === 'passed' && scan && scan.recognized === true &&
+    supportedDiseaseKeys.has(scan.disease_key) && typeof scan.disease === 'string' &&
+    scan.disease.trim().length > 0 && confidenceIsValid;
+  const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
+
+  if (diagnosisIsValid && (recordWasSaved || isGuestMode() || localOnly || data.local_only === true)) {
+    if (isGuestMode() || localOnly || data.local_only === true) {
+      scan.local_only = true;
+      scan.saved = false;
+      scan.image_url = localFileUrl || scan.image_url || '';
+      try {
+        scan.id = await saveGuestScanRecord(scan, file);
+        scan.saved = true;
+      } catch (storageError) {
+        console.warn('The scan was classified locally but could not be saved on this device:', storageError);
+      }
+    } else {
+      scan.saved = true;
+    }
+    if (!scan.image_url || (scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+      scan.image_url = localFileUrl || scan.image_url;
+    }
+    applyScanResult(scan);
+  } else {
+    showUnrecognizedScreen({
+      ...data,
+      reason: diagnosisIsValid && !recordWasSaved
+        ? 'record_save_failed'
+        : (data.reason || 'uncertain_prediction'),
+    });
+  }
+}
+
+async function uploadAndAnalyze(file) {
+  if (file && file.size > 10 * 1024 * 1024) {
+    showUnrecognizedScreen({ reason: 'upload_too_large' });
     return;
   }
 
@@ -2444,6 +2571,16 @@ async function uploadAndAnalyze(file) {
       }
     }, delay);
   });
+
+  if (isGuestMode() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+    try {
+      await scanWithOfflineModel(file, localFileUrl);
+    } catch (error) {
+      console.error('Offline scan error:', error);
+      showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
+    }
+    return;
+  }
 
   const formData = new FormData();
   formData.append('image', file);
@@ -2489,58 +2626,20 @@ async function uploadAndAnalyze(file) {
       return;
     }
 
-    // Mark step 4 as complete
-    const step4 = document.getElementById('step4');
-    if (step4) {
-      step4.classList.add('done');
-      const sc = step4.querySelector('.step-check');
-      if (sc) sc.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-    }
-
-    setTimeout(async () => {
-      const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
-      const supportedDiseaseKeys = new Set(['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro']);
-      const confidence = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== ''
-        ? Number(scan.confidence)
-        : null;
-      const confidenceIsValid = confidence === null || (Number.isFinite(confidence) && confidence >= 0 && confidence <= 100);
-      const diagnosisIsValid = res.ok && data && data.success === true && data.recognized === true &&
-        data.rice_leaf_validated === true && data.validation && data.validation.rice_leaf === true &&
-        data.quality && data.quality.status === 'passed' && scan && scan.recognized === true &&
-        supportedDiseaseKeys.has(scan.disease_key) && typeof scan.disease === 'string' &&
-        scan.disease.trim().length > 0 && confidenceIsValid;
-      const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
-
-      if (diagnosisIsValid && (recordWasSaved || isGuestMode())) {
-        if (isGuestMode()) {
-          data.scan.local_only = true;
-          data.scan.saved = false;
-          data.scan.image_url = localFileUrl || data.scan.image_url || '';
-          try {
-            data.scan.id = await saveGuestScanRecord(data.scan, file);
-            data.scan.saved = true;
-          } catch (storageError) {
-            console.warn('Guest scan could not be stored locally:', storageError);
-          }
-        } else {
-          data.scan.saved = true;
-        }
-        if (!data.scan.image_url || (data.scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
-          data.scan.image_url = localFileUrl || data.scan.image_url;
-        }
-        applyScanResult(data.scan);
-      } else {
-        showUnrecognizedScreen({
-          ...data,
-          reason: diagnosisIsValid && !recordWasSaved
-            ? 'record_save_failed'
-            : (data.reason || 'uncertain_prediction'),
-        });
-      }
-    }, 450);
+    completeScanProgress();
+    await displayScanResponse(data, file, localFileUrl);
   } catch (err) {
     console.error('Upload and scan error:', err);
-    showUnrecognizedScreen({ reason: isGuestMode() && typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline_browser_scan' : 'server_error' });
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      try {
+        await scanWithOfflineModel(file, localFileUrl);
+      } catch (offlineError) {
+        console.error('Offline scan fallback error:', offlineError);
+        showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
+      }
+    } else {
+      showUnrecognizedScreen({ reason: 'server_error' });
+    }
   }
 }
 
@@ -2556,7 +2655,7 @@ function showUnrecognizedScreen(data) {
     upload_too_large: { en: 'Image File Too Large', tl: 'Masyadong Malaki ang Larawan' },
     unsupported_image: { en: 'Unsupported Image', tl: 'Hindi Suportadong Uri ng Larawan' },
     authentication_required: { en: 'Sign-in Required', tl: 'Kailangang Mag-sign In' },
-    offline_browser_scan: { en: 'Internet Needed in This Browser', tl: 'Kailangan ng Internet sa Browser na Ito' },
+    offline_model_unavailable: { en: 'Offline Scanner Not Ready', tl: 'Hindi Pa Handa ang Offline Scanner' },
     guest_scan_limit: { en: 'Guest Scan Limit Reached', tl: 'Naabot ang Limit ng Guest Scan' },
     record_save_failed: { en: 'Scan Not Saved', tl: 'Hindi Na-save ang Scan' },
     server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
@@ -2599,9 +2698,9 @@ function showUnrecognizedScreen(data) {
         en: 'Your session may have expired. Sign in again, then retry the scan.',
         tl: 'Maaaring nag-expire ang iyong session. Mag-sign in muli at subukan ang pag-scan.',
       },
-      offline_browser_scan: {
-        en: 'This browser cannot run the rice-leaf model offline yet. Connect to the internet to scan here, or use the Oryzatix mobile app for offline scanning.',
-        tl: 'Hindi pa kayang magpatakbo ng rice-leaf model offline ang browser na ito. Kumonekta sa internet para mag-scan rito, o gamitin ang Oryzatix mobile app para mag-scan offline.',
+      offline_model_unavailable: {
+        en: 'The offline scanner files are not ready on this device. Connect to the internet, reopen Oryzatix once to download them, then try again.',
+        tl: 'Hindi pa handa ang offline scanner files sa device na ito. Kumonekta sa internet at buksan muli ang Oryzatix para ma-download ang mga ito, saka subukan ulit.',
       },
       guest_scan_limit: {
         en: 'The guest scan limit was reached. Wait a minute before scanning again.',

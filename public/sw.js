@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v10';
+const CACHE_NAME = 'oryzatix-pwa-v11';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -10,15 +10,37 @@ const PRECACHE_ASSETS = [
     './images/icons/icon-192.png',
     './images/icons/icon-512.png'
 ];
+const OFFLINE_SCANNER_ASSETS = [
+    './models/class_labels.json',
+    './models/mobilenetv2_rice_leaf.tflite',
+    './models/rice_leaf_validator.tflite',
+    './models/scan_validation_thresholds.json',
+    './litert/litert_wasm_internal.js',
+    './litert/litert_wasm_internal.wasm'
+];
+
+async function precacheOfflineScannerEntry(cache) {
+    const manifestUrl = new URL('./build/manifest.json', self.location.href);
+    const response = await fetch(manifestUrl);
+    if (!response.ok) throw new Error('The Vite manifest could not be cached.');
+    await cache.put(manifestUrl, response.clone());
+
+    const manifest = await response.json();
+    const entry = manifest['resources/js/offline-scanner.js'];
+    if (!entry?.file) throw new Error('The offline scanner entry is missing from the Vite manifest.');
+
+    const entryFiles = [entry.file, ...(entry.css || [])];
+    await Promise.all(entryFiles.map(file => cache.add(new URL(`./build/${file}`, self.location.href))));
+}
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
-            // Precache with error resilience so a single 404 does not fail installation
-            await Promise.allSettled(
-                PRECACHE_ASSETS.map((asset) => cache.add(asset).catch(() => {}))
-            );
-        }).then(() => self.skipWaiting())
+            await Promise.allSettled(PRECACHE_ASSETS.map(asset => cache.add(asset)));
+            await Promise.all(OFFLINE_SCANNER_ASSETS.map(asset => cache.add(asset)));
+            await precacheOfflineScannerEntry(cache);
+            await self.skipWaiting();
+        })
     );
 });
 
@@ -39,8 +61,7 @@ self.addEventListener('fetch', (event) => {
     if (
         url.pathname.includes('/api/') ||
         url.pathname.includes('/sanctum/') ||
-        url.pathname.includes('/auth/google') ||
-        url.pathname.includes('/build/')
+        url.pathname.includes('/auth/google')
     ) {
         return;
     }
