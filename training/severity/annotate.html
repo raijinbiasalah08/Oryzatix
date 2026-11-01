@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Oryzatix severity annotation</title>
+<style>
+body{font:16px system-ui;margin:24px auto;max-width:1000px;padding:0 16px;color:#163e2a;background:#f6faf7}h1{font-size:26px}button,input,select{font:inherit;margin:6px;padding:8px}button{cursor:pointer}#stage{position:relative;width:100%;background:#ddd;line-height:0}canvas{width:100%;height:auto}#overlay{position:absolute;inset:0;touch-action:none;cursor:crosshair}p{line-height:1.5}.notice{padding:12px;background:#fff2cd;border-radius:8px}
+</style>
+<h1>Mark rice leaf and affected regions</h1>
+<p>This tool runs locally. Paint all visible leaf tissue in green, then affected tissue in red. Black pixels in the exported mask are background. Review edges and small lesions carefully.</p>
+<p class="notice">Annotations need agricultural review. Painting or exporting a mask does not certify it as correct. Use individual leaves; do not estimate whole-field severity from a landscape photo.</p>
+<label>Photos <input id="photo" type="file" accept="image/*" multiple></label>
+<label>Current photo <select id="queue" disabled></select></label>
+<button id="previous" disabled>Previous photo</button><button id="next" disabled>Next photo</button>
+<label>Load saved mask for current photo <input id="maskFile" type="file" accept="image/png" disabled></label>
+<div>
+<label>Paint <select id="brush"><option value="1">Leaf (green)</option><option value="2">Affected (red)</option><option value="0">Background / erase</option></select></label>
+<label>Brush size <input id="size" type="range" min="1" max="100" value="20"></label>
+<label><input id="visible" type="checkbox" checked>Show mask</label>
+<button id="undo" disabled>Undo stroke</button><button id="reset" disabled>Clear mask</button>
+<button id="export" disabled>Export mask PNG</button>
+</div>
+<p id="status" role="status">Choose a photo to start.</p>
+<div id="stage"><canvas id="image"></canvas><canvas id="overlay"></canvas></div>
+<p>Keep the original photo. Exported masks use its upright, EXIF-corrected dimensions. Add photo/mask paths to a manifest using the accompanying example, and mark reviewed only after review.</p>
+<script>
+const el=id=>document.getElementById(id);
+const image=el('image'), overlay=el('overlay'), mask=document.createElement('canvas');
+const ctx=mask.getContext('2d',{willReadFrequently:true});
+const preview=overlay.getContext('2d');
+let loaded=false, drawing=false, dirty=false, previous=null, name='leaf', history=[];
+let photos=[], current=0, loading=false;
+function redraw(){
+ const pixels=ctx.getImageData(0,0,mask.width,mask.height), display=preview.createImageData(mask.width,mask.height);
+ for(let i=0;i<pixels.data.length;i+=4){
+  const value=pixels.data[i];
+  if(value===1){display.data[i]=20;display.data[i+1]=210;display.data[i+2]=80;display.data[i+3]=100;}
+  if(value===2){display.data[i]=240;display.data[i+1]=40;display.data[i+2]=40;display.data[i+3]=155;}
+ }
+ preview.putImageData(display,0,0);overlay.style.opacity=el('visible').checked?'1':'0';
+ el('undo').disabled=!history.length;
+}
+function point(event){const r=overlay.getBoundingClientRect();return {x:(event.clientX-r.left)*mask.width/r.width,y:(event.clientY-r.top)*mask.height/r.height};}
+function dot(x,y){
+ const value=Number(el('brush').value), radius=Number(el('size').value)*mask.width/overlay.getBoundingClientRect().width/2;
+ // Write class IDs directly; anti-aliased canvas paint would corrupt 0/1/2 labels.
+ const left=Math.max(0,Math.floor(x-radius)),top=Math.max(0,Math.floor(y-radius));
+ const right=Math.min(mask.width,Math.ceil(x+radius)),bottom=Math.min(mask.height,Math.ceil(y+radius));
+ if(right<=left||bottom<=top)return;
+ const pixels=ctx.getImageData(left,top,right-left,bottom-top);
+ for(let yy=top;yy<bottom;yy++)for(let xx=left;xx<right;xx++)if((xx-x)**2+(yy-y)**2<=radius**2){
+  const i=((yy-top)*pixels.width+xx-left)*4;
+  pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;pixels.data[i+3]=255;
+ }
+ ctx.putImageData(pixels,left,top);
+}
+function paint(event){
+ if(!drawing)return;
+ const p=point(event), dx=p.x-previous.x,dy=p.y-previous.y;
+ const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/Math.max(1,Number(el('size').value)*mask.width/overlay.clientWidth/4)));
+ for(let i=1;i<=steps;i++)dot(previous.x+dx*i/steps,previous.y+dy*i/steps);
+ previous=p;dirty=true;redraw();
+}
+async function loadPhoto(file){
+ if(!file||loading)return false;
+ if(dirty&&!confirm('Discard the current unsaved mask?'))return false;
+ loading=true;
+ try{
+  const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+  if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('Use a photo of at most 16 megapixels to limit annotation memory.');}
+  for(const c of [image,overlay,mask]){c.width=bitmap.width;c.height=bitmap.height;}
+  image.getContext('2d').drawImage(bitmap,0,0);bitmap.close();
+  ctx.fillStyle='black';ctx.fillRect(0,0,mask.width,mask.height);
+  name=file.name.replace(/\.[^.]+$/,'');history=[];loaded=true;dirty=false;redraw();
+  el('reset').disabled=el('export').disabled=el('maskFile').disabled=false;
+  el('maskFile').value='';
+  el('status').textContent='Paint the whole visible leaf, then its affected regions. Nothing is uploaded.';
+  return true;
+ }catch(error){el('status').textContent=error.message;return false;}
+ finally{loading=false;}
+}
+function updateQueue(){
+ el('queue').value=String(current);el('queue').disabled=!photos.length;
+ el('previous').disabled=current===0;el('next').disabled=current>=photos.length-1;
+}
+async function goTo(index){
+ if(index<0||index>=photos.length)return;
+ if(await loadPhoto(photos[index]))current=index;
+ updateQueue();
+}
+el('photo').onchange=async event=>{
+ const files=Array.from(event.target.files).sort((a,b)=>a.name.localeCompare(b.name));
+ if(!files.length||!await loadPhoto(files[0]))return;
+ photos=files;current=0;el('queue').replaceChildren();
+ photos.forEach((file,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`${index+1}/${photos.length} — ${file.name}`;el('queue').appendChild(option);});
+ updateQueue();
+};
+el('queue').onchange=()=>goTo(Number(el('queue').value));
+el('previous').onclick=()=>goTo(current-1);
+el('next').onclick=()=>goTo(current+1);
+el('maskFile').onchange=async event=>{
+ const file=event.target.files[0];if(!file||!loaded||loading)return;
+ if(dirty&&!confirm('Replace the current unsaved mask?'))return;
+ loading=true;
+ try{
+  const bitmap=await createImageBitmap(file);
+  if(bitmap.width!==mask.width||bitmap.height!==mask.height){bitmap.close();throw Error('Mask dimensions must match the current photo.');}
+  const scratch=document.createElement('canvas');scratch.width=mask.width;scratch.height=mask.height;
+  const scratchContext=scratch.getContext('2d');scratchContext.drawImage(bitmap,0,0);bitmap.close();
+  const pixels=scratchContext.getImageData(0,0,mask.width,mask.height);
+  for(let i=0;i<pixels.data.length;i+=4){
+   if(pixels.data[i]>2||pixels.data[i]!==pixels.data[i+1]||pixels.data[i]!==pixels.data[i+2]||pixels.data[i+3]!==255)throw Error('Expected an opaque mask containing class IDs 0, 1, and 2.');
+  }
+  ctx.putImageData(pixels,0,0);history=[];dirty=false;redraw();
+  el('status').textContent='Saved mask loaded. Check it against the photo and correct any errors before review approval.';
+ }catch(error){el('status').textContent=error.message;}
+ finally{loading=false;}
+};
+overlay.onpointerdown=event=>{
+ if(!loaded||loading)return;event.preventDefault();overlay.setPointerCapture(event.pointerId);
+ // Limit undo storage to roughly 64 MB, with at least one stroke.
+ const limit=Math.max(1,Math.floor(64000000/(mask.width*mask.height*4)));
+ while(history.length>=limit)history.shift();
+ history.push(ctx.getImageData(0,0,mask.width,mask.height));drawing=true;previous=point(event);paint(event);
+};
+overlay.onpointermove=paint;
+overlay.onpointerup=overlay.onpointercancel=()=>{drawing=false;previous=null;};
+el('visible').onchange=()=>{if(loaded)redraw();};
+el('undo').onclick=()=>{if(history.length){ctx.putImageData(history.pop(),0,0);dirty=true;redraw();}};
+el('reset').onclick=()=>{if(confirm('Clear the mask?')){ctx.fillStyle='black';ctx.fillRect(0,0,mask.width,mask.height);history=[];dirty=true;redraw();}};
+el('export').onclick=()=>{
+ const pixels=ctx.getImageData(0,0,mask.width,mask.height).data;
+ let leaf=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]>0)leaf++;
+ if(!leaf){el('status').textContent='Mark the leaf before exporting.';return;}
+ const exportName=name;
+ mask.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=exportName+'-mask.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);if(name===exportName){dirty=false;el('status').textContent='Mask exported. Obtain review before marking the manifest record as reviewed.';}},'image/png');
+};
+window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
+</script>
+</html>

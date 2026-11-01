@@ -1,5 +1,13 @@
 # Train and run the Oryzatix scan models
 
+## Automatic severity preparation
+
+The current disease classifier does not predict affected leaf area. The separate
+[severity training setup](severity/README.md) includes a local mask annotation tool,
+reviewed-data validation, and a MobileNetV2 segmentation trainer with TFLite export
+and held-out evaluation. No trained severity model is available yet; reviewed leaf
+and affected-region masks are required before training and deployment.
+
 ## Scanner orientation upgrade — October 31, 2026
 
 The server now averages the disease model's probabilities over the original image and its 90°, 180°, and 270° rotations. Each view contains the entire leaf image. The interpreter is reused across views. The rice/non-rice and focus gates still run before disease classification. This costs four disease-model invocations per scan instead of one.

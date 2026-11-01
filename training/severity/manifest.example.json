@@ -1,0 +1,32 @@
+[
+  {
+    "image": "images/train-leaf.jpg",
+    "mask": "masks/train-leaf.png",
+    "group_id": "plant-session-1",
+    "disease": "blb",
+    "split": "train",
+    "reviewed": false,
+    "reviewer": "",
+    "group_confirmed": false
+  },
+  {
+    "image": "images/validation-leaf.jpg",
+    "mask": "masks/validation-leaf.png",
+    "group_id": "plant-session-2",
+    "disease": "blb",
+    "split": "validation",
+    "reviewed": false,
+    "reviewer": "",
+    "group_confirmed": false
+  },
+  {
+    "image": "images/test-leaf.jpg",
+    "mask": "masks/test-leaf.png",
+    "group_id": "plant-session-3",
+    "disease": "blb",
+    "split": "test",
+    "reviewed": false,
+    "reviewer": "",
+    "group_confirmed": false
+  }
+]
