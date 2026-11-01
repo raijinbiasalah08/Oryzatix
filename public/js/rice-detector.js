@@ -2820,6 +2820,12 @@ function formatConfidencePercent(value) {
   return confidence.toFixed(1) + '%';
 }
 
+function hasResolvedSeverity(scan) {
+  return !!scan
+    && ['expert_validated', 'user_assessed', 'user_selected', 'model_estimated'].includes(scan.severity_status)
+    && ['mild', 'moderate', 'severe'].includes(scan.severity);
+}
+
 function getDefaultTreatments(key, severity = 'moderate') {
   if (key === 'blast') {
     if (severity === 'mild') {
@@ -3319,7 +3325,7 @@ function renderResultLanguage() {
   const scan = currentScanResult;
   const lang = currentResultLang || 'english';
   const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
-  const severityNeedsAssessment = !isHealthy && !['expert_validated', 'user_assessed'].includes(scan.severity_status);
+  const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
   const key = scan.disease_key || (isHealthy ? 'healthy' : 'blast');
   const diseaseData = RESULT_TRANSLATIONS.diseases[key] || (isHealthy ? RESULT_TRANSLATIONS.diseases.healthy : RESULT_TRANSLATIONS.diseases.blast);
   const localized = diseaseData[lang] || diseaseData.english;
@@ -3420,7 +3426,7 @@ function renderResultTreatments(scan, lang) {
   }
 
   const key = scan.disease_key || 'blast';
-  const severityNeedsAssessment = !isHealthy && !['expert_validated', 'user_assessed'].includes(scan.severity_status);
+  const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
   const severity = scan.severity || 'unassessed';
   const data = severityNeedsAssessment
     ? (scan.treatments || { chemical: [], organic: [] })
@@ -4076,7 +4082,7 @@ function loadCurrentTreatment() {
   const s = currentScanResult;
   const key = s.disease_key || 'blast';
   const manualGuide = s.treatment_source === 'manual_guide';
-  const severityNeedsAssessment = !['expert_validated', 'user_selected', 'not_applicable'].includes(s.severity_status) && s.severity !== 'healthy';
+  const severityNeedsAssessment = s.severity !== 'healthy' && !hasResolvedSeverity(s);
   const curSeverity = severityNeedsAssessment ? 'unassessed' : (s.severity || 'moderate');
   const isMultiSev = (key === 'blb' || key === 'tungro' || key === 'blast' || key === 'brown_spot' || key === 'sheath_blight');
 
@@ -4133,9 +4139,13 @@ function loadCurrentTreatment() {
     }
   }
 
-  const treat = severityNeedsAssessment
-    ? (s.treatments || { chemical: [], organic: [] })
-    : (s.treatments || getDefaultTreatments(key, curSeverity));
+  const suppliedTreatments = s.treatments || {};
+  const hasSuppliedTreatments = (suppliedTreatments.chemical || []).length > 0 || (suppliedTreatments.organic || []).length > 0;
+  const treat = hasSuppliedTreatments
+    ? suppliedTreatments
+    : severityNeedsAssessment
+      ? { chemical: [], organic: [] }
+      : getDefaultTreatments(key, curSeverity);
   const chemList = document.getElementById('chemicalList');
   const orgList = document.getElementById('organicList');
   if (chemList) chemList.innerHTML = renderTreatmentItems(treat.chemical || []);

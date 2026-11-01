@@ -1354,8 +1354,9 @@ class RiceScanController extends Controller
             $severityStatus = 'model_estimated';
         }
 
-        // This classifier does not measure lesion area. Suppress disease-specific
-        // dosage suggestions until severity is independently assessed.
+        // Use the resolved severity category to select matching guidance. The
+        // disease and severity models remain separate, but treatment guidance
+        // should follow the category returned with this scan.
         $treatments = $selectedDiseaseKey === 'healthy'
             ? ($disease['treatments'] ?? ['chemical' => [], 'organic' => []])
             : ['chemical' => [], 'organic' => []];
@@ -1363,7 +1364,10 @@ class RiceScanController extends Controller
         $agriculturalStrategies = null;
         $productivityImpact = null;
 
-        if ($severityStatus !== 'model_estimated' && in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true) && isset($disease['severity_levels'][$severity])) {
+        if (in_array($severityStatus, ['expert_validated', 'user_assessed', 'model_estimated'], true)
+            && in_array($severity, ['mild', 'moderate', 'severe'], true)
+            && in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true)
+            && isset($disease['severity_levels'][$severity])) {
             $treatments = [
                 'chemical' => $disease['severity_levels'][$severity]['chemical'],
                 'organic' => $disease['severity_levels'][$severity]['organic'],
@@ -1517,11 +1521,23 @@ class RiceScanController extends Controller
                     $estimated = $scan->severity_source === 'model_estimated' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
                     $displaySeverity = $isHealthy ? 'healthy' : (($manual || $estimated) ? $scan->severity : 'unassessed');
                     $severityClass = $displaySeverity . '-bg';
+                    $diseaseKey = $this->diseaseKeyFromName($scan->disease_name);
+                    $severityInfo = !$isHealthy && ($manual || $estimated) && $diseaseKey
+                        ? ($this->diseases[$diseaseKey]['severity_levels'][$displaySeverity] ?? null)
+                        : null;
+                    $scanTreatments = $severityInfo
+                        ? [
+                            'chemical' => $severityInfo['chemical'] ?? [],
+                            'organic' => $severityInfo['organic'] ?? [],
+                            'level_info' => $severityInfo,
+                        ]
+                        : ($isHealthy ? $scan->treatment_recommendation : null);
 
                     $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
 
                     return [
                         'id' => $scan->id,
+                        'disease_key' => $diseaseKey,
                         'disease' => $scan->disease_name,
                         'scientific' => $scan->scientific_name,
                         'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
@@ -1535,9 +1551,7 @@ class RiceScanController extends Controller
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,
                         'image_url' => $scanImageUrl,
-                        // Legacy records may contain dosage suggestions selected
-                        // from guessed severity. Do not replay those as measured advice.
-                        'treatments' => $isHealthy ? $scan->treatment_recommendation : null,
+                        'treatments' => $scanTreatments,
                     ];
                 });
             }

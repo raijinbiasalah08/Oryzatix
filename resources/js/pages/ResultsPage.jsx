@@ -225,12 +225,11 @@ export default function ResultsPage() {
     const measuredSeverity = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== undefined && scan.affected_percentage !== '' && Number.isFinite(area) && area >= 0 && area <= 100
         ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe')
         : null;
-    const experimentalSeverity = scan.severity_status === 'model_estimated';
     const severityLevel = measuredSeverity || (['user_assessed', 'model_estimated'].includes(scan.severity_status) && severityLevels.includes(scan.severity) ? scan.severity : null);
     let symptomsText = '';
     if (isHealthy && typeof localizedData?.symptoms === 'string') {
         symptomsText = localizedData.symptoms;
-    } else if (severityLevel && !experimentalSeverity && localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
+    } else if (severityLevel && localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
         symptomsText = localizedData.symptoms[severityLevel] || localizedData.symptoms.moderate || '';
     } else if (!isHealthy) {
         symptomsText = t(
