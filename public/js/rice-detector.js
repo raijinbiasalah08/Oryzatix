@@ -4698,6 +4698,8 @@ function confirmClearChat() {
 let isAiVoiceMuted = typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem('oryzatix_ai_voice_muted') === 'true' : false;
 let currentSpeakingBtn = null;
 let isConsultationSending = false;
+let speechPlaybackToken = 0;
+let isSpeechPlaybackActive = false;
 
 function initAiVoiceMuteUI() {
   const btn = document.getElementById('aiMuteToggleBtn');
@@ -4735,13 +4737,16 @@ function toggleAiVoiceMute() {
 }
 
 function stopAiSpeech() {
+  speechPlaybackToken += 1;
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
+  isSpeechPlaybackActive = false;
   if (currentSpeakingBtn) {
     currentSpeakingBtn.classList.remove('speaking');
     const span = currentSpeakingBtn.querySelector('span');
     if (span) span.textContent = 'Read';
+    currentSpeakingBtn.title = 'Read aloud / Stop';
     currentSpeakingBtn = null;
   }
 }
@@ -4749,16 +4754,83 @@ function stopAiSpeech() {
 function getCleanSpeechText(rawText) {
   if (!rawText) return '';
   const tmp = document.createElement('div');
-  tmp.innerHTML = rawText;
-  return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+  tmp.innerHTML = String(rawText);
+
+  // Preserve natural pauses between formatted paragraphs, list items and headings.
+  tmp.querySelectorAll('br').forEach((lineBreak) => {
+    lineBreak.replaceWith(document.createTextNode('. '));
+  });
+  tmp.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote').forEach((block) => {
+    block.insertAdjacentText('afterend', '. ');
+  });
+
+  return (tmp.textContent || tmp.innerText || '')
+    .replace(/(^|\n)\s*#{1,6}\s*/g, '$1')
+    .replace(/(^|\s)(?:[-*•]|\d+[.)])\s+/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\r?\n+/g, '. ')
+    .replace(/([.!?])(?:\s*[.!?])+/g, '$1')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.,;:]+|[\s.,;:]+$/g, '')
+    .trim();
+}
+
+function getSpeechLanguageCode(language) {
+  const normalized = String(language || '').trim().toLowerCase().replace(/_/g, '-');
+  if (/^(en|english)(-|$)/.test(normalized)) return 'en-US';
+  if (/^(fil|tl|tagalog|filipino)(-|$)/.test(normalized)) return 'fil-PH';
+
+  const uiLanguage = (document.getElementById('uiLanguage') || {}).value || 'english';
+  return uiLanguage === 'tagalog' ? 'fil-PH' : 'en-US';
+}
+
+function getPreferredSpeechVoice(languageCode) {
+  if (typeof window.speechSynthesis.getVoices !== 'function') return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const target = languageCode.toLowerCase();
+  const isTagalog = target.startsWith('fil-');
+  const targetFamily = isTagalog ? /^(fil|tl)(-|$)/i : /^en(-|$)/i;
+  const candidates = voices.filter((voice) => targetFamily.test(String(voice.lang || '')));
+  if (!candidates.length) return null;
+
+  const scoreVoice = (voice) => {
+    const voiceLang = String(voice.lang || '').toLowerCase();
+    const voiceName = String(voice.name || '');
+    let score = 0;
+    if (voiceLang === target) score += 100;
+    if (isTagalog && /tagalog|filipino/i.test(voiceName)) score += 30;
+    if (/natural|neural|premium/i.test(voiceName)) score += 10;
+    if (voice.localService) score += 1;
+    return score;
+  };
+
+  return candidates.sort((a, b) => scoreVoice(b) - scoreVoice(a))[0] || null;
 }
 
 function speakText(rawText, lang, btnElement) {
   if (!isConsultationOnline()) return;
-  if (!('speechSynthesis' in window)) return;
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+    if (btnElement) {
+      const label = btnElement.querySelector('span');
+      const originalLabel = label ? label.textContent : '';
+      if (label) label.textContent = 'Audio unavailable';
+      btnElement.title = 'Text-to-speech is not available in this browser';
+      setTimeout(() => {
+        if (label && label.textContent === 'Audio unavailable') label.textContent = originalLabel || 'Read';
+        btnElement.title = 'Read aloud / Stop';
+      }, 2500);
+    }
+    return;
+  }
 
   // Toggle stop if already speaking this bubble
-  if (currentSpeakingBtn === btnElement && window.speechSynthesis.speaking) {
+  if (btnElement && currentSpeakingBtn === btnElement && isSpeechPlaybackActive) {
     stopAiSpeech();
     return;
   }
@@ -4773,21 +4845,32 @@ function speakText(rawText, lang, btnElement) {
   const clean = getCleanSpeechText(rawText);
   if (!clean) return;
 
+  const languageCode = getSpeechLanguageCode(lang);
+  const voice = getPreferredSpeechVoice(languageCode);
   const utter = new SpeechSynthesisUtterance(clean);
-  utter.lang = lang === 'english' ? 'en-US' : 'fil-PH';
-  utter.rate = 0.95;
+  utter.lang = voice && voice.lang ? voice.lang : languageCode;
+  if (voice) utter.voice = voice;
+  utter.rate = 0.88;
   utter.pitch = 1.0;
+  utter.volume = 1.0;
+
+  const playbackToken = speechPlaybackToken;
+  isSpeechPlaybackActive = true;
 
   if (btnElement) {
     currentSpeakingBtn = btnElement;
     btnElement.classList.add('speaking');
+    btnElement.title = 'Stop reading';
     const span = btnElement.querySelector('span');
     if (span) span.textContent = 'Stop';
   }
 
   utter.onend = () => {
+    if (playbackToken !== speechPlaybackToken) return;
+    isSpeechPlaybackActive = false;
     if (btnElement) {
       btnElement.classList.remove('speaking');
+      btnElement.title = 'Read aloud / Stop';
       const span = btnElement.querySelector('span');
       if (span) span.textContent = 'Read';
     }
@@ -4795,15 +4878,28 @@ function speakText(rawText, lang, btnElement) {
   };
 
   utter.onerror = () => {
+    if (playbackToken !== speechPlaybackToken) return;
+    isSpeechPlaybackActive = false;
     if (btnElement) {
       btnElement.classList.remove('speaking');
       const span = btnElement.querySelector('span');
-      if (span) span.textContent = 'Read';
+      if (span) span.textContent = 'Audio unavailable';
+      btnElement.title = 'Audio playback failed. Check that your device has a speech voice installed.';
+      setTimeout(() => {
+        if (span && !btnElement.classList.contains('speaking') && span.textContent === 'Audio unavailable') {
+          span.textContent = 'Read';
+          btnElement.title = 'Read aloud / Stop';
+        }
+      }, 2500);
     }
     if (currentSpeakingBtn === btnElement) currentSpeakingBtn = null;
   };
 
-  window.speechSynthesis.speak(utter);
+  try {
+    window.speechSynthesis.speak(utter);
+  } catch (error) {
+    utter.onerror(error);
+  }
 }
 
 function toggleSpeechBubble(btn) {
