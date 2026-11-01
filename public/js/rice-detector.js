@@ -2302,6 +2302,7 @@ async function uploadAndAnalyze(file) {
         scan.disease.trim().length > 0 && confidenceIsValid;
 
       if (diagnosisIsValid) {
+        data.scan.saved = data.saved === true;
         if (!data.scan.image_url || (data.scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
           data.scan.image_url = localFileUrl || data.scan.image_url;
         }
@@ -2665,6 +2666,20 @@ function applyScanResult(scan) {
       sessionStorage.setItem('oryzatix_last_scan_result', JSON.stringify(scan));
     }
   } catch (e) { }
+
+  const saveStatus = document.getElementById('resultSaveStatus');
+  const saveStatusText = document.getElementById('resultSaveStatusText');
+  if (saveStatus && saveStatusText) {
+    const isSaved = scan.saved === true || Number(scan.id) > 0;
+    saveStatus.classList.toggle('is-saved', isSaved);
+    saveStatus.classList.toggle('is-not-saved', !isSaved);
+    saveStatusText.textContent = isSaved
+      ? 'Saved to Scan History & Records.'
+      : (currentUser
+        ? 'This scan could not be saved to your records. Please try again.'
+        : 'Sign in to save this scan to your history.');
+    saveStatus.style.display = 'flex';
+  }
 
   const imgCard = document.getElementById('resultImageCard');
   if (imgCard) {

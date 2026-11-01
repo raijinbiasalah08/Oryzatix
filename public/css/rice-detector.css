@@ -2677,6 +2677,28 @@ select {
   border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
+.scan-save-status {
+  align-items: center;
+  margin: -6px 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.scan-save-status.is-saved {
+  background: var(--green-100);
+  border-color: rgba(34, 197, 94, 0.25);
+  color: #166534;
+}
+
+.scan-save-status.is-not-saved {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
 .diag-icon {
   width: 48px;
   height: 48px;

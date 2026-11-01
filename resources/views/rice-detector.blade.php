@@ -807,6 +807,9 @@
             <p id="resultScientificName">Caused by <em>Magnaporthe oryzae</em></p>
           </div>
         </div>
+        <div class="scan-save-status" id="resultSaveStatus" role="status" aria-live="polite" style="display:none;">
+          <span id="resultSaveStatusText"></span>
+        </div>
 
         <div class="severity-meter">
           <h4 id="resultSeverityHeading">Severity Level & Leaf Area Affected</h4>

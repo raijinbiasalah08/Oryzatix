@@ -1382,10 +1382,15 @@ class RiceScanController extends Controller
             $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
             if ($user) {
                 $path = $file->store('scans', 'public');
-                $savedImagePath = $dataUrl ?: $path;
+                if (!$path) {
+                    throw new \RuntimeException('Uploaded scan image could not be stored.');
+                }
+
                 $scan = RiceScan::create([
                     'user_id' => $user->id,
-                    'image_path' => $savedImagePath,
+                    // Keep only the storage path in the VARCHAR column. The
+                    // optimized data URL is for the immediate response image.
+                    'image_path' => $path,
                     'disease_name' => $disease['name'],
                     'scientific_name' => $disease['scientific'],
                     'confidence' => $confidence !== null ? round($confidence, 2) : null,
@@ -1396,6 +1401,13 @@ class RiceScanController extends Controller
                 $saved = true;
             }
         } catch (\Throwable $e) {
+            if ($path) {
+                try {
+                    Storage::disk('public')->delete($path);
+                } catch (\Throwable $cleanupError) {
+                    Log::warning('Could not remove an unrecorded scan image: ' . $cleanupError->getMessage());
+                }
+            }
             Log::error('Failed to save scan to database: ' . $e->getMessage());
         }
 
@@ -1413,6 +1425,7 @@ class RiceScanController extends Controller
                 'recognized' => true,
                 'disease_key' => $selectedDiseaseKey,
                 'id' => $scanId,
+                'saved' => $saved,
                 'disease' => $disease['name'],
                 'scientific' => $disease['scientific'],
                 'analysis_source' => $isModelPrediction ? 'mobilenet_v2' : 'reference_match',
