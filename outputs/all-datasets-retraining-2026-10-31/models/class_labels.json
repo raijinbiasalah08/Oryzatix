@@ -1,0 +1,37 @@
+[
+  {
+    "index": 0,
+    "key": "blb",
+    "name": "Bacterial Leaf Blight"
+  },
+  {
+    "index": 1,
+    "key": "brown_spot",
+    "name": "Brown Spot"
+  },
+  {
+    "index": 2,
+    "key": "healthy",
+    "name": "Healthy Rice Leaf"
+  },
+  {
+    "index": 3,
+    "key": "sheath_blight",
+    "name": "Sheath Blight"
+  },
+  {
+    "index": 4,
+    "key": "tungro",
+    "name": "Tungro"
+  },
+  {
+    "index": 5,
+    "key": "blast",
+    "name": "Leaf Blast"
+  },
+  {
+    "index": 6,
+    "key": "not_rice_leaf",
+    "name": "Not a Rice Leaf"
+  }
+]

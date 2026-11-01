@@ -1,0 +1,195 @@
+{
+  "model_sha256": "4b088e0103affac144b48b98a0ca553459db9be72d8e005c8a9bc6d452a1016b",
+  "manifest_sha256": "b79c561eec92b2e83ce07e9709a6ebed22b247f09d0acd8c9a7c9c51d4fa5821",
+  "selection_split": "validation",
+  "scope": "Disease classifier only; existing quality and rice gate remain unchanged.",
+  "validation": {
+    "single_view": {
+      "images": 1165,
+      "accuracy": 0.9459227467811159,
+      "rice_disease_accuracy": 0.9101449275362319,
+      "macro_recall": 0.9195560943097938,
+      "accepted": 633,
+      "correct_accepted": 607,
+      "accepted_precision": 0.9589257503949447,
+      "per_class": {
+        "blb": {
+          "images": 39,
+          "recall": 0.9487179487179487,
+          "precision": 1.0
+        },
+        "brown_spot": {
+          "images": 164,
+          "recall": 0.8780487804878049,
+          "precision": 0.8674698795180723
+        },
+        "healthy": {
+          "images": 159,
+          "recall": 0.8930817610062893,
+          "precision": 0.9659863945578231
+        },
+        "sheath_blight": {
+          "images": 131,
+          "recall": 0.9923664122137404,
+          "precision": 0.948905109489051
+        },
+        "tungro": {
+          "images": 119,
+          "recall": 0.9831932773109243,
+          "precision": 0.9
+        },
+        "blast": {
+          "images": 78,
+          "recall": 0.7435897435897436,
+          "precision": 0.7837837837837838
+        },
+        "not_rice_leaf": {
+          "images": 475,
+          "recall": 0.9978947368421053,
+          "precision": 1.0
+        }
+      }
+    },
+    "four_views": {
+      "images": 1165,
+      "accuracy": 0.9605150214592275,
+      "rice_disease_accuracy": 0.9333333333333333,
+      "macro_recall": 0.9378553526680088,
+      "accepted": 634,
+      "correct_accepted": 611,
+      "accepted_precision": 0.9637223974763407,
+      "per_class": {
+        "blb": {
+          "images": 39,
+          "recall": 0.9487179487179487,
+          "precision": 1.0
+        },
+        "brown_spot": {
+          "images": 164,
+          "recall": 0.926829268292683,
+          "precision": 0.9047619047619048
+        },
+        "healthy": {
+          "images": 159,
+          "recall": 0.9182389937106918,
+          "precision": 0.9733333333333334
+        },
+        "sheath_blight": {
+          "images": 131,
+          "recall": 0.9847328244274809,
+          "precision": 0.9699248120300752
+        },
+        "tungro": {
+          "images": 119,
+          "recall": 0.9915966386554622,
+          "precision": 0.921875
+        },
+        "blast": {
+          "images": 78,
+          "recall": 0.7948717948717948,
+          "precision": 0.8378378378378378
+        },
+        "not_rice_leaf": {
+          "images": 475,
+          "recall": 1.0,
+          "precision": 1.0
+        }
+      }
+    }
+  },
+  "test": {
+    "single_view": {
+      "images": 1165,
+      "accuracy": 0.9536480686695279,
+      "rice_disease_accuracy": 0.9231884057971015,
+      "macro_recall": 0.9314491036140424,
+      "accepted": 626,
+      "correct_accepted": 594,
+      "accepted_precision": 0.9488817891373802,
+      "per_class": {
+        "blb": {
+          "images": 39,
+          "recall": 0.9743589743589743,
+          "precision": 1.0
+        },
+        "brown_spot": {
+          "images": 164,
+          "recall": 0.8902439024390244,
+          "precision": 0.9125
+        },
+        "healthy": {
+          "images": 159,
+          "recall": 0.949685534591195,
+          "precision": 0.94375
+        },
+        "sheath_blight": {
+          "images": 131,
+          "recall": 0.9847328244274809,
+          "precision": 0.9485294117647058
+        },
+        "tungro": {
+          "images": 119,
+          "recall": 0.9411764705882353,
+          "precision": 0.9491525423728814
+        },
+        "blast": {
+          "images": 78,
+          "recall": 0.782051282051282,
+          "precision": 0.7721518987341772
+        },
+        "not_rice_leaf": {
+          "images": 475,
+          "recall": 0.9978947368421053,
+          "precision": 1.0
+        }
+      }
+    },
+    "four_views": {
+      "images": 1165,
+      "accuracy": 0.9579399141630901,
+      "rice_disease_accuracy": 0.9304347826086956,
+      "macro_recall": 0.9371491109701655,
+      "accepted": 625,
+      "correct_accepted": 602,
+      "accepted_precision": 0.9632,
+      "per_class": {
+        "blb": {
+          "images": 39,
+          "recall": 0.9743589743589743,
+          "precision": 1.0
+        },
+        "brown_spot": {
+          "images": 164,
+          "recall": 0.8963414634146342,
+          "precision": 0.9245283018867925
+        },
+        "healthy": {
+          "images": 159,
+          "recall": 0.9622641509433962,
+          "precision": 0.95625
+        },
+        "sheath_blight": {
+          "images": 131,
+          "recall": 0.9847328244274809,
+          "precision": 0.9416058394160584
+        },
+        "tungro": {
+          "images": 119,
+          "recall": 0.9495798319327731,
+          "precision": 0.9338842975206612
+        },
+        "blast": {
+          "images": 78,
+          "recall": 0.7948717948717948,
+          "precision": 0.8157894736842105
+        },
+        "not_rice_leaf": {
+          "images": 475,
+          "recall": 0.9978947368421053,
+          "precision": 1.0
+        }
+      }
+    }
+  },
+  "selected_orientation_views": 4
+}

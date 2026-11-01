@@ -1,0 +1,109 @@
+{
+  "test_loss": 0.13212992250919342,
+  "test_accuracy": 0.9536480903625488,
+  "test_image_count": 1165,
+  "confusion_matrix": [
+    [
+      38,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      146,
+      2,
+      2,
+      0,
+      14,
+      0
+    ],
+    [
+      0,
+      1,
+      151,
+      1,
+      5,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      129,
+      0,
+      2,
+      0
+    ],
+    [
+      0,
+      0,
+      6,
+      0,
+      112,
+      1,
+      0
+    ],
+    [
+      0,
+      13,
+      0,
+      4,
+      0,
+      61,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      474
+    ]
+  ],
+  "class_order": [
+    "blb",
+    "brown_spot",
+    "healthy",
+    "sheath_blight",
+    "tungro",
+    "blast",
+    "not_rice_leaf"
+  ],
+  "per_class": {
+    "blb": {
+      "test_images": 39,
+      "accuracy": 0.9744
+    },
+    "brown_spot": {
+      "test_images": 164,
+      "accuracy": 0.8902
+    },
+    "healthy": {
+      "test_images": 159,
+      "accuracy": 0.9497
+    },
+    "sheath_blight": {
+      "test_images": 131,
+      "accuracy": 0.9847
+    },
+    "tungro": {
+      "test_images": 119,
+      "accuracy": 0.9412
+    },
+    "blast": {
+      "test_images": 78,
+      "accuracy": 0.7821
+    },
+    "not_rice_leaf": {
+      "test_images": 475,
+      "accuracy": 0.9979
+    }
+  }
+}

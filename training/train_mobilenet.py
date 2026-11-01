@@ -160,6 +160,10 @@ def make_dataset(tf: Any, records: list[dict[str, Any]], training: bool, batch_s
     paths = [str(row["path"]) for row in records]
     labels = [row["label"] for row in records]
     dataset = tf.data.Dataset.from_tensor_slices((paths, labels))
+    # Shuffle lightweight paths, not thousands of decoded float32 images.
+    # A full-image shuffle buffer previously consumed several GB of RAM.
+    if training:
+        dataset = dataset.shuffle(len(records), seed=SEED, reshuffle_each_iteration=True)
 
     def load_image(path, label):
         def decode_pillow(path_bytes):
@@ -183,10 +187,8 @@ def make_dataset(tf: Any, records: list[dict[str, Any]], training: bool, batch_s
             image = tf.clip_by_value(image, 0.0, 255.0)
         return image, label
 
-    dataset = dataset.map(load_image, num_parallel_calls=tf.data.AUTOTUNE)
-    if training:
-        dataset = dataset.shuffle(len(records), seed=SEED, reshuffle_each_iteration=True)
-    return dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    dataset = dataset.map(load_image, num_parallel_calls=2)
+    return dataset.batch(batch_size).prefetch(1)
 
 
 def build_model(tf: Any):

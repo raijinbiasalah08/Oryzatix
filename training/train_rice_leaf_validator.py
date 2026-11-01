@@ -191,8 +191,9 @@ def make_dataset(tf: Any, rows: list[dict[str, Any]], training: bool, batch_size
             image = tf.clip_by_value(image, 0.0, 255.0)
         return image, tf.cast(label, tf.float32)
 
-    dataset = dataset.map(load_image, num_parallel_calls=tf.data.AUTOTUNE)
-    return dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    # Bound concurrent image decoding and prefetch memory on CPU workstations.
+    dataset = dataset.map(load_image, num_parallel_calls=2)
+    return dataset.batch(batch_size).prefetch(1)
 
 
 def laplacian_variance(image: Image.Image) -> float:
@@ -437,10 +438,22 @@ def export_validator_tflite(tf: Any, model: Any, path: Path) -> None:
     def serving_fn(images):
         return {"rice_leaf_probability": model(images, training=False)}
 
-    converter = tf.lite.TFLiteConverter.from_concrete_functions(
-        [serving_fn.get_concrete_function()], model
-    )
-    path.write_bytes(converter.convert())
+    # Freeze Keras variables explicitly: the trackable conversion route can
+    # otherwise export an undersized graph with invalid (NaN) predictions.
+    from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
+    frozen = convert_variables_to_constants_v2(serving_fn.get_concrete_function())
+    converter = tf.lite.TFLiteConverter.from_concrete_functions([frozen])
+    converted = converter.convert()
+    interpreter = tf.lite.Interpreter(model_content=converted)
+    interpreter.allocate_tensors()
+    sample = np.full((1, IMAGE_SIZE, IMAGE_SIZE, 3), 127.0, dtype=np.float32)
+    interpreter.set_tensor(interpreter.get_input_details()[0]['index'], sample)
+    interpreter.invoke()
+    actual = interpreter.get_tensor(interpreter.get_output_details()[0]['index'])
+    expected = np.asarray(model(sample, training=False))
+    if not np.isfinite(actual).all() or not np.allclose(actual, expected, atol=1e-4, rtol=1e-4):
+        raise ValueError('TFLite export failed finite-output / Keras parity verification.')
+    path.write_bytes(converted)
 
 
 def summarize_predictions(tf: Any, model_path: Path, rows: list[dict[str, Any]], batch_size: int, threshold: float) -> dict[str, Any]:
