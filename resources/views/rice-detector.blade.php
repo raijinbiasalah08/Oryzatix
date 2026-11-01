@@ -1061,7 +1061,7 @@
       <section class="screen voice-companion" id="consultation">
         <div class="chat-header">
           <div class="ai-avatar">
-            <img src="{{ asset('images/oryzatix-rice-leaf-mascot.png') }}" alt="Oryzatix rice-leaf assistant" width="46" height="46" decoding="async">
+            <img src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="Oryzatix farm robot assistant" width="46" height="46" decoding="async">
           </div>
           <div class="chat-header-info">
             <h3>Rice AI Agricultural Assistant</h3>
@@ -1810,19 +1810,11 @@
 
   <button
     type="button"
-    class="oryzatix-leaf-assistant"
+    class="oryzatix-assistant-shortcut"
     onclick="showScreen('consultation');"
     aria-label="Open AI Consultant"
   >
-    <span class="oryzatix-leaf-assistant__mascot" aria-hidden="true">
-      <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--left">
-        <img src="{{ asset('images/oryzatix-rice-leaf-arm.png') }}" alt="" width="24" height="32" decoding="async">
-      </span>
-      <span class="oryzatix-leaf-assistant__arm oryzatix-leaf-assistant__arm--right">
-        <img src="{{ asset('images/oryzatix-rice-leaf-arm-right.png') }}" alt="" width="24" height="32" decoding="async">
-      </span>
-      <img class="oryzatix-leaf-assistant__body" src="{{ asset('images/oryzatix-rice-leaf-body.png') }}" alt="" width="72" height="72" decoding="async">
-    </span>
+    <img class="oryzatix-assistant-shortcut__character" src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="" width="539" height="384" decoding="async">
   </button>
 </div><!-- /.web-app-shell -->
 

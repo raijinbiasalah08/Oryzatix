@@ -444,7 +444,7 @@ button:disabled { cursor: not-allowed; }
   background: linear-gradient(145deg, #f2ffe5, #d9f99d);
   box-shadow: 0 7px 16px rgba(8, 123, 72, .13);
 }
-#consultation.voice-companion .ai-avatar img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+#consultation.voice-companion .ai-avatar img { width: 100%; height: 100%; object-fit: contain; }
 #consultation.voice-companion .chat-header-info h3 {
   color: #173a2b;
   font-size: 16px;
@@ -729,16 +729,16 @@ button:disabled { cursor: not-allowed; }
   .admin-stat-card, .admin-stat-card.executive { flex-direction: column; }
 }
 
-/* Floating rice-leaf companion shortcut to the AI Consultant. */
-.oryzatix-leaf-assistant {
+/* Floating farm-robot companion shortcut to the AI Consultant. */
+.oryzatix-assistant-shortcut {
   position: fixed;
-  right: max(24px, env(safe-area-inset-right, 0px));
-  bottom: 24px;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: 18px;
   z-index: 990;
   display: grid;
   place-items: center;
-  width: 82px;
-  height: 82px;
+  width: 144px;
+  height: 112px;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -751,102 +751,61 @@ button:disabled { cursor: not-allowed; }
   -webkit-tap-highlight-color: transparent;
 }
 
-.oryzatix-leaf-assistant:hover {
+.oryzatix-assistant-shortcut:hover {
   transform: translateY(-2px) scale(1.03);
 }
 
-.oryzatix-leaf-assistant:active { transform: scale(0.97); }
+.oryzatix-assistant-shortcut:active { transform: scale(0.97); }
 
-.oryzatix-leaf-assistant:focus-visible {
+.oryzatix-assistant-shortcut:focus-visible {
   outline: 3px solid #facc15;
   outline-offset: 1px;
-  border-radius: 18px;
 }
 
-.oryzatix-leaf-assistant__mascot {
-  position: relative;
+.oryzatix-assistant-shortcut__character {
   display: block;
-  width: 72px;
-  height: 72px;
-  overflow: visible;
-}
-
-.oryzatix-leaf-assistant__body {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  top: 0;
-  width: 72px;
-  height: 72px;
+  width: 140px;
+  height: 104px;
   object-fit: contain;
-  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 5px rgba(23, 48, 61, .16));
+  transform-origin: 50% 76%;
 }
 
-.oryzatix-leaf-assistant__arm {
-  position: absolute;
-  z-index: 3;
-  top: 30px;
-  width: 24px;
-  height: 32px;
-}
-
-.oryzatix-leaf-assistant__arm--left { left: -8px; }
-.oryzatix-leaf-assistant__arm--right { right: -8px; transform: scaleX(-1); }
-
-.oryzatix-leaf-assistant__arm img {
-  display: block;
-  width: 24px;
-  height: 32px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  transform-origin: 80% 90%;
-}
-
-@keyframes oryzatix-leaf-bob {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-3px) rotate(1.5deg); }
-}
-
-@keyframes oryzatix-leaf-wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-24deg); }
-  50% { transform: rotate(18deg); }
-  75% { transform: rotate(-16deg); }
+@keyframes oryzatix-assistant-hover {
+  0%, 100% { transform: translateY(0) rotate(-.35deg); }
+  50% { transform: translateY(-3px) rotate(.35deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .oryzatix-leaf-assistant__mascot,
+  .oryzatix-assistant-shortcut__character,
   #consultation.voice-companion .ai-avatar img {
-    animation: oryzatix-leaf-bob 2.4s ease-in-out infinite;
+    animation: oryzatix-assistant-hover 2.6s ease-in-out infinite;
     transform-origin: 50% 80%;
   }
-
-  .oryzatix-leaf-assistant__arm img {
-    animation: oryzatix-leaf-wave 1.25s ease-in-out infinite;
-  }
-
-  .oryzatix-leaf-assistant__arm--right img { animation-delay: .22s; }
 }
 
-.web-app-shell.auth-mode .oryzatix-leaf-assistant,
-.web-app-shell:has(#consultation.active) .oryzatix-leaf-assistant {
+.web-app-shell.auth-mode .oryzatix-assistant-shortcut,
+.web-app-shell:has(#consultation.active) .oryzatix-assistant-shortcut {
   display: none;
 }
 
 @media (max-width: 768px) {
-  .oryzatix-leaf-assistant {
-    right: max(12px, env(safe-area-inset-right, 0px));
+  .oryzatix-assistant-shortcut {
+    right: max(6px, env(safe-area-inset-right, 0px));
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-    width: 76px;
-    height: 76px;
+    width: 132px;
+    height: 98px;
   }
 
+  .oryzatix-assistant-shortcut__character {
+    width: 128px;
+    height: 94px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .oryzatix-leaf-assistant { transition: none; }
-  .oryzatix-leaf-assistant__mascot,
-  .oryzatix-leaf-assistant__arm img,
+  .oryzatix-assistant-shortcut { transition: none; }
+  .oryzatix-assistant-shortcut__character,
   #consultation.voice-companion .ai-avatar img { animation: none !important; }
 }
 
