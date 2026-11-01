@@ -415,7 +415,7 @@ const SCREEN_TITLES = {
   'staff-dashboard': { en: 'Staff Extension Dashboard', tl: 'Staff Dashboard' },
   scan: { en: 'Leaf Disease Scanner', tl: 'Scanner ng Dahon' },
   loading: { en: 'Analyzing Leaf Image', tl: 'Sinusuri ang Larawan' },
-  results: { en: 'Detection Results', tl: 'Resulta ng Pagsusuri' },
+  results: { en: 'Detection Info', tl: 'Impormasyon sa Resulta' },
   treatment: { en: 'Treatment & Care Guide', tl: 'Gabay sa Gamutan' },
   history: { en: 'Scan History & Records', tl: 'Kasaysayan ng mga Scan' },
   consultation: { en: 'AI Agricultural Consult', tl: 'AI Konsulta' },
@@ -594,13 +594,18 @@ function showScreen(id) {
   } else if (id === 'staff-dashboard') {
     loadStaffDashboard();
   } else if (id === 'results') {
-    if (!currentScanResult) {
+    if (!currentScanResult || currentScanResult.treatment_source === 'manual_guide') {
       try {
         const savedScan = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('oryzatix_last_scan_result') : null;
         if (savedScan) {
-          applyScanResult(JSON.parse(savedScan));
+          const parsedScan = JSON.parse(savedScan);
+          if (parsedScan && parsedScan.treatment_source !== 'manual_guide') applyScanResult(parsedScan);
         }
       } catch (e) { }
+    }
+    const resultsScreen = document.getElementById('results');
+    if (resultsScreen) {
+      resultsScreen.classList.toggle('no-detection-result', !currentScanResult || currentScanResult.treatment_source === 'manual_guide');
     }
   } else if (id === 'login') {
     resetAuthForms();

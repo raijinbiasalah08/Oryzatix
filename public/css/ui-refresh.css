@@ -223,6 +223,52 @@ button:disabled { cursor: not-allowed; }
 .chat-bubble.user { background: var(--brand-green); }
 .chat-input-bar { background: #fff; }
 .chat-input-bar input { background: #f4f7f4; border-color: var(--neutral-200); }
+
+#results.no-detection-result {
+  min-height: min(68vh, 720px);
+  align-items: stretch;
+  justify-content: center;
+}
+#results.no-detection-result > :not(#detectionInfoEmpty) { display: none !important; }
+.detection-info-empty {
+  display: none;
+  width: min(100%, 560px);
+  margin: auto;
+  padding: clamp(24px, 5vw, 42px);
+  justify-items: center;
+  gap: 12px;
+  border: 1px solid #d9e7dd;
+  border-radius: 22px;
+  background: linear-gradient(160deg, #fff 0%, #f3f8f3 100%);
+  box-shadow: 0 16px 42px rgba(12, 69, 40, .08);
+  color: #244333;
+  text-align: center;
+}
+#results.no-detection-result .detection-info-empty { display: grid !important; }
+.detection-info-empty__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 18px;
+  background: #e8f5ec;
+  color: #087443;
+}
+.detection-info-empty__icon svg { width: 30px; height: 30px; }
+.detection-info-empty h2 { margin: 0; color: #173a2b; font-size: 22px; }
+.detection-info-empty p { max-width: 390px; margin: 0; color: #63766a; font-size: 14px; line-height: 1.55; }
+.detection-info-empty button {
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #087443, #1c9a56);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
 .treat-disease-card { padding: 20px 22px; }
 .treat-disease-info h3 { font-size: 20px; font-weight: 600; }
 .dosage-calculator-card { background: #f0f7f2; border-color: #cde2d3; }
@@ -917,6 +963,9 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media (max-width: 768px) {
+  #mobileDetectionInfoNav { padding-inline: 4px; }
+  #mobileDetectionInfoNav span { font-size: 10px; white-space: nowrap; }
+
   .oryzatix-assistant-shortcut {
     right: max(6px, env(safe-area-inset-right, 0px));
     bottom: calc(76px + env(safe-area-inset-bottom, 0px));

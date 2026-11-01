@@ -792,6 +792,14 @@
 
       <!-- ═══════════ SCREEN 7: DETECTION RESULTS ═══════════ -->
       <section class="screen" id="results">
+        <div class="detection-info-empty" id="detectionInfoEmpty" role="status" aria-live="polite">
+          <span class="detection-info-empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+          </span>
+          <h2 data-en="No detection yet" data-tl="Wala pang resulta ng pagsusuri">No detection yet</h2>
+          <p data-en="Scan a rice leaf to see its diagnosis and severity information here." data-tl="Mag-scan ng dahon ng palay upang makita rito ang diagnosis at impormasyon ng tindi.">Scan a rice leaf to see its diagnosis and severity information here.</p>
+          <button type="button" onclick="showScreen('scan')" data-en="Start a Scan" data-tl="Magsimula ng Scan">Start a Scan</button>
+        </div>
         <button type="button" class="result-image-card disease-blast" id="resultImageCard" onclick="openResultImagePreview()" aria-label="Open detection image preview" title="Click to enlarge">
           <svg class="default-leaf-icon" id="resultImageCardIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           <span class="result-image-zoom-hint" aria-hidden="true">
@@ -1796,9 +1804,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
     </button>
-    <button class="mobile-nav-btn" data-screen="consultation" onclick="showScreen('consultation');">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-      <span>AI Consult</span>
+    <button class="mobile-nav-btn" id="mobileDetectionInfoNav" data-screen="results" onclick="showScreen('results');" aria-label="Detection Info">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+      <span data-en="Detection Info" data-tl="Impormasyon sa Resulta">Detection Info</span>
     </button>
     <button class="mobile-nav-btn" data-screen="profile" onclick="showScreen('profile')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
