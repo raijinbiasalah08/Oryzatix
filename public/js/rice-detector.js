@@ -1175,6 +1175,21 @@ async function checkAuthAndProceed() {
   showScreen(targetAuthScreen);
 }
 
+function setUserAvatarImage(container, imageUrl, fallbackInitials) {
+  const image = document.createElement('img');
+  image.alt = '';
+  image.decoding = 'async';
+  image.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+  image.addEventListener('error', () => {
+    if (!container.contains(image)) return;
+    const fallback = document.createElement('span');
+    fallback.textContent = fallbackInitials;
+    container.replaceChildren(fallback);
+  }, { once: true });
+  container.replaceChildren(image);
+  image.src = imageUrl;
+}
+
 function applyUserToUI() {
   if (!currentUser) return;
   const u = currentUser;
@@ -1200,7 +1215,7 @@ function applyUserToUI() {
   const avatar = document.getElementById('profileAvatar');
   if (avatar) {
     if (u.avatar_url) {
-      avatar.innerHTML = `<img src="${u.avatar_url}" alt="${escapeHtml(u.name)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      setUserAvatarImage(avatar, u.avatar_url, initials);
     } else {
       avatar.textContent = initials;
     }
@@ -1211,10 +1226,18 @@ function applyUserToUI() {
   const topbarUserAvatarInitials = document.getElementById('topbarUserAvatarInitials');
   if (topbarUserAvatarImg && topbarUserAvatarInitials) {
     if (u.avatar_url) {
+      topbarUserAvatarImg.onerror = () => {
+        topbarUserAvatarImg.onerror = null;
+        topbarUserAvatarImg.src = '';
+        topbarUserAvatarImg.style.display = 'none';
+        topbarUserAvatarInitials.textContent = initials;
+        topbarUserAvatarInitials.style.display = 'block';
+      };
       topbarUserAvatarImg.src = u.avatar_url;
       topbarUserAvatarImg.style.display = 'block';
       topbarUserAvatarInitials.style.display = 'none';
     } else {
+      topbarUserAvatarImg.onerror = null;
       topbarUserAvatarImg.src = '';
       topbarUserAvatarImg.style.display = 'none';
       topbarUserAvatarInitials.textContent = initials;
@@ -1235,7 +1258,7 @@ function applyUserToUI() {
   const dropdownAvatar = document.getElementById('dropdownAvatar');
   if (dropdownAvatar) {
     if (u.avatar_url) {
-      dropdownAvatar.innerHTML = `<img src="${u.avatar_url}" alt="${escapeHtml(u.name)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      setUserAvatarImage(dropdownAvatar, u.avatar_url, initials);
     } else {
       dropdownAvatar.textContent = initials;
     }
@@ -1259,11 +1282,17 @@ function applyUserToUI() {
   const btnRemoveProfilePhoto = document.getElementById('btnRemoveProfilePhoto');
   if (editProfilePhotoImg && editProfilePhotoInitials) {
     if (u.avatar_url) {
+      editProfilePhotoImg.onerror = () => {
+        editProfilePhotoImg.style.display = 'none';
+        editProfilePhotoInitials.textContent = initials;
+        editProfilePhotoInitials.style.display = 'block';
+      };
       editProfilePhotoImg.src = u.avatar_url;
       editProfilePhotoImg.style.display = 'block';
       editProfilePhotoInitials.style.display = 'none';
       if (btnRemoveProfilePhoto) btnRemoveProfilePhoto.style.display = 'inline-flex';
     } else {
+      editProfilePhotoImg.onerror = null;
       editProfilePhotoImg.src = '';
       editProfilePhotoImg.style.display = 'none';
       editProfilePhotoInitials.textContent = initials;
@@ -1275,7 +1304,7 @@ function applyUserToUI() {
   const sbAvatar = document.getElementById('sidebarUserAvatar');
   if (sbAvatar) {
     if (u.avatar_url) {
-      sbAvatar.innerHTML = `<img src="${u.avatar_url}" alt="${escapeHtml(u.name)}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      setUserAvatarImage(sbAvatar, u.avatar_url, initials);
     } else {
       sbAvatar.textContent = initials;
     }

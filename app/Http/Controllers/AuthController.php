@@ -345,6 +345,31 @@ class AuthController extends Controller
         ]);
     }
 
+    public function showAvatar(Request $request, User $user)
+    {
+        if (!$user->avatar_data) {
+            abort(404);
+        }
+
+        $imageBytes = base64_decode($user->avatar_data, true);
+        if ($imageBytes === false || $imageBytes === '') {
+            abort(404);
+        }
+
+        $response = response($imageBytes, 200, [
+            'Content-Type' => 'image/jpeg',
+            'Content-Length' => (string) strlen($imageBytes),
+            'Cache-Control' => 'public, max-age=86400',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+        $response->setEtag(hash('sha256', $imageBytes));
+        if ($user->updated_at) {
+            $response->setLastModified($user->updated_at);
+        }
+
+        return $response->isNotModified($request);
+    }
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -372,16 +397,25 @@ class AuthController extends Controller
 
         // Handle Profile Picture upload / removal
         if ($request->hasFile('avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
+            $oldAvatar = $user->avatar;
+            try {
+                $user->storeAvatarImage($request->file('avatar'));
+            } catch (\InvalidArgumentException $exception) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $exception->getMessage(),
+                    'errors' => ['avatar' => [$exception->getMessage()]],
+                ], 422);
             }
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $avatarPath;
+            if ($oldAvatar && Storage::disk('public')->exists($oldAvatar)) {
+                Storage::disk('public')->delete($oldAvatar);
+            }
         } elseif ($request->boolean('remove_avatar') || $request->input('remove_avatar') === '1' || $request->input('remove_avatar') === 'true') {
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
             $user->avatar = null;
+            $user->avatar_data = null;
         }
 
         $user->save();
@@ -613,7 +647,7 @@ class AuthController extends Controller
                 ]);
             } else {
                 $user->google_id = $googleId;
-                if ($avatar && !$user->avatar) {
+                if ($avatar && !$user->avatar && !$user->avatar_data) {
                     $user->avatar = $avatar;
                 }
                 $user->save();
@@ -721,7 +755,7 @@ class AuthController extends Controller
             }
 
             $user->google_id = $googleId;
-            if ($avatar) {
+            if ($avatar && !$user->avatar_data && !$user->avatar) {
                 $user->avatar = $avatar;
             }
             $user->save();
@@ -753,13 +787,6 @@ class AuthController extends Controller
 
     private function formatUser(User $user): array
     {
-        $avatarUrl = null;
-        if ($user->avatar) {
-            $avatarUrl = str_starts_with($user->avatar, 'http') || str_starts_with($user->avatar, 'data:')
-                ? $user->avatar
-                : asset('storage/' . $user->avatar);
-        }
-
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -773,7 +800,7 @@ class AuthController extends Controller
             },
             'location' => $user->location ?: 'Not specified',
             'avatar' => $user->avatar,
-            'avatar_url' => $avatarUrl,
+            'avatar_url' => $user->avatar_url,
             'created_at' => $user->created_at ? $user->created_at->format('M j, Y') : 'N/A',
         ];
     }

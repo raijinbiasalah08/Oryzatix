@@ -115,6 +115,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Public endpoints accessible across all devices
+Route::get('/users/{user}/avatar', [AuthController::class, 'showAvatar'])->name('users.avatar');
 Route::get('/treatment-guides', [RiceScanController::class, 'treatmentGuides'])->name('treatment-guides.index');
 Route::get('/dashboard/public-stats', [RiceScanController::class, 'dashboardStats'])->name('dashboard.public-stats');
 

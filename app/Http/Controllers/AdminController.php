@@ -306,15 +306,17 @@ class AdminController extends Controller
             }
 
             if ($request->hasFile('avatar')) {
-                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                    Storage::disk('public')->delete($user->avatar);
+                $oldAvatar = $user->avatar;
+                $user->storeAvatarImage($request->file('avatar'));
+                if ($oldAvatar && Storage::disk('public')->exists($oldAvatar)) {
+                    Storage::disk('public')->delete($oldAvatar);
                 }
-                $user->avatar = $request->file('avatar')->store('avatars', 'public');
             } elseif ($request->boolean('remove_avatar') || $request->input('remove_avatar') === '1' || $request->input('remove_avatar') === 'true') {
                 if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                     Storage::disk('public')->delete($user->avatar);
                 }
                 $user->avatar = null;
+                $user->avatar_data = null;
             }
 
             $user->save();
@@ -324,6 +326,12 @@ class AdminController extends Controller
                 'user' => $this->formatUser($user),
                 'message' => 'Account updated successfully!',
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => ['avatar' => [$e->getMessage()]],
+            ], 422);
         } catch (Exception $e) {
             Log::error('Admin update user error: ' . $e->getMessage());
 
@@ -961,13 +969,6 @@ class AdminController extends Controller
 
     private function formatUser(User $user): array
     {
-        $avatarUrl = null;
-        if ($user->avatar) {
-            $avatarUrl = str_starts_with($user->avatar, 'http') || str_starts_with($user->avatar, 'data:')
-                ? $user->avatar
-                : asset('storage/' . $user->avatar);
-        }
-
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -981,7 +982,7 @@ class AdminController extends Controller
             },
             'location' => $user->location ?: 'Not specified',
             'avatar' => $user->avatar,
-            'avatar_url' => $avatarUrl,
+            'avatar_url' => $user->avatar_url,
             'scans_count' => $user->scans_count ?? $user->scans()->count(),
             'created_at' => $user->created_at ? $user->created_at->format('M j, Y g:i A') : 'N/A',
         ];
