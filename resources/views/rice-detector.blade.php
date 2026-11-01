@@ -2775,11 +2775,11 @@ window.ORYZATIX_OFFLINE_ASSETS = {
 </script>
 @vite('resources/js/offline-scanner.js')
 <script src="{{ asset('js/qrcode.min.js') }}"></script>
-<script src="{{ asset('js/rice-detector.js') }}?v={{ filemtime(public_path('js/rice-detector.js')) ?: '1' }}"></script>
+<script src="{{ asset('js/rice-detector.js') }}?v={{ substr(hash_file('sha256', public_path('js/rice-detector.js')) ?: '1', 0, 12) }}"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('{{ asset('sw.js') }}').catch(function() {});
+    navigator.serviceWorker.register('{{ asset('sw.js') }}', { updateViaCache: 'none' }).catch(function() {});
   });
 }
 </script>
