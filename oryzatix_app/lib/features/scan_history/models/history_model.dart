@@ -10,6 +10,8 @@ class HistoryItem {
   final String date;
   final String? imageUrl;
   final Map<String, dynamic>? treatments;
+  final bool localOnly;
+  final String? localImagePath;
 
   HistoryItem({
     required this.id,
@@ -23,6 +25,8 @@ class HistoryItem {
     required this.date,
     this.imageUrl,
     this.treatments,
+    this.localOnly = false,
+    this.localImagePath,
   });
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
@@ -48,6 +52,8 @@ class HistoryItem {
       treatments: json['treatments'] is Map
           ? (json['treatments'] as Map).map((key, value) => MapEntry(key.toString(), value))
           : null,
+      localOnly: json['local_only'] == true,
+      localImagePath: json['image_path']?.toString(),
     );
   }
 }

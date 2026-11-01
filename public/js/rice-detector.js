@@ -5,6 +5,133 @@ let isRecording = false;
 let cameraStream = null;
 let allHistoryScans = [];
 let activeHistoryFilter = 'all';
+let guestScanDatabasePromise = null;
+let guestScanObjectUrls = new Map();
+let guestScanSequence = 0;
+
+function isGuestMode() {
+  try {
+    return localStorage.getItem('oryzatix_guest_mode') === 'true';
+  } catch (_) {
+    return false;
+  }
+}
+
+function guestUserProfile() {
+  return {
+    id: 0,
+    name: 'Guest Farmer',
+    email: '',
+    role: 'farmer',
+    location: 'On this device',
+    role_label: 'Guest',
+  };
+}
+
+function openGuestScanDatabase() {
+  if (!window.indexedDB) return Promise.reject(new Error('Local scan storage is unavailable in this browser.'));
+  if (!guestScanDatabasePromise) {
+    guestScanDatabasePromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open('oryzatix_guest_scans', 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains('scans')) {
+          request.result.createObjectStore('scans', { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => {
+        guestScanDatabasePromise = null;
+        reject(request.error || new Error('Could not open local scan storage.'));
+      };
+      request.onblocked = () => {
+        guestScanDatabasePromise = null;
+        reject(new Error('Local scan storage is busy. Close other Oryzatix tabs and try again.'));
+      };
+    });
+  }
+  return guestScanDatabasePromise;
+}
+
+async function saveGuestScanRecord(scan, imageBlob) {
+  const db = await openGuestScanDatabase();
+  const id = -(Date.now() * 1000 + ++guestScanSequence);
+  const scanRecord = { ...scan, id, saved: true, local_only: true };
+  delete scanRecord.image_url;
+  const record = {
+    id,
+    scan: scanRecord,
+    image_blob: imageBlob,
+    created_at: new Date().toISOString(),
+  };
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('scans', 'readwrite');
+    transaction.objectStore('scans').put(record);
+    transaction.oncomplete = () => resolve(id);
+    transaction.onerror = () => reject(transaction.error || new Error('Could not save this guest scan on the device.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Could not save this guest scan on the device.'));
+  }).then(async () => {
+    try {
+      const db = await openGuestScanDatabase();
+      const records = await new Promise((resolve, reject) => {
+        const transaction = db.transaction('scans', 'readonly');
+        const request = transaction.objectStore('scans').getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error || new Error('Could not manage local scan storage.'));
+      });
+      records.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+      for (const oldRecord of records.slice(100)) {
+        await deleteGuestScanRecord(oldRecord.id);
+      }
+    } catch (error) {
+      console.warn('Could not trim old guest scan records:', error);
+    }
+    return id;
+  });
+}
+
+async function readGuestScanRecords() {
+  const db = await openGuestScanDatabase();
+  const records = await new Promise((resolve, reject) => {
+    const transaction = db.transaction('scans', 'readonly');
+    const request = transaction.objectStore('scans').getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error('Could not read local guest scans.'));
+  });
+  return records
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    .map(record => {
+      let imageUrl = guestScanObjectUrls.get(record.id) || '';
+      if (!imageUrl && record.image_blob) {
+        imageUrl = URL.createObjectURL(record.image_blob);
+        guestScanObjectUrls.set(record.id, imageUrl);
+      }
+      return {
+        ...(record.scan || {}),
+        id: record.id,
+        saved: true,
+        local_only: true,
+        image_url: imageUrl || '',
+        created_at: record.created_at || '',
+        dateLabel: record.scan?.date || '',
+      };
+    });
+}
+
+async function deleteGuestScanRecord(id) {
+  const db = await openGuestScanDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('scans', 'readwrite');
+    transaction.objectStore('scans').delete(Number(id));
+    transaction.oncomplete = () => {
+      const imageUrl = guestScanObjectUrls.get(Number(id));
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      guestScanObjectUrls.delete(Number(id));
+      resolve(true);
+    };
+    transaction.onerror = () => reject(transaction.error || new Error('Could not delete the local scan.'));
+    transaction.onabort = () => reject(transaction.error || new Error('Could not delete the local scan.'));
+  });
+}
 
 const ALL_DISEASES = {
   blast: {
@@ -759,7 +886,7 @@ function markNotificationsRead() {
 }
 
 function refreshNotificationIndicator() {
-  if (currentUser) loadNotifications(false);
+  if (currentUser && !isGuestMode()) loadNotifications(false);
 }
 
 function openResultImagePreview() {
@@ -849,6 +976,38 @@ function navigateAfterAuth() {
   }
 }
 
+function continueAsGuest() {
+  try {
+    localStorage.setItem('oryzatix_guest_mode', 'true');
+  } catch (_) {
+    showLoginError('Guest mode needs browser storage enabled on this device.', 4000);
+    return;
+  }
+
+  setAuthToken(null);
+  currentUser = guestUserProfile();
+  closeServerSessionForGuest();
+  try {
+    sessionStorage.setItem('oryzatix_is_logged_in', 'true');
+    sessionStorage.removeItem('oryzatix_active_auth_screen');
+  } catch (_) {}
+  applyUserToUI();
+  navigateAfterAuth();
+}
+
+function guestUserProfile() {
+  return { id: 0, name: 'Guest Farmer', email: '', role: 'farmer', location: 'On this device', role_label: 'Guest' };
+}
+
+function closeServerSessionForGuest() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  ensureCsrfCookie().then(() => fetch(apiUrl('/auth/logout'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+  })).catch(() => {});
+}
+
 async function checkAuthAndProceed() {
   const urlParams = new URLSearchParams(window.location.search);
   const paramToken = urlParams.get('auth_token');
@@ -870,6 +1029,20 @@ async function checkAuthAndProceed() {
   const savedScreen = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('oryzatix_active_screen') : null;
   const savedAuthScreen = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('oryzatix_active_auth_screen') : null;
 
+  if (isGuestMode() && !paramToken && !isGoogleCallback) {
+    setAuthToken(null);
+    currentUser = guestUserProfile();
+    closeServerSessionForGuest();
+    try { sessionStorage.setItem('oryzatix_is_logged_in', 'true'); } catch (_) {}
+    applyUserToUI();
+    if (savedScreen && !AUTH_SCREENS.includes(savedScreen) && document.getElementById(savedScreen)) {
+      showScreen(savedScreen);
+    } else {
+      navigateAfterAuth();
+    }
+    return;
+  }
+
   // A server cookie alone must not restore a closed browser or PWA session.
   // Reloads keep sessionStorage, while closing the tab/app clears it.
   const canRestoreInitialAuth = isSessionLoggedIn || !!paramToken || isGoogleCallback;
@@ -880,6 +1053,7 @@ async function checkAuthAndProceed() {
       sessionStorage.setItem('oryzatix_is_logged_in', 'true');
     } catch (e) { }
     currentUser = window.INITIAL_AUTH.user;
+    try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
     if (window.INITIAL_AUTH.token) {
       setAuthToken(window.INITIAL_AUTH.token);
     }
@@ -910,6 +1084,7 @@ async function checkAuthAndProceed() {
           sessionStorage.setItem('oryzatix_is_logged_in', 'true');
         } catch (e) { }
         currentUser = data.user;
+        try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
         applyUserToUI();
         if (savedScreen && !AUTH_SCREENS.includes(savedScreen) && document.getElementById(savedScreen)) {
           showScreen(savedScreen);
@@ -951,7 +1126,9 @@ function applyUserToUI() {
     agri_worker: { en: 'Agri Extension Worker', tl: 'Agri Extension Worker' },
     admin: { en: 'Administrator', tl: 'Administrator' },
   };
-  const roleObj = roleMap[u.role] || { en: 'Rice Farmer', tl: 'Magsasaka ng Palay' };
+  const roleObj = isGuestMode()
+    ? { en: 'Guest', tl: 'Bisita' }
+    : (roleMap[u.role] || { en: 'Rice Farmer', tl: 'Magsasaka ng Palay' });
   const loc = u.location ? ' · ' + u.location : ' · Roxas, Oriental Mindoro';
 
   const psub = document.getElementById('profileSubtitle');
@@ -1243,6 +1420,10 @@ async function executeGoogleLogin(email, name, idToken) {
 
     if (res.ok && data && data.success) {
       if (currentGoogleAuthMode === 'register' || data.requires_login) {
+        try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
+        currentUser = null;
+        setAuthToken(null);
+        try { sessionStorage.removeItem('oryzatix_is_logged_in'); } catch (_) {}
         closeModal('modalGoogleAuth');
         resetAuthForms();
         showScreen('login');
@@ -1251,6 +1432,7 @@ async function executeGoogleLogin(email, name, idToken) {
       }
 
       currentUser = data.user;
+      try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
       if (data.token) setAuthToken(data.token);
       try {
         sessionStorage.setItem('oryzatix_is_logged_in', 'true');
@@ -1684,6 +1866,7 @@ async function handleLogin(e) {
 
     if (res.ok && data && data.success) {
       clearLoginLockoutUI();
+      try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
       currentUser = data.user;
       if (data.token) setAuthToken(data.token);
       try {
@@ -1800,6 +1983,7 @@ async function handleRegister(e) {
 
     if (res.ok && data && data.success) {
       const createdEmail = email;
+      try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
       resetAuthForms();
       showScreen('login');
       showLoginSuccess(data.message || 'Account has been created successfully! Please sign in with your credentials.', 3000);
@@ -2035,13 +2219,9 @@ async function confirmLogoutAction() {
     btn.innerHTML = '<span class="loading-spinner-sm"></span> Signing Out...';
   }
 
-  await ensureCsrfCookie();
-  fetch(apiUrl('/auth/logout'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-  })
-    .finally(() => {
+  const wasGuest = isGuestMode();
+  const finishLogout = () => {
+      try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
       setAuthToken(null);
       currentUser = null;
       if (typeof sessionStorage !== 'undefined') {
@@ -2063,7 +2243,25 @@ async function confirmLogoutAction() {
         btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Yes, Sign Out</span>';
       }
       showScreen('login');
+  };
+
+  if (wasGuest) {
+    finishLogout();
+    return;
+  }
+
+  try {
+    await ensureCsrfCookie();
+    await fetch(apiUrl('/auth/logout'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
     });
+  } catch (_) {
+    // Local sign-out should still complete if the server is unavailable.
+  } finally {
+    finishLogout();
+  }
 }
 
 function togglePassword(inputId, btn) {
@@ -2214,6 +2412,11 @@ async function uploadAndAnalyze(file) {
     return;
   }
 
+  if (isGuestMode() && typeof navigator !== 'undefined' && navigator.onLine === false) {
+    showUnrecognizedScreen({ reason: 'offline_browser_scan' });
+    return;
+  }
+
   showScreen('loading');
   if (lastScannedLeafBlobUrl && lastScannedLeafBlobUrl.startsWith('blob:')) {
     try { URL.revokeObjectURL(lastScannedLeafBlobUrl); } catch (e) {}
@@ -2244,6 +2447,7 @@ async function uploadAndAnalyze(file) {
 
   const formData = new FormData();
   formData.append('image', file);
+  if (isGuestMode()) formData.append('guest_mode', '1');
 
   try {
     await ensureCsrfCookie();
@@ -2293,7 +2497,7 @@ async function uploadAndAnalyze(file) {
       if (sc) sc.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
       const supportedDiseaseKeys = new Set(['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro']);
       const confidence = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== ''
@@ -2307,8 +2511,20 @@ async function uploadAndAnalyze(file) {
         scan.disease.trim().length > 0 && confidenceIsValid;
       const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
 
-      if (diagnosisIsValid && recordWasSaved) {
-        data.scan.saved = data.saved === true;
+      if (diagnosisIsValid && (recordWasSaved || isGuestMode())) {
+        if (isGuestMode()) {
+          data.scan.local_only = true;
+          data.scan.saved = false;
+          data.scan.image_url = localFileUrl || data.scan.image_url || '';
+          try {
+            data.scan.id = await saveGuestScanRecord(data.scan, file);
+            data.scan.saved = true;
+          } catch (storageError) {
+            console.warn('Guest scan could not be stored locally:', storageError);
+          }
+        } else {
+          data.scan.saved = true;
+        }
         if (!data.scan.image_url || (data.scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
           data.scan.image_url = localFileUrl || data.scan.image_url;
         }
@@ -2324,7 +2540,7 @@ async function uploadAndAnalyze(file) {
     }, 450);
   } catch (err) {
     console.error('Upload and scan error:', err);
-    showUnrecognizedScreen({ reason: 'server_error' });
+    showUnrecognizedScreen({ reason: isGuestMode() && typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline_browser_scan' : 'server_error' });
   }
 }
 
@@ -2340,6 +2556,8 @@ function showUnrecognizedScreen(data) {
     upload_too_large: { en: 'Image File Too Large', tl: 'Masyadong Malaki ang Larawan' },
     unsupported_image: { en: 'Unsupported Image', tl: 'Hindi Suportadong Uri ng Larawan' },
     authentication_required: { en: 'Sign-in Required', tl: 'Kailangang Mag-sign In' },
+    offline_browser_scan: { en: 'Internet Needed in This Browser', tl: 'Kailangan ng Internet sa Browser na Ito' },
+    guest_scan_limit: { en: 'Guest Scan Limit Reached', tl: 'Naabot ang Limit ng Guest Scan' },
     record_save_failed: { en: 'Scan Not Saved', tl: 'Hindi Na-save ang Scan' },
     server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
   };
@@ -2380,6 +2598,14 @@ function showUnrecognizedScreen(data) {
       authentication_required: {
         en: 'Your session may have expired. Sign in again, then retry the scan.',
         tl: 'Maaaring nag-expire ang iyong session. Mag-sign in muli at subukan ang pag-scan.',
+      },
+      offline_browser_scan: {
+        en: 'This browser cannot run the rice-leaf model offline yet. Connect to the internet to scan here, or use the Oryzatix mobile app for offline scanning.',
+        tl: 'Hindi pa kayang magpatakbo ng rice-leaf model offline ang browser na ito. Kumonekta sa internet para mag-scan rito, o gamitin ang Oryzatix mobile app para mag-scan offline.',
+      },
+      guest_scan_limit: {
+        en: 'The guest scan limit was reached. Wait a minute before scanning again.',
+        tl: 'Naabot na ang limit ng guest scan. Maghintay ng isang minuto bago mag-scan muli.',
       },
       record_save_failed: {
         en: 'The diagnosis was not added to Scan History & Records. Please retry the scan.',
@@ -2687,9 +2913,9 @@ function applyScanResult(scan) {
     saveStatus.classList.toggle('is-saved', isSaved);
     saveStatus.classList.toggle('is-not-saved', !isSaved);
     saveStatusText.textContent = isSaved
-      ? 'Saved to Scan History & Records.'
+      ? (scan.local_only ? 'Saved on this device. It is not in an online account.' : 'Saved to Scan History & Records.')
       : (currentUser
-        ? 'This scan could not be saved to your records. Please try again.'
+        ? (scan.local_only ? 'The result was shown but could not be saved on this device.' : 'This scan could not be saved to your records. Please try again.')
         : 'Sign in to save this scan to your history.');
     saveStatus.style.display = 'flex';
   }
@@ -3879,6 +4105,22 @@ async function loadHistory() {
   setHistoryLoadStatus('Loading scan records…', 'loading');
 
   historyLoadPromise = (async () => {
+    if (isGuestMode()) {
+      const localScans = await readGuestScanRecords();
+      allHistoryScans = localScans;
+      const setStat = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = String(value);
+      };
+      setStat('statHealthy', localScans.filter(scan => (scan.disease_key || '').toLowerCase() === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')).length);
+      setStat('statMild', localScans.filter(scan => scan.severity === 'mild').length);
+      setStat('statModerate', localScans.filter(scan => scan.severity === 'moderate').length);
+      setStat('statSevere', localScans.filter(scan => scan.severity === 'severe').length);
+      filterHistoryList();
+      setHistoryLoadStatus('Guest scan records are stored on this device.', 'success');
+      return true;
+    }
+
     await ensureCsrfCookie();
     const response = await fetch(apiUrl('/rice-detector/history'), {
       credentials: 'include',
@@ -3915,15 +4157,47 @@ async function loadHistory() {
       });
     }
 
+    let localScans = [];
+    try {
+      localScans = await readGuestScanRecords();
+    } catch (_) {}
+    loadedScans.push(...localScans);
+    if (localScans.length) {
+      const localCount = key => localScans.filter(scan => {
+        const disease = (scan.disease_key || scan.disease || '').toLowerCase();
+        return key === 'healthy'
+          ? disease === 'healthy' || disease.includes('healthy')
+          : (scan.severity || '').toLowerCase() === key;
+      }).length;
+      if (h) h.textContent = (Number(stats.healthy) || 0) + localCount('healthy');
+      if (mild) mild.textContent = (Number(stats.mild) || 0) + localCount('mild');
+      if (m) m.textContent = (Number(stats.moderate) || 0) + localCount('moderate');
+      if (s) s.textContent = (Number(stats.severe) || 0) + localCount('severe');
+    }
+    loadedScans.sort((a, b) => {
+      const timestamp = scan => Date.parse(scan.created_at || `${scan.date || ''} ${scan.time || ''}`) || 0;
+      return timestamp(b) - timestamp(a);
+    });
+
     allHistoryScans = loadedScans;
     filterHistoryList();
-    setHistoryLoadStatus('Scan records updated.', 'success');
+    setHistoryLoadStatus(localScans.length ? 'Scan records updated. Device-only guest scans are included.' : 'Scan records updated.', 'success');
     return true;
   })();
 
   try {
     return await historyLoadPromise;
   } catch (error) {
+    try {
+      const localScans = await readGuestScanRecords();
+      if (localScans.length) {
+        const accountScans = allHistoryScans.filter(scan => Number(scan.id) > 0);
+        allHistoryScans = [...localScans, ...accountScans];
+        filterHistoryList();
+        setHistoryLoadStatus('Showing device-only guest scans. Online records need an internet connection.', 'info');
+        return true;
+      }
+    } catch (_) {}
     setHistoryLoadStatus(error?.message || 'Could not load scan records. Please try again.', 'error');
     renderHistoryList(allHistoryScans);
     return false;
@@ -3992,6 +4266,7 @@ function renderHistoryList(scans) {
       '<td>' +
       '<div class="ht-disease-name" style="cursor:pointer;" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' + escapeHtml(scan.disease) + '</div>' +
       '<div class="ht-scientific-name">' + sciname + '</div>' +
+      (scan.local_only ? '<div class="ht-scientific-name" style="color:#167447;">Saved on this device</div>' : '') +
       '</td>' +
       '<td>' +
       '<span class="' + badgeCls + '">' + badgeText + '</span>' +
@@ -4115,6 +4390,14 @@ function viewHistoryScanDetail(scanId) {
 async function deleteScan(id) {
   if (!confirm('Are you sure you want to delete this scan record?')) return;
   try {
+    if (Number(id) < 0) {
+      await deleteGuestScanRecord(id);
+      await loadHistory();
+      await loadHomeRecentScans();
+      setHistoryLoadStatus('Device-only scan deleted.', 'success');
+      return;
+    }
+
     await ensureCsrfCookie();
     const response = await fetch(apiUrl('/rice-detector/scan/' + id), {
       method: 'DELETE',
@@ -4133,36 +4416,53 @@ async function deleteScan(id) {
 }
 
 async function loadHomeRecentScans() {
-  await ensureCsrfCookie();
-  fetch(apiUrl('/rice-detector/history'), {
-    credentials: 'include',
-    headers: authHeaders(),
-  })
-    .then(r => r.json())
-    .then(data => {
-      const container = document.getElementById('homeRecentScansContainer');
-      if (!container) return;
-      if (!data || !data.success) {
-        renderHomeEmptyScans();
-        return;
+  const all = [];
+  if (!isGuestMode()) {
+    try {
+      await ensureCsrfCookie();
+      const response = await fetch(apiUrl('/rice-detector/history'), {
+        credentials: 'include',
+        headers: authHeaders(),
+      });
+      const data = await response.json();
+      if (response.ok && data && data.success) {
+        const groups = data.scans || {};
+        if (Array.isArray(groups)) {
+          groups.forEach(scan => all.push(scan));
+        } else {
+          Object.values(groups).forEach(group => {
+            if (Array.isArray(group)) group.forEach(scan => all.push(scan));
+          });
+        }
       }
-      const all = [];
-      Object.values(data.scans || {}).forEach(group => group.forEach(s => all.push(s)));
-      const recent = all.slice(0, 3);
-      if (!recent.length) {
-        renderHomeEmptyScans();
-        return;
-      }
-      container.innerHTML = recent.map(s => {
+    } catch (_) {}
+  }
+
+  try { all.push(...await readGuestScanRecords()); } catch (_) {}
+  all.sort((a, b) => {
+    const timestamp = scan => Date.parse(scan.created_at || `${scan.date || ''} ${scan.time || ''}`) || 0;
+    return timestamp(b) - timestamp(a);
+  });
+  allHistoryScans = all;
+  renderHomeScanRecords(all.slice(0, 3));
+}
+
+function renderHomeScanRecords(recent) {
+  const container = document.getElementById('homeRecentScansContainer');
+  if (!container) return;
+  if (!recent || !recent.length) {
+    renderHomeEmptyScans();
+    return;
+  }
+
+  container.innerHTML = recent.map(s => {
         const lower = (s.disease || '').toLowerCase();
         let thumbCls = 'blast';
         if (lower.includes('healthy')) thumbCls = 'healthy';
         else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) thumbCls = 'blb';
         const rawSeverity = (s.severity || '').toLowerCase();
         const isHealthyScan = rawSeverity === 'healthy' || lower.includes('healthy');
-        const displaySeverity = isHealthyScan ? 'healthy' : 'unassessed';
-        let sevCls = displaySeverity;
-
+        const sevCls = isHealthyScan ? 'healthy' : 'unassessed';
         const sevLabel = isHealthyScan ? 'Healthy Leaf' : 'Not Healthy Leaf';
 
         const rawUrl = s.image_url;
@@ -4178,15 +4478,11 @@ async function loadHomeRecentScans() {
           '</div>' +
           '<div class="scan-info">' +
           '<div class="disease-name">' + escapeHtml(s.disease) + '</div>' +
-          '<div class="scan-meta">' + escapeHtml((s.time || '') + ' · ' + (s.date || '')) + '</div>' +
+          '<div class="scan-meta">' + escapeHtml((s.local_only ? 'Saved on this device · ' : '') + (s.time || '') + ' · ' + (s.date || '')) + '</div>' +
           '</div>' +
           '<span class="severity-badge ' + sevCls + '">' + escapeHtml(sevLabel) + '</span>' +
           '</div>';
       }).join('');
-    })
-    .catch(() => {
-      renderHomeEmptyScans();
-    });
 }
 
 function renderHomeEmptyScans() {

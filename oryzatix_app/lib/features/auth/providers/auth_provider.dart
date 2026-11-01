@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   UserModel? _currentUser;
+  bool _isGuest = false;
   bool _isLoading = false;
   bool _isCheckingAuth = true;
   String? _errorMessage;
@@ -16,7 +17,9 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _lockoutTimer;
 
   UserModel? get currentUser => _currentUser;
-  bool get isAuthenticated => _currentUser != null;
+  bool get isAuthenticated => _currentUser != null && !_isGuest;
+  bool get isGuest => _isGuest;
+  bool get canEnterApp => isAuthenticated || _isGuest;
   bool get isLoading => _isLoading;
   bool get isCheckingAuth => _isCheckingAuth;
   String? get errorMessage => _errorMessage;
@@ -36,6 +39,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _expireSessionOnAppClose() async {
+    if (_isGuest) return;
     try {
       await ApiClient.post(ApiEndpoints.logout);
     } catch (_) {
@@ -69,6 +73,15 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     try {
+      if (await TokenStorage.getGuestMode()) {
+        _isGuest = true;
+        _currentUser = _guestUser();
+        _isCheckingAuth = false;
+        notifyListeners();
+        return;
+      }
+
+      _isGuest = false;
       final token = await TokenStorage.getToken();
       if (token != null && token.isNotEmpty) {
         // Try to fetch fresh user from server
@@ -116,6 +129,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       });
 
       if (res is Map<String, dynamic> && res['success'] == true) {
+        await TokenStorage.setGuestMode(false);
+        _isGuest = false;
         final token = res['token']?.toString();
         if (token != null) {
           await TokenStorage.saveToken(token);
@@ -165,6 +180,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       });
 
       if (res is Map<String, dynamic> && res['success'] == true) {
+        await TokenStorage.setGuestMode(false);
+        _isGuest = false;
         final token = res['token']?.toString();
         if (token != null) {
           await TokenStorage.saveToken(token);
@@ -194,15 +211,40 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      await ApiClient.post(ApiEndpoints.logout);
-    } catch (_) {}
+    if (!_isGuest) {
+      try {
+        await ApiClient.post(ApiEndpoints.logout);
+      } catch (_) {}
+    }
 
     await TokenStorage.clearAuth();
     _currentUser = null;
+    _isGuest = false;
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> continueAsGuest() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    await TokenStorage.clearAuth();
+    await TokenStorage.setGuestMode(true);
+    _isGuest = true;
+    _currentUser = _guestUser();
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  UserModel _guestUser() => UserModel(
+        id: 0,
+        name: 'Guest Farmer',
+        email: '',
+        role: 'farmer',
+        roleLabel: 'Guest',
+        location: 'On this device',
+      );
 
   @override
   void dispose() {

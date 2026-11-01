@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Exception;
@@ -1233,15 +1234,30 @@ class RiceScanController extends Controller
     {
         $validated = $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'guest_mode' => 'sometimes|boolean',
         ]);
 
-        $user = auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user();
-        if (!$user) {
+        $guestMode = (bool) ($validated['guest_mode'] ?? false);
+        $user = $guestMode
+            ? null
+            : (auth('sanctum')->user() ?: Auth::guard('web')->user() ?: $request->user());
+        if (!$user && !$guestMode) {
             return response()->json([
                 'success' => false,
                 'reason' => 'authentication_required',
                 'message' => 'Sign in before scanning so the result can be saved to your history.',
             ], 401);
+        }
+        if ($guestMode) {
+            $guestScanKey = 'oryzatix-guest-scan:' . ($request->ip() ?: 'unknown');
+            if (RateLimiter::tooManyAttempts($guestScanKey, 12)) {
+                return response()->json([
+                    'success' => false,
+                    'reason' => 'guest_scan_limit',
+                    'message' => 'Guest scan limit reached. Please try again in a minute.',
+                ], 429)->header('Retry-After', (string) RateLimiter::availableIn($guestScanKey));
+            }
+            RateLimiter::hit($guestScanKey, 60);
         }
 
         $file = $request->file('image');
@@ -1387,39 +1403,41 @@ class RiceScanController extends Controller
 
         $dataUrl = $this->createOptimizedDataUrl($fullPath);
 
-        try {
-            $path = $file->store('scans', 'public');
-            if (!$path) {
-                throw new \RuntimeException('Uploaded scan image could not be stored.');
-            }
-
-            $scan = RiceScan::create([
-                'user_id' => $user->id,
-                // Keep only the storage path in the VARCHAR column. The
-                // optimized data URL is for the immediate response image.
-                'image_path' => $path,
-                'disease_name' => $disease['name'],
-                'scientific_name' => $disease['scientific'],
-                'confidence' => $confidence !== null ? round($confidence, 2) : null,
-                'severity' => $severity,
-                'treatment_recommendation' => $treatments,
-            ]);
-            $scanId = $scan->id;
-            $saved = true;
-        } catch (\Throwable $e) {
-            if ($path) {
-                try {
-                    Storage::disk('public')->delete($path);
-                } catch (\Throwable $cleanupError) {
-                    Log::warning('Could not remove an unrecorded scan image: ' . $cleanupError->getMessage());
+        if ($user) {
+            try {
+                $path = $file->store('scans', 'public');
+                if (!$path) {
+                    throw new \RuntimeException('Uploaded scan image could not be stored.');
                 }
+
+                $scan = RiceScan::create([
+                    'user_id' => $user->id,
+                    // Keep only the storage path in the VARCHAR column. The
+                    // optimized data URL is for the immediate response image.
+                    'image_path' => $path,
+                    'disease_name' => $disease['name'],
+                    'scientific_name' => $disease['scientific'],
+                    'confidence' => $confidence !== null ? round($confidence, 2) : null,
+                    'severity' => $severity,
+                    'treatment_recommendation' => $treatments,
+                ]);
+                $scanId = $scan->id;
+                $saved = true;
+            } catch (\Throwable $e) {
+                if ($path) {
+                    try {
+                        Storage::disk('public')->delete($path);
+                    } catch (\Throwable $cleanupError) {
+                        Log::warning('Could not remove an unrecorded scan image: ' . $cleanupError->getMessage());
+                    }
+                }
+                Log::error('Failed to save scan to database: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'reason' => 'record_save_failed',
+                    'message' => 'The scan could not be saved to history. Please try again.',
+                ], 500);
             }
-            Log::error('Failed to save scan to database: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'reason' => 'record_save_failed',
-                'message' => 'The scan could not be saved to history. Please try again.',
-            ], 500);
         }
 
         $imageUrl = $dataUrl ?: ($path ? url('storage/' . ltrim($path, '/')) : $this->getDiseaseReferenceImageUrl($disease['name']));
@@ -1432,11 +1450,13 @@ class RiceScanController extends Controller
             'validation' => $scanPrediction['validation'],
             'quality' => $scanPrediction['quality'],
             'saved' => $saved,
+            'local_only' => $guestMode,
             'scan' => [
                 'recognized' => true,
                 'disease_key' => $selectedDiseaseKey,
                 'id' => $scanId,
                 'saved' => $saved,
+                'local_only' => $guestMode,
                 'disease' => $disease['name'],
                 'scientific' => $disease['scientific'],
                 'analysis_source' => $isModelPrediction ? 'mobilenet_v2' : 'reference_match',

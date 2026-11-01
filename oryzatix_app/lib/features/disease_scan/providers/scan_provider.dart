@@ -1,11 +1,17 @@
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/api_exception.dart';
 import '../models/scan_result_model.dart';
+import '../services/mobilenet_classifier.dart';
+import '../services/offline_scan_store.dart';
+import '../services/rice_leaf_prediction.dart';
 
 class ScanProvider extends ChangeNotifier {
   Uint8List? _selectedImageBytes;
@@ -19,9 +25,11 @@ class ScanProvider extends ChangeNotifier {
   bool get isAnalyzing => _isAnalyzing;
   String? get errorMessage => _errorMessage;
   ScanResultModel? get result => _result;
+  bool get supportsOfflineScanning =>
+      MobileNetClassifier.instance.supportsOnDeviceInference;
+  bool get usesServerValidation => true;
 
   final ImagePicker _picker = ImagePicker();
-  bool get usesServerValidation => true;
 
   Future<void> pickFromCamera() async {
     try {
@@ -66,7 +74,6 @@ class ScanProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {
-      // Fallback to FilePicker if ImagePicker fails on Desktop
       await pickFromFilePicker();
     }
   }
@@ -92,9 +99,14 @@ class ScanProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> analyzeCurrentLeaf() async {
+  Future<bool> analyzeCurrentLeaf({bool guestMode = false}) async {
     if (_selectedImageBytes == null) {
       _errorMessage = 'Please select or capture a rice leaf image first.';
+      notifyListeners();
+      return false;
+    }
+    if (_selectedImageBytes!.length > 10 * 1024 * 1024) {
+      _errorMessage = 'This image is larger than the 10 MB limit. Choose a smaller photo.';
       notifyListeners();
       return false;
     }
@@ -104,6 +116,14 @@ class ScanProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (guestMode && supportsOfflineScanning) {
+        return await _analyzeOnDeviceAndSave();
+      }
+      if (guestMode) {
+        _errorMessage = 'Guest scanning is available offline in the Android or iPhone app. This platform has no offline scanner.';
+        return false;
+      }
+
       final res = await ApiClient.uploadFile(
         path: ApiEndpoints.uploadScan,
         fileBytes: _selectedImageBytes!,
@@ -148,7 +168,20 @@ class ScanProvider extends ChangeNotifier {
                 : 'The scanner did not confirm a clear rice-leaf image and a supported diagnosis.');
       }
     } on ApiException catch (e) {
-      _errorMessage = e.message;
+      final message = e.message.toLowerCase();
+      final looksLikeNetworkFailure = message.contains('connection error') ||
+          message.contains('socketexception') ||
+          message.contains('failed host lookup') ||
+          message.contains('network is unreachable');
+      if (!guestMode && supportsOfflineScanning && looksLikeNetworkFailure) {
+        try {
+          return await _analyzeOnDeviceAndSave();
+        } catch (offlineError) {
+          _errorMessage = 'Offline scan failed: ${offlineError.toString()}';
+        }
+      } else {
+        _errorMessage = e.message;
+      }
     } catch (e) {
       _errorMessage = 'Analysis error: ${e.toString()}';
     }
@@ -156,6 +189,83 @@ class ScanProvider extends ChangeNotifier {
     _isAnalyzing = false;
     notifyListeners();
     return false;
+  }
+
+  Future<bool> _analyzeOnDeviceAndSave() async {
+    final prediction = await MobileNetClassifier.instance.classify(_selectedImageBytes!);
+    if (!prediction.isDiagnosed) {
+      _errorMessage = _messageForPrediction(prediction);
+      _isAnalyzing = false;
+      notifyListeners();
+      return false;
+    }
+
+    final now = DateTime.now();
+    final id = -now.microsecondsSinceEpoch;
+    final isHealthy = prediction.diseaseKey == 'healthy';
+    final severity = isHealthy ? 'healthy' : 'unassessed';
+    final imagePath = await OfflineScanStore.instance.saveScan(
+      id: id,
+      imageBytes: _selectedImageBytes!,
+      filename: _selectedImageName ?? 'guest_scan.jpg',
+      scan: {
+        'disease_key': prediction.diseaseKey,
+        'disease': prediction.diseaseName,
+        'scientific': _scientificName(prediction.diseaseKey),
+        'confidence': (prediction.confidence * 100).toStringAsFixed(1),
+        'severity': severity,
+        'severity_status': isHealthy ? 'not_applicable' : 'unassessed',
+        'severity_class': isHealthy ? 'healthy-bg' : 'unassessed-bg',
+        'affected_percentage': null,
+        'date': DateFormat('MMM d, yyyy').format(now),
+        'time': DateFormat('h:mm a').format(now),
+        'analysis_source': 'on_device_mobilenet_v2',
+      },
+    );
+
+    _result = ScanResultModel(
+      recognized: true,
+      saved: true,
+      id: id,
+      diseaseKey: prediction.diseaseKey,
+      disease: prediction.diseaseName,
+      scientific: _scientificName(prediction.diseaseKey),
+      confidence: (prediction.confidence * 100).toStringAsFixed(1),
+      severity: severity,
+      severityStatus: isHealthy ? 'not_applicable' : 'unassessed',
+      analysisSource: 'on_device_mobilenet_v2',
+      date: DateFormat('MMM d, yyyy').format(now),
+      time: DateFormat('h:mm a').format(now),
+      chemicalTreatments: const [],
+      organicTreatments: const [],
+      localOnly: true,
+      localImagePath: imagePath,
+    );
+    _isAnalyzing = false;
+    notifyListeners();
+    return true;
+  }
+
+  String _messageForPrediction(RiceLeafPrediction prediction) {
+    switch (prediction.status) {
+      case 'blurry_image':
+        return 'This photo is too blurry to scan reliably. Retake it with the leaf in focus and good light.';
+      case 'not_rice_leaf':
+        return 'This image does not appear to show a rice leaf. Choose a clear rice-leaf photo.';
+      default:
+        return 'The rice leaf was checked, but the disease result is uncertain. Try a clear close-up photo.';
+    }
+  }
+
+  String? _scientificName(String diseaseKey) {
+    const names = {
+      'blb': 'Xanthomonas oryzae pv. oryzae',
+      'brown_spot': 'Bipolaris oryzae',
+      'sheath_blight': 'Rhizoctonia solani',
+      'tungro': 'RTBV + RTSV viruses',
+      'blast': 'Magnaporthe oryzae',
+    };
+    return names[diseaseKey];
   }
 
   void clear() {

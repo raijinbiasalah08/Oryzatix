@@ -40,6 +40,8 @@ class ScanResultModel {
   final List<TreatmentItem> chemicalTreatments;
   final List<TreatmentItem> organicTreatments;
   final Map<String, dynamic>? allSeverityTreatments;
+  final bool localOnly;
+  final String? localImagePath;
 
   ScanResultModel({
     required this.recognized,
@@ -60,6 +62,8 @@ class ScanResultModel {
     required this.chemicalTreatments,
     required this.organicTreatments,
     this.allSeverityTreatments,
+    this.localOnly = false,
+    this.localImagePath,
   });
 
   factory ScanResultModel.fromJson(Map<String, dynamic> json) {
@@ -104,6 +108,8 @@ class ScanResultModel {
       chemicalTreatments: chemList,
       organicTreatments: orgList,
       allSeverityTreatments: scan['all_severity_treatments'] as Map<String, dynamic>?,
+      localOnly: scan['local_only'] == true,
+      localImagePath: scan['image_path']?.toString(),
     );
   }
 }

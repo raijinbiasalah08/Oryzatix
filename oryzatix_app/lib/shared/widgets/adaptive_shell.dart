@@ -231,7 +231,11 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                 ),
               ),
               accountName: Text(user?.name ?? 'Oryzatix Farmer', style: const TextStyle(fontWeight: FontWeight.bold)),
-              accountEmail: Text(user?.email ?? 'farmer@oryzatix.local'),
+              accountEmail: Text(
+                auth.isGuest
+                    ? 'Guest mode · scans saved on this device'
+                    : (user?.email ?? 'farmer@oryzatix.local'),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.dashboard_outlined),
@@ -289,7 +293,10 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             ),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.severe),
-              title: const Text('Sign Out', style: TextStyle(color: AppColors.severe)),
+              title: Text(
+                auth.isGuest ? 'Exit Guest Mode' : 'Sign Out',
+                style: const TextStyle(color: AppColors.severe),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 auth.logout();

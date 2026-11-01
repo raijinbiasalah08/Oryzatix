@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v9';
+const CACHE_NAME = 'oryzatix-pwa-v10';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
 
     // Static assets (CSS, JS, Fonts, Images): Cache-first with network fallback
     event.respondWith(
-        caches.match(event.request).then((cached) => {
+        caches.match(event.request, { ignoreSearch: true }).then((cached) => {
             if (cached) {
                 // Fetch fresh copy in background to update cache (stale-while-revalidate)
                 fetch(event.request).then((res) => {

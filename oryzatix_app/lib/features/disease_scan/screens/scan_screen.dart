@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/scan_result_model.dart';
 import '../providers/scan_provider.dart';
 
@@ -24,6 +25,7 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     final scanner = context.watch<ScanProvider>();
+    final auth = context.watch<AuthProvider>();
     final result = scanner.result;
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
@@ -58,9 +60,11 @@ class _ScanScreenState extends State<ScanScreen> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        scanner.usesServerValidation
-                            ? 'Server-validated rice-leaf screening with MobileNetV2 diagnosis.'
-                            : 'Rice-leaf scan unavailable',
+                        auth.isGuest
+                            ? (scanner.supportsOfflineScanning
+                                ? 'Guest mode: scan on this device. Records stay here until you sign in.'
+                                : 'Guest offline scanning is available in the Android or iPhone app.')
+                            : 'Server-validated MobileNetV2 screening, with on-device fallback when offline.',
                         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -89,7 +93,7 @@ class _ScanScreenState extends State<ScanScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 5, child: _buildImagePickerCard(scanner)),
+                  Expanded(flex: 5, child: _buildImagePickerCard(scanner, auth.isGuest)),
                   const SizedBox(width: 24),
                   Expanded(
                     flex: 6,
@@ -102,7 +106,7 @@ class _ScanScreenState extends State<ScanScreen> {
             else
               Column(
                 children: [
-                  _buildImagePickerCard(scanner),
+                  _buildImagePickerCard(scanner, auth.isGuest),
                   const SizedBox(height: 20),
                   if (result != null)
                     _buildDiagnosisResultView(result)
@@ -116,7 +120,7 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _buildImagePickerCard(ScanProvider scanner) {
+  Widget _buildImagePickerCard(ScanProvider scanner, bool guestMode) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -229,7 +233,7 @@ class _ScanScreenState extends State<ScanScreen> {
             ElevatedButton(
               onPressed: (scanner.selectedImageBytes == null || scanner.isAnalyzing)
                   ? null
-                  : () => scanner.analyzeCurrentLeaf(),
+                  : () => scanner.analyzeCurrentLeaf(guestMode: guestMode),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: AppColors.primaryLight,
@@ -248,9 +252,9 @@ class _ScanScreenState extends State<ScanScreen> {
                       ],
                     )
                   : Text(
-                    scanner.usesServerValidation
-                        ? 'Validate and analyze rice leaf'
-                        : 'Scan unavailable',
+                    guestMode
+                        ? (scanner.supportsOfflineScanning ? 'Scan on this device' : 'Offline scanner unavailable')
+                        : 'Validate and analyze rice leaf',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
             ),
@@ -391,8 +395,10 @@ class _ScanScreenState extends State<ScanScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      result.saved
-                          ? 'Saved to Scan History.'
+                      result.localOnly
+                          ? 'Saved on this device. It is not in your online account history.'
+                          : result.saved
+                              ? 'Saved to Scan History.'
                           : 'This scan was not saved to history. Please try again.',
                       style: TextStyle(
                         fontSize: 12,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/history_model.dart';
 import '../providers/history_provider.dart';
 
@@ -20,8 +21,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<HistoryProvider>().loadHistory();
+      if (mounted) _loadHistory();
     });
+  }
+
+  Future<void> _loadHistory() {
+    final guestMode = context.read<AuthProvider>().isGuest;
+    return context.read<HistoryProvider>().loadHistory(guestMode: guestMode);
   }
 
   void _showDetailDialog(HistoryItem item) {
@@ -151,7 +157,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: () => history.loadHistory(),
+        onRefresh: _loadHistory,
         color: AppColors.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -199,7 +205,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           )
                         : const Icon(Icons.refresh, color: AppColors.primary),
                     tooltip: 'Refresh Records',
-                    onPressed: history.isLoading ? null : () => history.loadHistory(),
+                    onPressed: history.isLoading ? null : _loadHistory,
                   ),
                 ],
               ),
@@ -220,7 +226,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                         ),
                         TextButton(
-                          onPressed: history.isLoading ? null : () => history.loadHistory(),
+                          onPressed: history.isLoading ? null : _loadHistory,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -403,6 +409,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                             'Color analysis: ${item.confidence}% · Time: ${item.time}',
                                             style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                                           ),
+                                          if (item.localOnly) ...[
+                                            const SizedBox(height: 3),
+                                            const Text(
+                                              'Saved on this device',
+                                              style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),

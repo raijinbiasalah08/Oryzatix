@@ -5,6 +5,7 @@ class TokenStorage {
   static const String _keyToken = 'oryzatix_sanctum_token';
   static const String _keyUser = 'oryzatix_user_cache';
   static const String _keyChatLanguage = 'oryzatix_chat_language';
+  static const String _keyGuestMode = 'oryzatix_guest_mode';
 
   static const _secureStorage = FlutterSecureStorage();
   static String? _sessionToken;
@@ -63,6 +64,26 @@ class TokenStorage {
     return 'tagalog';
   }
 
+  static Future<void> setGuestMode(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (enabled) {
+        await prefs.setBool(_keyGuestMode, true);
+      } else {
+        await prefs.remove(_keyGuestMode);
+      }
+    } catch (_) {}
+  }
+
+  static Future<bool> getGuestMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_keyGuestMode) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<void> clearAuth() async {
     _sessionToken = null;
     _sessionUser = null;
@@ -73,6 +94,7 @@ class TokenStorage {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyToken);
       await prefs.remove(_keyUser);
+      await prefs.remove(_keyGuestMode);
     } catch (_) {}
   }
 }

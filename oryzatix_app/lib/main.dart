@@ -105,7 +105,7 @@ class AuthGate extends StatelessWidget {
       );
     }
 
-    if (!auth.isAuthenticated) {
+    if (!auth.canEnterApp) {
       return const LoginScreen();
     }
 

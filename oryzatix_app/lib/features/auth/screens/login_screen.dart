@@ -259,6 +259,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: auth.isLoading
+                        ? null
+                        : () => auth.continueAsGuest(),
+                    icon: const Icon(Icons.person_outline),
+                    label: const Text('Continue as Guest'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'No account needed. Guest scans stay on this device.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
                   const SizedBox(height: 20),
 
                   // Quick test demo accounts
