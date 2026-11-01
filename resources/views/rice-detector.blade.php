@@ -1600,7 +1600,7 @@
         <!-- Disease Filter Tabs -->
         <div class="admin-tabs-bar">
           <button class="admin-tab-btn active" id="adminTabDiseaseAll" onclick="filterAdminDiseases('all', this)">
-            <span>All Diseases (<span id="adminDiseasesCountAll">5</span>)</span>
+            <span>All Diseases (<span id="adminDiseasesCountAll">6</span>)</span>
           </button>
           <button class="admin-tab-btn" id="adminTabDiseaseActive" onclick="filterAdminDiseases('active', this)">
             <span>Active</span>

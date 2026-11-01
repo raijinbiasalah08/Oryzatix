@@ -72,6 +72,25 @@ class DiseaseAndChatbotSeeder extends Seeder
                 'status' => 'active',
             ],
             [
+                'name' => 'Sheath Blight',
+                'code' => 'sheath_blight',
+                'scientific_name' => 'Rhizoctonia solani (Thanatephorus cucumeris)',
+                'image_path' => 'images/diseases/sheath_blight.jpg',
+                'description' => 'A fungal disease caused by Rhizoctonia solani that commonly starts on rice leaf sheaths near the waterline and may spread to leaf blades.',
+                'symptoms' => 'Small greenish-gray oval lesions on leaf sheaths, often near the waterline, that can enlarge into irregular lesions with grayish-white centers and dark brown borders.',
+                'causes' => 'Caused by Rhizoctonia solani. The fungus forms small sclerotia on or near lesions; dense canopies and humid conditions can favor disease development.',
+                'prevention' => 'Scout lower leaf sheaths, avoid excessively dense planting and excess nitrogen, and follow balanced crop nutrition and field-sanitation advice from local agricultural staff.',
+                'recommended_treatment' => 'Use integrated field management and monitor whether lesions are spreading. If fungicide treatment is being considered, ask the local agriculture office for a product registered for rice sheath blight and follow its label exactly.',
+                'chemical_treatments' => [
+                    ['title' => 'Locally registered fungicide for sheath blight', 'rate' => 'Follow the product label', 'timing' => 'Use only a product labeled for rice sheath blight in your area; confirm product, timing, and rate with local agricultural staff.'],
+                ],
+                'organic_treatments' => [
+                    ['title' => 'Canopy and nitrogen management', 'rate' => 'Follow local crop recommendations', 'timing' => 'Avoid excessive nitrogen and overly dense crop canopies; scout the lower leaf sheaths regularly.'],
+                    ['title' => 'Crop-residue management', 'rate' => 'After harvest', 'timing' => 'Manage infected crop residues according to local extension advice.'],
+                ],
+                'status' => 'active',
+            ],
+            [
                 'name' => 'Rice Tungro Disease',
                 'code' => 'tungro',
                 'scientific_name' => 'Rice Tungro Bacilliform (RTBV) & Spherical (RTSV) Viruses',
