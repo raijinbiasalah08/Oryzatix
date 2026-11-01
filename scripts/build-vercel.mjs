@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { readFile, mkdir, copyFile, chmod, writeFile, cp, access } from 'node:fs/promises';
+import { readFile, mkdir, copyFile, chmod, writeFile, cp, access, mkdtemp } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
@@ -12,6 +12,10 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 if (process.platform !== 'linux') throw new Error('Build the bundled PHP runtime on Linux (Vercel builds run on Linux).');
 const output = path.join(root, '.vercel/output');
 const functionDir = path.join(output, 'functions/api/index.php.func');
+// Keep builder output separate from its FileFsRef inputs. Downloading files
+// back into their source directory truncates same-path references (including
+// composer.json) before they can be read.
+const workPath = await mkdtemp(path.join(root, '.vercel/php-work-'));
 const excludeFiles = '{node_modules/**,.git/**,.vercel/**,outputs/**,training/**,tests/**,scripts/**,.venv-training/**,**/__pycache__/**,*.zip,*.log,.env*,vercel.json,.vercelignore,now.json,.nowignore,Bacterial Leaf Blight/**,Brown Spot/**,Healthy Rice Leaf/**,Sheath Blight/**,Tungro/**,Not Rice Leaf/**,leaf_blast/**}';
 
 // Build with the pinned PHP package, then materialize its files ourselves so
@@ -25,7 +29,7 @@ const result = await php.build({
             'Healthy Rice Leaf/**', 'Sheath Blight/**', 'Tungro/**', 'Not Rice Leaf/**',
             'leaf_blast/**'],
     }),
-    entrypoint: 'api/index.php', workPath: root, config: { excludeFiles }, meta: {},
+    entrypoint: 'api/index.php', workPath, config: { excludeFiles }, meta: {},
 });
 const lambda = result.output;
 if (!lambda?.files?.['launcher.js'] || !lambda.files['php/php']) {
