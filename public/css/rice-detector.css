@@ -1332,6 +1332,10 @@ select {
   transform: scale(0.99);
 }
 
+#loginForm + .google-auth-btn {
+  margin-top: 12px;
+}
+
 .otp-sent-info-card {
   display: flex;
   align-items: center;
@@ -1624,7 +1628,8 @@ select {
   color: #4b5563;
 }
 
-.google-auth-btn + .auth-switch {
+.google-auth-btn + .auth-switch,
+.guest-auth-btn + .auth-switch {
   margin-top: 20px;
   line-height: 1.5;
 }
@@ -8428,7 +8433,7 @@ select {
 .guest-auth-btn {
   width: 100%;
   min-height: 48px;
-  margin-top: 12px;
+  margin-top: 0;
   padding: 12px 18px;
   display: flex;
   align-items: center;
@@ -8450,10 +8455,3 @@ select {
   box-shadow: 0 0 0 3px rgba(11, 107, 58, .12);
 }
 
-.guest-auth-note {
-  margin: 7px 0 12px;
-  color: #66736b;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.45;
-}

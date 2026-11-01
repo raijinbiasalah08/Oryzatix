@@ -494,20 +494,6 @@
               <button type="submit" class="auth-btn" id="loginBtn">Sign In</button>
             </form>
 
-            <button type="button" class="guest-auth-btn" id="continueAsGuestBtn" onclick="continueAsGuest()">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>
-              </svg>
-              <span>Continue as Guest</span>
-            </button>
-            <p class="guest-auth-note">No account needed. Guest scans and records stay on this device. Connect once to download the offline scanner files.</p>
-
-            <div class="auth-or-divider">
-              <span></span>
-              <p>or</p>
-              <span></span>
-            </div>
-
             <!-- Instant Direct Google Sign-In Button -->
             <a href="{{ route('auth.google.redirect') }}?mode=login" class="google-auth-btn" style="text-decoration: none;">
               <svg viewBox="0 0 24 24" width="18" height="18">
@@ -518,6 +504,19 @@
               </svg>
               <span>Continue with Google</span>
             </a>
+
+            <div class="auth-or-divider">
+              <span></span>
+              <p>or</p>
+              <span></span>
+            </div>
+
+            <button type="button" class="guest-auth-btn" id="continueAsGuestBtn" onclick="continueAsGuest()">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>
+              </svg>
+              <span>Continue as Guest</span>
+            </button>
 
             <div class="auth-switch">
               <span>Don't have an account? </span>
