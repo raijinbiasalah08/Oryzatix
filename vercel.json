@@ -4,6 +4,14 @@
   "buildCommand": "npm run build:vercel",
   "routes": [
     {
+      "src": "/models/(.*)",
+      "dest": "/models/$1"
+    },
+    {
+      "src": "/litert/(.*)",
+      "dest": "/litert/$1"
+    },
+    {
       "src": "/build/(.*)",
       "dest": "/build/$1"
     },

@@ -2421,6 +2421,8 @@ function makeOfflineScanResponse(prediction, localFileUrl) {
   if (!disease) throw new Error('The offline model returned an unsupported disease label.');
   const now = new Date();
   const healthy = prediction.diseaseKey === 'healthy';
+  const estimated = !healthy && prediction.severity?.source === 'model_estimated' &&
+    ['mild', 'moderate', 'severe'].includes(prediction.severity.level);
   const confidence = Number(prediction.confidence);
   const minimumConfidence = prediction.minimumConfidence === null || prediction.minimumConfidence === undefined
     ? null
@@ -2442,10 +2444,11 @@ function makeOfflineScanResponse(prediction, localFileUrl) {
       confidence: (confidence * 100).toFixed(1),
       minimum_confidence: Number.isFinite(minimumConfidence) ? (minimumConfidence * 100).toFixed(1) : null,
       orientation_agreement: prediction.orientationAgreement,
-      severity: healthy ? 'healthy' : 'unassessed',
-      severity_status: healthy ? 'not_applicable' : 'unassessed',
-      severity_message: healthy ? null : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
-      severity_class: healthy ? 'healthy-bg' : 'unassessed-bg',
+      severity: healthy ? 'healthy' : estimated ? prediction.severity.level : 'unassessed',
+      severity_status: healthy ? 'not_applicable' : estimated ? 'model_estimated' : 'unassessed',
+      severity_model_version: estimated ? prediction.severity.version : null,
+      severity_message: healthy ? null : estimated ? 'Experimental AI severity estimate; accuracy has not been verified.' : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
+      severity_class: healthy ? 'healthy-bg' : estimated ? prediction.severity.level + '-bg' : 'unassessed-bg',
       affected_percentage: null,
       treatments: { chemical: [], organic: [] },
       treatment_source: 'offline_model',
@@ -2999,6 +3002,9 @@ function getDefaultTreatments(key, severity = 'moderate') {
 
 function scanSeverityLabel(scan) {
   if (scan.severity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')) return 'Healthy Leaf';
+  if (scan.severity_status === 'model_estimated' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
+    return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1) + ' (experimental estimate)';
+  }
   if (scan.severity_status === 'user_assessed' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
     return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1) + ' (manual)';
   }
@@ -3015,7 +3021,8 @@ function renderSeverityMeter(scan, isHealthy) {
   const measured = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== '' &&
     Number.isFinite(area) && area >= 0 && area <= 100;
   const manual = scan.severity_status === 'user_assessed' && levels.includes(scan.severity);
-  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : manual ? scan.severity : null;
+  const estimated = scan.severity_status === 'model_estimated' && levels.includes(scan.severity);
+  const level = measured ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe') : (manual || estimated) ? scan.severity : null;
   if (labels) labels.style.display = 'flex';
   ['sevLabelMild', 'sevLabelMod', 'sevLabelSev'].forEach((id, index) => {
     const label = document.getElementById(id);
@@ -3025,7 +3032,7 @@ function renderSeverityMeter(scan, isHealthy) {
   });
   if (notice) {
     notice.style.display = measured ? 'none' : 'block';
-    notice.textContent = manual
+    notice.textContent = estimated ? 'Experimental AI estimate — accuracy has not been verified. Have an agriculturist confirm the severity.' : manual
       ? 'Saved manual severity level.'
       : 'Severity level has not been assessed.';
   }
@@ -4326,7 +4333,7 @@ function renderHistoryList(scans) {
   pageItems.forEach(scan => {
     const rawSeverity = (scan.severity || '').toLowerCase();
     const isHealthyScan = rawSeverity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy');
-    const sev = isHealthyScan ? 'healthy' : (scan.severity_status === 'user_assessed' ? rawSeverity : 'unassessed');
+    const sev = isHealthyScan ? 'healthy' : (['user_assessed', 'model_estimated'].includes(scan.severity_status) ? rawSeverity : 'unassessed');
     const badgeCls = 'sev-badge ' + sev;
     const badgeText = scanSeverityLabel(scan);
 
@@ -4544,7 +4551,7 @@ function renderHomeScanRecords(recent) {
         else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) thumbCls = 'blb';
         const rawSeverity = (s.severity || '').toLowerCase();
         const isHealthyScan = rawSeverity === 'healthy' || lower.includes('healthy');
-        const sevCls = isHealthyScan ? 'healthy' : (s.severity_status === 'user_assessed' ? rawSeverity : 'unassessed');
+        const sevCls = isHealthyScan ? 'healthy' : (['user_assessed', 'model_estimated'].includes(s.severity_status) ? rawSeverity : 'unassessed');
         const sevLabel = scanSeverityLabel(s);
 
         const rawUrl = s.image_url;

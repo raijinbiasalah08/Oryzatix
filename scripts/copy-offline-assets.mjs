@@ -16,6 +16,8 @@ for (const name of [
     'mobilenetv2_rice_leaf.tflite',
     'rice_leaf_validator.tflite',
     'scan_validation_thresholds.json',
+    'severity_experimental_v1.tflite',
+    'severity_experimental_v1.json',
 ]) {
     await copyFile(path.join(modelSource, name), path.join(modelTarget, name));
 }

@@ -1,4 +1,4 @@
-"""Prepare an unannotated severity pilot from a disease-training manifest."""
+"""Prepare an unannotated severity segmentation pilot from a disease-training manifest."""
 import argparse
 from collections import Counter
 import csv

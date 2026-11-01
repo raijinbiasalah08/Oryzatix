@@ -1,4 +1,5 @@
 import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
+import { SEVERITY_VERSION, SEVERITY_HASH, severityFromProbabilities } from './severity-estimate';
 
 const IMAGE_SIZE = 224;
 const SUPPORTED_DISEASES = new Set([
@@ -11,6 +12,38 @@ const SUPPORTED_DISEASES = new Set([
 ]);
 
 let scannerModelsPromise;
+let severityModelPromise;
+
+async function estimateSeverity(file, diseaseKey, preparedPixels = null) {
+    if (!SUPPORTED_DISEASES.has(diseaseKey) || diseaseKey === 'healthy') return null;
+    try {
+        if (!severityModelPromise) {
+            severityModelPromise = (async () => {
+                const assets = window.ORYZATIX_OFFLINE_ASSETS;
+                if (!assets?.models || !assets?.runtime) throw new Error('Severity assets unavailable');
+                await loadLiteRt(assets.runtime);
+                const bytes = await readBytes(assetUrl(assets.models, `${SEVERITY_VERSION}.tflite`));
+                if (await sha256(bytes) !== SEVERITY_HASH) throw new Error('Severity model hash mismatch');
+                const model = await loadAndCompile(bytes, { accelerator: 'wasm', cpuOptions: { numThreads: 2 } });
+                const inputs = model.getInputDetails(), outputs = model.getOutputDetails();
+                const supported = detail => detail?.dtype === 'float32' &&
+                    ['1,224,224,3', '1,3,224,224'].includes(Array.from(detail.shape).join(','));
+                if (inputs.length !== 1 || outputs.length !== 1 || !supported(inputs[0]) || !supported(outputs[0])) {
+                    model.delete();
+                    throw new Error('Severity model tensor mismatch');
+                }
+                return { model, shape: Array.from(inputs[0].shape), channelFirst: outputs[0].shape[1] === 3 };
+            })().catch(error => { severityModelPromise = null; throw error; });
+        }
+        const { model, shape, channelFirst } = await severityModelPromise;
+        const rgba = preparedPixels || await decodeToPixels(file);
+        const level = severityFromProbabilities(await invoke(model, rgba, shape), channelFirst);
+        return level ? { level, source: 'model_estimated', version: SEVERITY_VERSION } : null;
+    } catch (error) {
+        console.warn('Experimental severity unavailable:', error);
+        return null;
+    }
+}
 
 function assetUrl(base, file) {
     return new URL(file, base).toString();
@@ -267,8 +300,10 @@ async function classify(file) {
         reason = 'disease_confidence_below_validation_threshold';
     }
 
+    const severity = status === 'diagnosed' ? await estimateSeverity(file, label.key, rgba) : null;
     return {
         status,
+        severity,
         reason,
         riceProbability,
         riceThreshold,
@@ -282,4 +317,4 @@ async function classify(file) {
     };
 }
 
-window.OryzatixOfflineScanner = Object.freeze({ classify });
+window.OryzatixOfflineScanner = Object.freeze({ classify, estimateSeverity });

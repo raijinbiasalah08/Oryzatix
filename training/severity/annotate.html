@@ -7,7 +7,7 @@
 body{font:16px system-ui;margin:24px auto;max-width:1000px;padding:0 16px;color:#163e2a;background:#f6faf7}h1{font-size:26px}button,input,select{font:inherit;margin:6px;padding:8px}button{cursor:pointer}#stage{position:relative;width:100%;background:#ddd;line-height:0}canvas{width:100%;height:auto}#overlay{position:absolute;inset:0;touch-action:none;cursor:crosshair}p{line-height:1.5}.notice{padding:12px;background:#fff2cd;border-radius:8px}
 </style>
 <h1>Mark rice leaf and affected regions</h1>
-<p>This tool runs locally. Paint all visible leaf tissue in green, then affected tissue in red. Black pixels in the exported mask are background. Review edges and small lesions carefully.</p>
+<p>This tool runs locally. Paint all visible leaf tissue in green, then affected tissue in red. Black pixels in the exported mask are background. Review edges and small lesions carefully. Masks are internal training data; the scanner result will show only Mild, Moderate, or Severe, with no affected-area value.</p>
 <p class="notice">Annotations need agricultural review. Painting or exporting a mask does not certify it as correct. Use individual leaves; do not estimate whole-field severity from a landscape photo.</p>
 <label>Photos <input id="photo" type="file" accept="image/*" multiple></label>
 <label>Current photo <select id="queue" disabled></select></label>

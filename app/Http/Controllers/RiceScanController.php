@@ -1021,9 +1021,9 @@ class RiceScanController extends Controller
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
                 // Older disease severities came from unvalidated color rules.
-                'mild' => (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count(),
-                'moderate' => (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count(),
-                'severe' => (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count(),
+                'mild' => (clone $query)->where('severity', 'mild')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
+                'moderate' => (clone $query)->where('severity', 'moderate')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
+                'severe' => (clone $query)->where('severity', 'severe')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
                 'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count(),
                 'total' => (clone $query)->count(),
             ];
@@ -1345,6 +1345,14 @@ class RiceScanController extends Controller
         // color heuristics or dataset defaults into a severity measurement.
         $severity = $selectedDiseaseKey === 'healthy' ? 'healthy' : 'unassessed';
         $severityStatus = $selectedDiseaseKey === 'healthy' ? 'not_applicable' : 'unassessed';
+        $severityEstimate = $scanPrediction['severity'] ?? null;
+        if ($selectedDiseaseKey !== 'healthy' && is_array($severityEstimate)
+            && ($severityEstimate['source'] ?? null) === 'model_estimated'
+            && ($severityEstimate['version'] ?? null) === 'severity_experimental_v1'
+            && in_array($severityEstimate['level'] ?? null, ['mild', 'moderate', 'severe'], true)) {
+            $severity = $severityEstimate['level'];
+            $severityStatus = 'model_estimated';
+        }
 
         // This classifier does not measure lesion area. Suppress disease-specific
         // dosage suggestions until severity is independently assessed.
@@ -1355,7 +1363,7 @@ class RiceScanController extends Controller
         $agriculturalStrategies = null;
         $productivityImpact = null;
 
-        if (in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true) && isset($disease['severity_levels'][$severity])) {
+        if ($severityStatus !== 'model_estimated' && in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true) && isset($disease['severity_levels'][$severity])) {
             $treatments = [
                 'chemical' => $disease['severity_levels'][$severity]['chemical'],
                 'organic' => $disease['severity_levels'][$severity]['organic'],
@@ -1404,6 +1412,7 @@ class RiceScanController extends Controller
                     'scientific_name' => $disease['scientific'],
                     'confidence' => $confidence !== null ? round($confidence, 2) : null,
                     'severity' => $severity,
+                    'severity_source' => $severityStatus === 'model_estimated' ? 'model_estimated' : null,
                     'treatment_recommendation' => $treatments,
                 ]);
                 $scanId = $scan->id;
@@ -1453,7 +1462,8 @@ class RiceScanController extends Controller
                     ? 'Disease detected: Not Healthy Leaf. Severity level has not been assessed.'
                     : null,
                 'affected_percentage' => null,
-                'severity_class' => ($severity === 'healthy' ? 'healthy-bg' : 'unassessed-bg'),
+                'severity_class' => $severity . '-bg',
+                'severity_model_version' => $severityStatus === 'model_estimated' ? 'severity_experimental_v1' : null,
                 'image_url' => $imageUrl,
                 'treatments' => $treatments,
                 'management_practices' => $managementPractices,
@@ -1492,9 +1502,9 @@ class RiceScanController extends Controller
 
             $stats = [
                 'healthy' => (clone $query)->where('severity', 'healthy')->count(),
-                'mild' => (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count(),
-                'moderate' => (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count(),
-                'severe' => (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count(),
+                'mild' => (clone $query)->where('severity', 'mild')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
+                'moderate' => (clone $query)->where('severity', 'moderate')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
+                'severe' => (clone $query)->where('severity', 'severe')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count(),
                 'unassessed' => (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count(),
                 'total' => (clone $query)->count(),
             ];
@@ -1504,7 +1514,8 @@ class RiceScanController extends Controller
                     $diseaseLower = strtolower($scan->disease_name);
                     $isHealthy = $scan->severity === 'healthy' || str_contains($diseaseLower, 'healthy');
                     $manual = $scan->severity_source === 'user_assessed' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
-                    $displaySeverity = $isHealthy ? 'healthy' : ($manual ? $scan->severity : 'unassessed');
+                    $estimated = $scan->severity_source === 'model_estimated' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
+                    $displaySeverity = $isHealthy ? 'healthy' : (($manual || $estimated) ? $scan->severity : 'unassessed');
                     $severityClass = $displaySeverity . '-bg';
 
                     $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
@@ -1518,8 +1529,9 @@ class RiceScanController extends Controller
                         'date' => $scan->created_at->format('M j, Y'),
                         'created_at_raw' => $scan->created_at->toISOString(),
                         'severity' => $displaySeverity,
-                        'severity_status' => $isHealthy ? 'not_applicable' : ($manual ? 'user_assessed' : 'unassessed'),
-                        'severity_label' => $isHealthy ? 'Healthy Leaf' : ($manual ? ucfirst($displaySeverity) . ' (manual)' : 'Not assessed'),
+                        'severity_status' => $isHealthy ? 'not_applicable' : ($estimated ? 'model_estimated' : ($manual ? 'user_assessed' : 'unassessed')),
+                        'severity_label' => $isHealthy ? 'Healthy Leaf' : ($estimated ? ucfirst($displaySeverity) . ' (experimental estimate)' : ($manual ? ucfirst($displaySeverity) . ' (manual)' : 'Not assessed')),
+                        'severity_model_version' => $estimated ? 'severity_experimental_v1' : null,
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,
                         'image_url' => $scanImageUrl,
@@ -1692,9 +1704,9 @@ class RiceScanController extends Controller
         $totalScans = (clone $query)->count();
         $healthyCount = (clone $query)->where('severity', 'healthy')->count();
         // No disease-area model has been validated against expert labels.
-        $mildCount = (clone $query)->where('severity', 'mild')->where('severity_source', 'user_assessed')->count();
-        $moderateCount = (clone $query)->where('severity', 'moderate')->where('severity_source', 'user_assessed')->count();
-        $severeCount = (clone $query)->where('severity', 'severe')->where('severity_source', 'user_assessed')->count();
+        $mildCount = (clone $query)->where('severity', 'mild')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count();
+        $moderateCount = (clone $query)->where('severity', 'moderate')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count();
+        $severeCount = (clone $query)->where('severity', 'severe')->whereIn('severity_source', ['user_assessed', 'model_estimated'])->count();
         $unassessedCount = (clone $query)->where('severity', '!=', 'healthy')->where(function ($q) { $q->whereNull('severity_source')->orWhere('severity', 'unassessed'); })->count();
 
         // The public stats endpoint may show aggregate totals, but never individual
@@ -1707,8 +1719,8 @@ class RiceScanController extends Controller
                         'disease_key' => $this->diseaseKeyFromName($scan->disease_name),
                 'scientific' => $scan->scientific_name,
                 'confidence' => $scan->confidence !== null ? number_format((float) $scan->confidence, 1) : null,
-                'severity' => $scan->severity === 'healthy' ? 'healthy' : ($scan->severity_source === 'user_assessed' ? $scan->severity : 'unassessed'),
-                'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : ($scan->severity_source === 'user_assessed' ? 'user_assessed' : 'unassessed'),
+                'severity' => $scan->severity === 'healthy' ? 'healthy' : (in_array($scan->severity_source, ['user_assessed', 'model_estimated'], true) ? $scan->severity : 'unassessed'),
+                'severity_status' => $scan->severity === 'healthy' ? 'not_applicable' : (in_array($scan->severity_source, ['user_assessed', 'model_estimated'], true) ? $scan->severity_source : 'unassessed'),
                 'time' => $scan->created_at->format('g:i A'),
                 'date' => $scan->created_at->format('M j, Y'),
                 'image_url' => $imageUrl,

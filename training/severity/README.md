@@ -1,86 +1,43 @@
-# Automatic affected-area training
+# Segmentation-based automatic severity level
 
-Status: training preparation only. No severity model has been trained or deployed.
-The existing MobileNet disease model outputs disease probabilities, not affected area.
+The selected approach segments background, unaffected leaf, and symptomatic leaf tissue with a MobileNetV2 model. The app should convert the internal mask to Mild, Moderate, or Severe and display only that category. The internal project bands are Mild up to 25%, Moderate over 25% through 60%, and Severe over 60%; no affected-area number is returned by the training evaluation report or intended scanner result.
 
-## Collect annotations
+## Annotate the pilot masks
 
-Open `annotate.html` in a browser. Select one or several photos and use the current-photo
-selector or Previous/Next buttons. Load a saved mask for the current photo to resume
-annotation or review it as an overlay. Load an image, paint the entire visible rice leaf
-with **Leaf**, then mark symptomatic regions with **Affected**. Use **Background**
-to correct strokes. Inspect the whole mask before exporting. The tool exports a PNG
-mask; it does not decide which regions are diseased and does not provide expert review.
+The pilot contains 360 balanced images: 60 diseased images per supported disease plus 60 healthy images. The mask folder currently has no annotations, so supervised training with reviewed masks cannot start yet.
 
-Mask classes are grayscale integer values: 0 = background, 1 = unaffected leaf,
-2 = affected leaf. Affected pixels are part of the leaf denominator. Masks must use
-the same dimensions and orientation as the EXIF-corrected source image. Keep the
-original photos and exported masks together and get an agricultural reviewer to
-check them. Do not use AI-generated percentages or classifier confidence as labels.
-
-Start with clear individual leaves across all supported diseases, healthy leaves,
-different severities, lighting, and backgrounds. Whole-field or overlapping-plant
-images, including the example shown in the app, require a defined annotation
-protocol; a single-leaf model should not claim whole-field severity. Sheath symptoms
-also require a separate agreed definition of the target plant tissue.
-
-Create a JSON manifest following `manifest.example.json`. Paths are relative to the
-manifest. `reviewed` must be true only after actual review; fill in `reviewer`.
-Group photos of the same plant/capture session and all derived copies under one
-`group_id` and set `group_confirmed=true` only after confirming the grouping. Keep each group in exactly one of train, validation, or test. Stratify
-those groups by disease and severity, and reserve independent field images for test.
-The validator rejects duplicate images and groups crossing splits.
-
-To prepare a reproducible starting batch from an existing disease manifest:
+1. Open `outputs/severity-annotation-pilot-2026-11-01/annotate.html` in a browser.
+2. Select photos from that batch's `images` folder. For each photo, paint all visible rice leaf as **Leaf**, then paint visibly symptomatic tissue as **Affected**. Leave background black. Use individual leaves; exclude scenes where leaf boundaries or symptoms cannot be judged consistently.
+3. Export each mask and move it to that batch's `masks` folder, preserving the exported filename. The filename must match the `mask` path in `manifest.json`.
+4. Have an agricultural reviewer check each mask against the original. In `manifest.json`, set `reviewed` to true and enter the reviewer's name only after approval. Confirm plant/capture groups and keep each group in one of train, validation, or test.
+5. Run the manifest preflight before training:
 
 ```powershell
-.\.venv-training\Scripts\python.exe training/severity/prepare_batch.py --manifest outputs/all-datasets-retraining-2026-10-31/models/training_manifest.csv --output outputs/severity-annotation-pilot-2026-11-01
+.\.venv-training\Scripts\python.exe training\severity\train.py --manifest outputs\severity-annotation-pilot-2026-11-01\manifest.json --validate-only
 ```
 
-The pilot targets 360 images: 60 per rice class (40 train, 10 validation, 10 test).
-It copies original images with neutral filenames, preserves existing disease splits,
-and writes a summary and unreviewed manifest. It creates no masks and no predicted
-severity labels. Review image suitability and revise capture groups/splits before
-training; separate photos from the same plant may already cross the disease splits.
-Existing disease test images cannot establish independent end-to-end field accuracy.
-Export masks into the batch's `masks` folder using the generated filenames.
-
-## Train and evaluate
-
-Use the project's training environment (TensorFlow, NumPy, Pillow):
+6. After preflight succeeds, train and evaluate a candidate:
 
 ```powershell
-.\.venv-training\Scripts\python.exe training/severity/train.py --manifest path/to/manifest.json --validate-only
-.\.venv-training\Scripts\python.exe training/severity/train.py --manifest path/to/manifest.json --output outputs/severity-candidate --epochs 30
+.\.venv-training\Scripts\python.exe training\severity\train.py --manifest outputs\severity-annotation-pilot-2026-11-01\manifest.json --output outputs\severity-segmentation-candidate --epochs 30
 ```
 
-The pipeline uses a frozen pretrained MobileNetV2 encoder with a segmentation
-decoder. It predicts background, unaffected leaf, and affected leaf for each pixel.
-ImageNet encoder weights download on the first training run. Model inputs are RGB
-float32 in 0–255, resized to 224×224; preprocessing is inside the model. Mask resize
-uses nearest-neighbor interpolation to preserve class IDs.
+The output includes a `.tflite` segmentation candidate and held-out severity-level agreement, per-disease agreement, a level confusion matrix, and tissue-mask IoU. It does not include affected-area percentages. The trainer labels every output as a candidate and does not deploy it.
 
-Affected area = 100 × affected pixels / (unaffected leaf + affected pixels).
-No predicted leaf means no severity result. The app's display bands are Mild ≤25%,
-Moderate >25–60%, Severe >60%; these are project bands, not a claim of a validated
-disease-specific agronomic grading standard. Healthy classification is a separate
-decision; a zero-area estimate alone does not establish health.
+## Accuracy and deployment
 
-Outputs are a candidate `.keras` model, `.tflite` model, and a held-out TFLite test
-report with class IoU, area error, severity-band agreement, and failed-leaf counts.
-Check small-lesion performance, background errors, per-disease coverage, and external
-field performance before approving deployment. Low-resolution masks can miss small
-lesions. Pixel accuracy alone is not a sufficient acceptance measure. Split assignment
-and reviewer identity are supplied by the dataset author, not independently verified
-by the script. An exported model is not automatically a validated model.
+The 360-image pilot is only a starting point. Correct its disease labels and group assignments, and evaluate on independent field images before claiming accuracy. A segmentation candidate must also be checked for missed small lesions, background mistakes, and performance on each disease. The app should only run severity classification after the disease detector finds a supported disease; healthy or unscorable images should not be labeled Mild.
 
-## Deployment still required
+Once an approved candidate exists, integrate its TFLite output in online and offline scanner paths, map the mask to a category internally, and store/display only that category. Until that model is trained and validated, the scanner must keep severity unassessed rather than substitute disease confidence or color heuristics.
 
-After adequate reviewed data and satisfactory evaluation, integrate the approved
-model into server inference and browser/native offline inference. Store its predicted
-area, model version, and `model_estimated` source with each scan. The UI must identify
-the output as a model estimate, not `expert_validated`. Cache the exported TFLite
-asset for offline use and measure performance on target phones. This preparation
-does not alter existing models, production scans, or manually saved assessments.
+`annotate_levels.html` and `train_level_classifier.py` are the alternate direct-category workflow. They are not the selected path for this project.
 
-Architecture reference: https://www.tensorflow.org/tutorials/images/segmentation
+## Experimental training without reviewed masks
+
+`train_experimental_masks.py` can train a separate MobileNetV2 segmentation prototype from automatic color-rule masks. These are pseudo-labels, never expert annotations. The script preserves existing splits, verifies source image hashes and decoded uniqueness, logs unusable masks, and sets `reviewed=false` for all generated masks. Frozen MobileNetV2 features feed a small trainable decoder; the exported TFLite model accepts RGB 0–255 images at 224×224.
+
+```powershell
+.\.venv-training\Scripts\python.exe training\severity\train_experimental_masks.py --manifest outputs\severity-level-labeling\manifest.json --data-root . --output outputs\severity-experimental-new-run --epochs 12
+```
+
+Outputs include the draft masks, a preview, a draft manifest, cached features, Keras/TFLite models, and a report. The report explicitly sets actual severity accuracy to null: its test references come from the same rules and are not independent ground truth. Color rules can mistake soil, shadows, pale lesions, and non-disease discoloration for symptoms or background. Capture groups also remain unconfirmed. Review real masks and collect an independent evaluation before using this candidate in the scanner. This script never publishes a model or changes production assets.

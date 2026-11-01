@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +35,8 @@ def read_pair(row):
 
 
 def load_manifest(path):
+    path = Path(os.path.abspath(path))
+    root = Path(os.path.abspath(path.parent))
     rows = json.loads(path.read_text(encoding='utf-8'))
     if not isinstance(rows, list) or not rows:
         raise ValueError('Manifest must contain reviewed image/mask records.')
@@ -52,7 +55,13 @@ def load_manifest(path):
             raise ValueError(f'Group {group} crosses dataset splits.')
         groups[group] = split
         for key in ('image', 'mask'):
-            row[key] = str((path.parent / row[key]).resolve(strict=True))
+            relative = Path(str(row[key]))
+            if relative.is_absolute():
+                raise ValueError(f'Record {number}: {key} paths must be relative to the manifest folder.')
+            resolved = Path(os.path.abspath(root / relative))
+            if os.path.commonpath((str(root), str(resolved))) != str(root) or not resolved.is_file():
+                raise ValueError(f'Record {number}: {key} is missing or outside the manifest folder.')
+            row[key] = str(resolved)
         image, mask = read_pair(row)
         digest = hashlib.sha256(str(image.size).encode() + image.tobytes()).hexdigest()
         if digest in seen:
@@ -126,11 +135,16 @@ def evaluate_tflite(tf, model_path, rows):
     interpreter = tf.lite.Interpreter(model_path=str(model_path))
     interpreter.allocate_tensors()
     inp, out = interpreter.get_input_details()[0], interpreter.get_output_details()[0]
-    confusion = np.zeros((3, 3), dtype=np.int64)
-    records = []
+    tissue_confusion = np.zeros((3, 3), dtype=np.int64)
+    level_confusion = np.zeros((3, 3), dtype=np.int64)
+    levels = ('mild', 'moderate', 'severe')
+    level_ids = {level: index for index, level in enumerate(levels)}
+    level_records, disease_counts = [], {}
+    test_segmentation_images = 0
     for row in rows:
         if row['split'] != 'test':
             continue
+        test_segmentation_images += 1
         image, truth = resized_pair(row)
         interpreter.set_tensor(inp['index'], image[None])
         interpreter.invoke()
@@ -138,22 +152,57 @@ def evaluate_tflite(tf, model_path, rows):
         if probabilities.shape != (SIZE, SIZE, 3) or not np.isfinite(probabilities).all():
             raise ValueError('Invalid exported model output.')
         predicted = probabilities.argmax(axis=-1)
-        confusion += np.bincount((truth * 3 + predicted).ravel(), minlength=9).reshape(3, 3)
-        reference, estimate = area_percent(truth), area_percent(predicted)
-        records.append({'image': row['image'], 'disease': row['disease'], 'reference_area': reference,
-                        'predicted_area': estimate, 'absolute_error': abs(reference - estimate) if reference is not None and estimate is not None else None,
-                        'band_agrees': band(reference) == band(estimate) if reference is not None and estimate is not None else None})
-    errors = [r['absolute_error'] for r in records if r['absolute_error'] is not None]
-    intersection = np.diag(confusion)
-    union = confusion.sum(0) + confusion.sum(1) - intersection
-    return {'status': 'candidate_not_approved_for_deployment', 'test_images': len(records),
-            'model_sha256': hashlib.sha256(model_path.read_bytes()).hexdigest(),
-            'class_iou': [float(i/u) if u else None for i, u in zip(intersection, union)],
-            'class_order': ['background', 'unaffected_leaf', 'affected_leaf'],
-            'area_mae_percentage_points': float(np.mean(errors)) if errors else None,
-            'unscorable_images': sum(r['absolute_error'] is None for r in records),
-            'band_agreement_all_test_images': sum(r['band_agrees'] is True for r in records) / len(records),
-            'records': records}
+        tissue_confusion += np.bincount((truth * 3 + predicted).ravel(), minlength=9).reshape(3, 3)
+        if str(row['disease']).strip().lower() == 'healthy':
+            continue
+        reference_area, predicted_area = area_percent(truth), area_percent(predicted)
+        reference_level = band(reference_area) if reference_area is not None else None
+        predicted_level = band(predicted_area) if predicted_area is not None else None
+        agrees = reference_level is not None and predicted_level is not None and reference_level == predicted_level
+        level_records.append({'image': row['image'], 'disease': row['disease'],
+                              'reference_level': reference_level, 'predicted_level': predicted_level,
+                              'level_agrees': agrees})
+        counts = disease_counts.setdefault(row['disease'], {'correct': 0, 'total': 0, 'scorable': 0})
+        counts['total'] += 1
+        counts['correct'] += int(agrees)
+        if reference_level is not None and predicted_level is not None:
+            counts['scorable'] += 1
+            level_confusion[level_ids[reference_level], level_ids[predicted_level]] += 1
+
+    intersection = np.diag(tissue_confusion)
+    union = tissue_confusion.sum(0) + tissue_confusion.sum(1) - intersection
+    for counts in disease_counts.values():
+        counts['level_agreement'] = counts['correct'] / counts['total'] if counts['total'] else None
+    level_metrics = {}
+    f1_values = []
+    for index, level in enumerate(levels):
+        tp = int(level_confusion[index, index])
+        precision = tp / int(level_confusion[:, index].sum()) if level_confusion[:, index].sum() else 0.0
+        recall = tp / int(level_confusion[index, :].sum()) if level_confusion[index, :].sum() else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+        level_metrics[level] = {'precision': precision, 'recall': recall, 'f1': f1,
+                                'support': int(level_confusion[index].sum())}
+        f1_values.append(f1)
+    scored = int(level_confusion.sum())
+    agreement = sum(record['level_agrees'] is True for record in level_records)
+    return {
+        'status': 'candidate_not_approved_for_deployment',
+        'severity_test_images': len(level_records),
+        'segmentation_test_images': test_segmentation_images,
+        'scorable_severity_test_images': scored,
+        'unscorable_severity_test_images': len(level_records) - scored,
+        'severity_level_order': list(levels),
+        'severity_level_agreement_all_diseased_test_images': agreement / len(level_records) if level_records else None,
+        'severity_level_accuracy_on_scorable_images': float(np.trace(level_confusion) / scored) if scored else None,
+        'severity_macro_f1_on_scorable_images': float(np.mean(f1_values)) if scored else None,
+        'severity_confusion_rows_true_columns_predicted': level_confusion.tolist(),
+        'per_severity': level_metrics,
+        'per_disease': disease_counts,
+        'tissue_class_iou': [float(i / u) if u else None for i, u in zip(intersection, union)],
+        'tissue_class_order': ['background', 'unaffected_leaf', 'affected_leaf'],
+        'model_sha256': hashlib.sha256(model_path.read_bytes()).hexdigest(),
+        'records': level_records,
+    }
 
 
 def main():
@@ -164,7 +213,7 @@ def main():
     parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--validate-only', action='store_true')
     args = parser.parse_args()
-    rows = load_manifest(args.manifest.resolve())
+    rows = load_manifest(Path(os.path.abspath(args.manifest)))
     print(json.dumps({'reviewed_records': {s: sum(r['split'] == s for r in rows) for s in SPLITS}}))
     if args.validate_only:
         return

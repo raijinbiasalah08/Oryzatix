@@ -26,6 +26,8 @@ export default function HomePage() {
             scientific: scan.scientific,
             confidence: scan.confidence,
             severity: scan.severity,
+            severity_status: scan.severity_status,
+            severity_model_version: scan.severity_model_version,
             severity_class: scan.severity_class,
             image_url: scan.image_url,
             treatments: scan.treatments,
@@ -76,7 +78,7 @@ export default function HomePage() {
                                     <div className="disease-name">{s.disease}</div>
                                     <div className="scan-meta">{s.time}</div>
                                 </div>
-                                <span className={`severity-badge ${getSeverityBadgeClass(s.severity)}`}>{s.severity}</span>
+                                <span className={`severity-badge ${getSeverityBadgeClass(s.severity)}`}>{s.severity}{s.severity_status === 'model_estimated' ? ' (experimental)' : ''}</span>
                             </div>
                         ))
                     )}

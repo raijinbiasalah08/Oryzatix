@@ -48,6 +48,8 @@ export default function HistoryPage() {
             scientific: scan.scientific,
             confidence: scan.confidence,
             severity: scan.severity,
+            severity_status: scan.severity_status,
+            severity_model_version: scan.severity_model_version,
             severity_class: scan.severity_class,
             image_url: scan.image_url,
             treatments: scan.treatments,
@@ -245,6 +247,7 @@ export default function HistoryPage() {
                                             </td>
                                             <td>
                                                 {renderSeverityBadge(scan.severity)}
+                                                {scan.severity_status === 'model_estimated' && <small>{t('Experimental estimate', 'Eksperimental na pagtataya')}</small>}
                                             </td>
                                             <td>
                                                 <div className="ht-date">{scan.date || scan.dateLabel || 'Today'}</div>

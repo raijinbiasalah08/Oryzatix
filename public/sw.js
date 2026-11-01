@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v13';
+const CACHE_NAME = 'oryzatix-pwa-v14';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -15,6 +15,8 @@ const OFFLINE_SCANNER_ASSETS = [
     './models/mobilenetv2_rice_leaf.tflite',
     './models/rice_leaf_validator.tflite',
     './models/scan_validation_thresholds.json',
+    './models/severity_experimental_v1.tflite',
+    './models/severity_experimental_v1.json',
     './litert/litert_wasm_internal.js',
     './litert/litert_wasm_internal.wasm'
 ];

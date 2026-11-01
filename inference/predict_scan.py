@@ -201,6 +201,13 @@ def main() -> int:
     result['diagnosis']['orientation_views'] = rotations
     result['diagnosis']['orientation_agreement'] = float(np.mean(np.argmax(views, axis=1) == best_index))
     result['diagnosis']['score_description'] = 'Mean model probability across full-image orientations'
+    result['severity'] = None
+    if result['status'] == 'diagnosed':
+        try:
+            from severity import estimate
+            result['severity'] = estimate(disease_path.parent, pixels, disease_key, run_model)
+        except Exception as error:
+            print(f'Experimental severity unavailable: {error}', file=sys.stderr)
     print(json.dumps(result, allow_nan=False))
     return 0
 

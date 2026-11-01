@@ -1,0 +1,16 @@
+{
+  "version": "severity_experimental_v1",
+  "model_sha256": "4d6bfd0e5d5b1120d25b4e46f31284e5c94992ffdd5e212c3c14decdc0eead3c",
+  "status": "experimental_unvalidated",
+  "annotation_source": "unvalidated_color_rules_v1",
+  "reviewed_masks": 0,
+  "input_shape": [1, 224, 224, 3],
+  "output_shape": [1, 224, 224, 3],
+  "class_order": ["background", "unaffected_leaf", "affected_leaf"],
+  "training_images": 2480,
+  "validation_images": 531,
+  "test_images": 531,
+  "epochs": 12,
+  "actual_severity_accuracy": null,
+  "limitation": "Machine-generated training masks can include background vegetation or miss lesions. Results are experimental estimates, not verified severity assessments."
+}

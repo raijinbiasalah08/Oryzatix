@@ -28,6 +28,8 @@ export function ScanProvider({ children }) {
             disease: scan.disease,
             time: scan.time,
             severity: scan.severity,
+            severity_status: scan.severity_status,
+            severity_model_version: scan.severity_model_version,
             image_url: scan.image_url,
             scientific: scan.scientific,
             confidence: scan.confidence,

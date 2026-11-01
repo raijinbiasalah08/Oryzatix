@@ -19,6 +19,7 @@ class RiceScan extends Model
         'scientific_name',
         'confidence',
         'severity',
+        'severity_source',
         'notes',
         'treatment_recommendation',
     ];
