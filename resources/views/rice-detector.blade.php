@@ -1064,8 +1064,8 @@
             <img src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="Oryzatix farm robot assistant" width="46" height="46" decoding="async">
           </div>
           <div class="chat-header-info">
-            <h3>Rice AI Agricultural Assistant</h3>
-            <p id="consultationStatusText" data-online-en="Rice farming help · English / Tagalog" data-online-tl="Gabay sa pagsasaka ng palay · Ingles / Tagalog" data-offline-en="Internet required for AI consultation" data-offline-tl="Kailangan ng internet para sa AI consultation">Rice farming help · English / Tagalog</p>
+            <h3 data-en="Ory · Rice AI Assistant" data-tl="Ory · Katulong sa pagsasaka ng palay">Ory · Rice AI Assistant</h3>
+            <p id="consultationStatusText" data-online-en="Your rice-farming companion · English / Tagalog" data-online-tl="Kasama mo sa pagsasaka ng palay · Ingles / Tagalog" data-offline-en="Internet required for AI consultation" data-offline-tl="Kailangan ng internet para sa AI consultation">Your rice-farming companion · English / Tagalog</p>
           </div>
           <div class="chat-header-actions">
             <button type="button" class="chat-mute-btn" id="aiMuteToggleBtn" onclick="toggleAiVoiceMute()" title="Mute/Unmute AI Voice">
@@ -1085,9 +1085,9 @@
 
         <div class="chat-messages" id="chatMessages">
           <div class="chat-time">Today · AI Assistant Active</div>
-          <div class="chat-bubble ai" data-lang="tagalog" data-raw-content="Kumusta! Ako ang Rice AI Assistant. Sabihin ang yugto ng palay, mga sintomas, at kondisyon sa bukid. Tutulong ako sa ligtas na gabay sa sakit at pangangalaga ng palay. Mag-type o mag-voice message lang!">
+          <div class="chat-bubble ai ory-intro-message" data-lang="english" data-raw-content="Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog.">
             <div class="chat-text-content">
-              <p>Kumusta! Ako ang Rice AI Assistant. Sabihin ang yugto ng palay, mga sintomas, at kondisyon sa bukid. Tutulong ako sa ligtas na gabay sa sakit at pangangalaga ng palay. Mag-type o mag-voice message lang!</p>
+              <p data-en="Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog." data-tl="Kumusta! Ako si Ory, ang katuwang mo sa pagsasaka mula sa Oryzatix. Magtanong tungkol sa sakit ng palay, pangangalaga ng tanim, o mga nakikita mo sa bukid. Maaari kang mag-type o magsalita sa Ingles o Tagalog.">Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog.</p>
             </div>
             <div class="chat-bubble-footer">
               <button type="button" class="translate-bubble-btn" onclick="translateAiBubble(this)" title="Translate message">
@@ -1811,9 +1811,10 @@
   <button
     type="button"
     class="oryzatix-assistant-shortcut"
-    onclick="showScreen('consultation');"
-    aria-label="Open AI Consultant"
+    onclick="openOryAssistant();"
+    aria-label="Meet Ory and open AI Consultant"
   >
+    <span class="oryzatix-assistant-shortcut__intro" id="oryAssistantIntro" data-en="Hi, I'm Ory! Your rice-farming helper is ready." data-tl="Kumusta, ako si Ory! Handa akong tumulong sa pagsasaka ng palay." aria-hidden="true" hidden>Hi, I'm Ory! Your rice-farming helper is ready.</span>
     <img class="oryzatix-assistant-shortcut__character" src="{{ asset('images/oryzatix-farm-assistant.png') }}" alt="" width="539" height="384" decoding="async">
   </button>
 </div><!-- /.web-app-shell -->

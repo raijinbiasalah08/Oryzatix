@@ -520,7 +520,7 @@ button:disabled { cursor: not-allowed; }
   box-shadow: 0 7px 20px rgba(17, 66, 40, .045);
 }
 #consultation.voice-companion .chat-bubble.ai::before {
-  content: 'ORYZATIX ASSISTANT';
+  content: 'ORY · ORYZATIX ASSISTANT';
   display: block;
   margin: 0 0 7px;
   color: #11804a;
@@ -771,6 +771,63 @@ button:disabled { cursor: not-allowed; }
   transform-origin: 50% 76%;
 }
 
+.oryzatix-assistant-shortcut__intro {
+  position: absolute;
+  z-index: 2;
+  right: 78%;
+  bottom: 69%;
+  width: max-content;
+  max-width: min(250px, calc(100vw - 30px));
+  padding: 11px 14px;
+  border: 1px solid #d7e9dd;
+  border-radius: 16px 16px 5px 16px;
+  background: #fff;
+  color: #214532;
+  box-shadow: 0 9px 28px rgba(18, 61, 39, .16);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+  transform-origin: 100% 100%;
+}
+
+.oryzatix-assistant-shortcut__intro::after {
+  position: absolute;
+  right: -6px;
+  bottom: 8px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid #d7e9dd;
+  border-bottom: 1px solid #d7e9dd;
+  background: #fff;
+  content: '';
+  transform: rotate(-45deg);
+}
+
+.oryzatix-assistant-shortcut__intro[hidden] { display: none; }
+
+.oryzatix-assistant-shortcut.is-introducing .oryzatix-assistant-shortcut__intro {
+  animation: ory-intro-pop 760ms cubic-bezier(.18,.85,.25,1.15) both;
+}
+
+.ory-intro-message {
+  animation: ory-chat-open 620ms cubic-bezier(.18,.85,.25,1.12) both;
+  transform-origin: 0 0;
+}
+
+@keyframes ory-intro-pop {
+  0% { opacity: 0; transform: translate(8px, 8px) scale(.5); }
+  72% { opacity: 1; transform: translate(-2px, -2px) scale(1.035); }
+  100% { opacity: 1; transform: translate(0) scale(1); }
+}
+
+@keyframes ory-chat-open {
+  0% { opacity: 0; transform: translate(-10px, 12px) scale(.72); }
+  72% { opacity: 1; transform: translate(2px, -1px) scale(1.015); }
+  100% { opacity: 1; transform: translate(0) scale(1); }
+}
+
 @keyframes oryzatix-assistant-hover {
   0%, 100% { transform: translateY(0) rotate(-.35deg); }
   50% { transform: translateY(-3px) rotate(.35deg); }
@@ -801,11 +858,18 @@ button:disabled { cursor: not-allowed; }
     width: 128px;
     height: 94px;
   }
+
+  .oryzatix-assistant-shortcut__intro {
+    right: 65%;
+    max-width: min(250px, calc(100vw - 140px));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .oryzatix-assistant-shortcut { transition: none; }
   .oryzatix-assistant-shortcut__character,
+  .oryzatix-assistant-shortcut__intro,
+  .ory-intro-message,
   #consultation.voice-companion .ai-avatar img { animation: none !important; }
 }
 

@@ -385,6 +385,13 @@ function setUILanguage(lang) {
     if (val !== null) el.setAttribute('placeholder', val);
   });
 
+  const introBubble = document.querySelector('#chatMessages .ory-intro-message');
+  const introText = introBubble && introBubble.querySelector('.chat-text-content p');
+  if (introBubble && introText) {
+    introBubble.setAttribute('data-raw-content', introText.textContent || '');
+    introBubble.setAttribute('data-lang', lang === 'english' ? 'english' : 'tagalog');
+  }
+
   const welcomeTag = document.getElementById('welcomeLangTag');
   if (welcomeTag) {
     welcomeTag.textContent = lang === 'english' ? 'English' : 'Tagalog';
@@ -454,7 +461,47 @@ function setAuthMode(isAuthScreen) {
   }
 }
 
+let oryAssistantOpenTimer = null;
+
+function openOryAssistant() {
+  const shortcut = document.querySelector('.oryzatix-assistant-shortcut');
+  const intro = document.getElementById('oryAssistantIntro');
+  if (!shortcut || !intro) {
+    showScreen('consultation');
+    return;
+  }
+
+  if (oryAssistantOpenTimer) window.clearTimeout(oryAssistantOpenTimer);
+  const lang = (document.getElementById('uiLanguage') || {}).value || 'english';
+  intro.textContent = intro.getAttribute(lang === 'tagalog' ? 'data-tl' : 'data-en') || '';
+  intro.hidden = false;
+  intro.setAttribute('aria-hidden', 'false');
+  shortcut.classList.remove('is-introducing');
+  void shortcut.offsetWidth;
+  shortcut.classList.add('is-introducing');
+
+  oryAssistantOpenTimer = window.setTimeout(() => {
+    oryAssistantOpenTimer = null;
+    shortcut.classList.remove('is-introducing');
+    intro.hidden = true;
+    intro.setAttribute('aria-hidden', 'true');
+    showScreen('consultation');
+  }, 1050);
+}
+
 function showScreen(id) {
+  if (oryAssistantOpenTimer) {
+    window.clearTimeout(oryAssistantOpenTimer);
+    oryAssistantOpenTimer = null;
+    const shortcut = document.querySelector('.oryzatix-assistant-shortcut');
+    const intro = document.getElementById('oryAssistantIntro');
+    if (shortcut) shortcut.classList.remove('is-introducing');
+    if (intro) {
+      intro.hidden = true;
+      intro.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   // Redirect old saved links to the dashboard after the admin chatbot screen is removed.
   if (id === 'admin-chatbot') {
     id = currentUser && currentUser.role === 'admin' ? 'admin-dashboard' : 'home';
