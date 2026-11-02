@@ -105,7 +105,7 @@ export default function ConsultationPage() {
     const speakText = (text, language, msgIdx = null) => {
         if (!isOnline || navigator.onLine === false) return;
         
-        if (speakingIndex === msgIdx && window.speechSynthesis?.speaking) {
+        if (speakingIndex === msgIdx) {
             stopSpeech();
             return;
         }

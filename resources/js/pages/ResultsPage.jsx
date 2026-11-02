@@ -244,7 +244,7 @@ export default function ResultsPage() {
     }
 
     const toggleSpeech = () => {
-        if (speaking && window.speechSynthesis?.speaking) {
+        if (speaking) {
             cancelNaturalSpeech();
             setSpeaking(false);
             return;
@@ -327,7 +327,7 @@ export default function ResultsPage() {
                             type="button" 
                             className="symptoms-action-btn translate-btn"
                             onClick={() => {
-                                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                                cancelNaturalSpeech();
                                 setSpeaking(false);
                                 setResultLang((prev) => (prev === 'english' ? 'tagalog' : 'english'));
                             }}
