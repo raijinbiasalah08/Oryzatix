@@ -40,13 +40,14 @@ class NarrationController extends Controller
         $escapedLocale = htmlspecialchars($locale, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $escapedVoice = htmlspecialchars($voice, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $escapedText = htmlspecialchars(trim($data['text']), ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $ssml = "<speak version=\"1.0\" xml:lang=\"{$escapedLocale}\"><voice xml:lang=\"{$escapedLocale}\" name=\"{$escapedVoice}\"><prosody rate=\"-4%\">{$escapedText}</prosody></voice></speak>";
+        $spokenText = preg_replace('/([!?;])\s+/u', '$1<break time="180ms"/> ', $escapedText) ?? $escapedText;
+        $ssml = "<speak version=\"1.0\" xml:lang=\"{$escapedLocale}\"><voice xml:lang=\"{$escapedLocale}\" name=\"{$escapedVoice}\"><prosody rate=\"-2%\">{$spokenText}</prosody></voice></speak>";
 
         try {
             $response = Http::withHeaders([
                 'Ocp-Apim-Subscription-Key' => $apiKey,
                 'Content-Type' => 'application/ssml+xml',
-                'X-Microsoft-OutputFormat' => 'audio-24khz-48kbitrate-mono-mp3',
+                'X-Microsoft-OutputFormat' => 'audio-24khz-160kbitrate-mono-mp3',
                 'User-Agent' => 'Oryzatix',
             ])
                 ->accept('audio/mpeg')

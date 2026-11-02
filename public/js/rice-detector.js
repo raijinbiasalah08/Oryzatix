@@ -5121,7 +5121,7 @@ function playDeviceSpeechFallback(text, lang, btnElement, playbackToken) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = voice && voice.lang ? voice.lang : languageCode;
   if (voice) utterance.voice = voice;
-  utterance.rate = 0.9;
+  utterance.rate = languageCode.startsWith('fil-') ? 0.95 : 0.97;
   utterance.pitch = 1;
   utterance.volume = 1;
 

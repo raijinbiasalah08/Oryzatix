@@ -179,7 +179,7 @@ function playDeviceSpeech(text, locale, voice, run, onStart, onEnd, onError) {
         const utterance = new SpeechSynthesisUtterance(chunks[index]);
         utterance.lang = voice?.lang || locale;
         if (voice) utterance.voice = voice;
-        utterance.rate = 0.91;
+        utterance.rate = locale.startsWith('fil-') ? 0.95 : 0.97;
         utterance.pitch = 1;
         utterance.volume = 1;
         utterance.onstart = () => {
