@@ -4,6 +4,7 @@ import api from '../api/client';
 import { useLanguage } from '../context/LanguageContext';
 import AppLayout from '../components/AppLayout';
 import { detectLanguage } from '../utils/helpers';
+import { cancelNaturalSpeech, speakNaturally } from '../utils/speech';
 
 function formatAiText(text) {
     if (!text) return null;
@@ -53,9 +54,7 @@ export default function ConsultationPage() {
     // Stop speech synthesis on component unmount / navigate away
     useEffect(() => {
         return () => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+            cancelNaturalSpeech();
         };
     }, []);
 
@@ -71,7 +70,7 @@ export default function ConsultationPage() {
 
     useEffect(() => {
         if (isOnline) return;
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        cancelNaturalSpeech();
         recognitionRef.current?.stop();
         setRecording(false);
         setSpeakingIndex(null);
@@ -91,9 +90,7 @@ export default function ConsultationPage() {
     }, [messages]);
 
     const stopSpeech = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-        }
+        cancelNaturalSpeech();
         setSpeakingIndex(null);
     };
 
@@ -107,9 +104,8 @@ export default function ConsultationPage() {
 
     const speakText = (text, language, msgIdx = null) => {
         if (!isOnline || navigator.onLine === false) return;
-        if (!('speechSynthesis' in window)) return;
         
-        if (speakingIndex === msgIdx && window.speechSynthesis.speaking) {
+        if (speakingIndex === msgIdx && window.speechSynthesis?.speaking) {
             stopSpeech();
             return;
         }
@@ -117,20 +113,13 @@ export default function ConsultationPage() {
         stopSpeech();
         if (isMuted && msgIdx === null) return;
 
-        const clean = text.replace(/\*\*/g, '').replace(/[\*\-•]/g, '').trim();
-        if (!clean) return;
-
-        const utter = new SpeechSynthesisUtterance(clean);
-        utter.lang = language === 'english' ? 'en-US' : 'fil-PH';
-        utter.rate = 0.95;
-        utter.pitch = 1.0;
-
-        if (msgIdx !== null) setSpeakingIndex(msgIdx);
-
-        utter.onend = () => setSpeakingIndex(null);
-        utter.onerror = () => setSpeakingIndex(null);
-
-        window.speechSynthesis.speak(utter);
+        speakNaturally(text, language, {
+            onStart: () => {
+                if (msgIdx !== null) setSpeakingIndex(msgIdx);
+            },
+            onEnd: () => setSpeakingIndex(null),
+            onError: () => setSpeakingIndex(null),
+        });
     };
 
     const sendMessage = async (text) => {

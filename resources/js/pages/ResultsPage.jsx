@@ -6,6 +6,7 @@ import AppLayout from '../components/AppLayout';
 import BottomNav from '../components/BottomNav';
 import { SUPPORTED_DISEASE_LABELS } from '../utils/diseases';
 import { resolveImageUrl } from '../utils/helpers';
+import { cancelNaturalSpeech, speakNaturally } from '../utils/speech';
 
 const RESULT_LOCALIZATION = {
     blast: {
@@ -137,9 +138,7 @@ export default function ResultsPage() {
 
     useEffect(() => {
         return () => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+            cancelNaturalSpeech();
         };
     }, []);
 
@@ -245,22 +244,18 @@ export default function ResultsPage() {
     }
 
     const toggleSpeech = () => {
-        if (!('speechSynthesis' in window)) return;
-        if (speaking && window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
+        if (speaking && window.speechSynthesis?.speaking) {
+            cancelNaturalSpeech();
             setSpeaking(false);
             return;
         }
 
-        window.speechSynthesis.cancel();
         const textToSpeak = (isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast')) + '. ' + symptomsText;
-        const utter = new SpeechSynthesisUtterance(textToSpeak);
-        utter.lang = resultLang === 'english' ? 'en-US' : 'fil-PH';
-        utter.rate = 0.95;
-        utter.onend = () => setSpeaking(false);
-        utter.onerror = () => setSpeaking(false);
-        setSpeaking(true);
-        window.speechSynthesis.speak(utter);
+        speakNaturally(textToSpeak, resultLang, {
+            onStart: () => setSpeaking(true),
+            onEnd: () => setSpeaking(false),
+            onError: () => setSpeaking(false),
+        });
     };
 
     return (

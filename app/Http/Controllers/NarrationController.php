@@ -16,33 +16,46 @@ class NarrationController extends Controller
             'language' => ['required', 'in:english,tagalog'],
         ]);
 
-        $apiKey = trim((string) config('services.elevenlabs.api_key'));
-        $voiceId = trim((string) config('services.elevenlabs.voice_id'));
-        if ($apiKey === '' || $voiceId === '') {
+        $apiKey = trim((string) config('services.azure_speech.key'));
+        $region = strtolower(trim((string) config('services.azure_speech.region')));
+        if ($apiKey === '' || !preg_match('/^[a-z0-9-]+$/', $region)) {
             return response()->json([
                 'success' => false,
                 'message' => 'The online narrator is not configured.',
             ], 503);
         }
 
+        $language = $data['language'] === 'tagalog' ? 'tagalog' : 'english';
+        $locale = $language === 'tagalog' ? 'fil-PH' : 'en-PH';
+        $voice = trim((string) config(
+            $language === 'tagalog' ? 'services.azure_speech.voice_tagalog' : 'services.azure_speech.voice_english'
+        ));
+        if ($voice === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'The online narrator is not configured.',
+            ], 503);
+        }
+
+        $escapedLocale = htmlspecialchars($locale, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $escapedVoice = htmlspecialchars($voice, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $escapedText = htmlspecialchars(trim($data['text']), ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $ssml = "<speak version=\"1.0\" xml:lang=\"{$escapedLocale}\"><voice xml:lang=\"{$escapedLocale}\" name=\"{$escapedVoice}\"><prosody rate=\"-4%\">{$escapedText}</prosody></voice></speak>";
+
         try {
             $response = Http::withHeaders([
-                'xi-api-key' => $apiKey,
+                'Ocp-Apim-Subscription-Key' => $apiKey,
+                'Content-Type' => 'application/ssml+xml',
+                'X-Microsoft-OutputFormat' => 'audio-24khz-48kbitrate-mono-mp3',
+                'User-Agent' => 'Oryzatix',
             ])
                 ->accept('audio/mpeg')
                 ->connectTimeout(10)
                 ->timeout(45)
-                ->post('https://api.elevenlabs.io/v1/text-to-dialogue?output_format=mp3_44100_128', [
-                    'inputs' => [[
-                        'text' => trim($data['text']),
-                        'voice_id' => $voiceId,
-                    ]],
-                    'model_id' => 'eleven_v4',
-                    'language_code' => $data['language'] === 'tagalog' ? 'tl' : 'en',
-                    'apply_text_normalization' => 'auto',
-                ]);
+                ->withBody($ssml, 'application/ssml+xml')
+                ->post("https://{$region}.tts.speech.microsoft.com/cognitiveservices/v1");
         } catch (ConnectionException $exception) {
-            Log::warning('ElevenLabs narration request could not connect.', [
+            Log::warning('Azure Speech narration request could not connect.', [
                 'exception' => $exception::class,
             ]);
 
@@ -53,7 +66,7 @@ class NarrationController extends Controller
         }
 
         if (!$response->successful() || $response->body() === '') {
-            Log::warning('ElevenLabs narration request failed.', [
+            Log::warning('Azure Speech narration request failed.', [
                 'status' => $response->status(),
             ]);
 

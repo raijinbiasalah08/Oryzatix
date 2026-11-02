@@ -41,9 +41,11 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
     ],
 
-    'elevenlabs' => [
-        'api_key' => env('ELEVENLABS_API_KEY'),
-        'voice_id' => env('ELEVENLABS_VOICE_ID'),
+    'azure_speech' => [
+        'key' => env('AZURE_SPEECH_KEY'),
+        'region' => env('AZURE_SPEECH_REGION'),
+        'voice_english' => env('AZURE_SPEECH_VOICE_ENGLISH', 'en-PH-RosaNeural'),
+        'voice_tagalog' => env('AZURE_SPEECH_VOICE_TAGALOG', 'fil-PH-BlessicaNeural'),
     ],
 
 ];

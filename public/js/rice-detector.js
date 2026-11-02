@@ -4913,11 +4913,11 @@ function getCleanSpeechText(rawText) {
 
 function getSpeechLanguageCode(language) {
   const normalized = String(language || '').trim().toLowerCase().replace(/_/g, '-');
-  if (/^(en|english)(-|$)/.test(normalized)) return 'en-US';
+  if (/^(en|english)(-|$)/.test(normalized)) return 'en-PH';
   if (/^(fil|tl|tagalog|filipino)(-|$)/.test(normalized)) return 'fil-PH';
 
   const uiLanguage = (document.getElementById('uiLanguage') || {}).value || 'english';
-  return uiLanguage === 'tagalog' ? 'fil-PH' : 'en-US';
+  return uiLanguage === 'tagalog' ? 'fil-PH' : 'en-PH';
 }
 
 function getPreferredSpeechVoice(languageCode) {
@@ -4937,7 +4937,8 @@ function getPreferredSpeechVoice(languageCode) {
     let score = 0;
     if (voiceLang === target) score += 100;
     if (isTagalog && /tagalog|filipino/i.test(voiceName)) score += 30;
-    if (/natural|neural|premium/i.test(voiceName)) score += 10;
+    if (/natural|neural|enhanced|premium/i.test(voiceName)) score += 25;
+    if (/online|google|microsoft/i.test(voiceName)) score += 4;
     if (voice.localService) score += 1;
     return score;
   };
@@ -4969,12 +4970,12 @@ function speakText(rawText, lang, btnElement) {
 
   if (btnElement) {
     btnElement.classList.add('speaking');
-    btnElement.title = 'Generating ElevenLabs narration…';
+    btnElement.title = 'Generating narrated audio…';
     const span = btnElement.querySelector('span');
     if (span) span.textContent = 'Preparing…';
   }
 
-  playElevenLabsNarration(clean, lang, btnElement, playbackToken);
+  playCloudNarration(clean, lang, btnElement, playbackToken);
 }
 
 function splitNarrationText(text, maxLength = 1800) {
@@ -5032,7 +5033,7 @@ function showNarrationUnavailable(playbackToken, btnElement) {
   }, 2500);
 }
 
-async function playElevenLabsClip(text, lang, btnElement, playbackToken) {
+async function playNarrationClip(text, lang, btnElement, playbackToken) {
   const controller = new AbortController();
   currentNarrationController = controller;
   let objectUrl = null;
@@ -5051,10 +5052,10 @@ async function playElevenLabsClip(text, lang, btnElement, playbackToken) {
       signal: controller.signal,
     });
 
-    if (!response.ok) throw new Error(`ElevenLabs narration failed (${response.status}).`);
+    if (!response.ok) throw new Error(`Cloud narration failed (${response.status}).`);
     const blob = await response.blob();
     if (!blob.size || (blob.type && !blob.type.toLowerCase().includes('audio'))) {
-      throw new Error('ElevenLabs returned an invalid audio response.');
+      throw new Error('Narration returned an invalid audio response.');
     }
     if (playbackToken !== speechPlaybackToken) return;
 
@@ -5128,7 +5129,7 @@ function playDeviceSpeechFallback(text, lang, btnElement, playbackToken) {
     utterance.onstart = () => {
       if (playbackToken !== speechPlaybackToken) return;
       if (btnElement) {
-        btnElement.title = 'ElevenLabs unavailable; using the device voice.';
+        btnElement.title = 'Online narration unavailable; using the device voice.';
         const span = btnElement.querySelector('span');
         if (span) span.textContent = 'Stop';
       }
@@ -5150,20 +5151,20 @@ function playDeviceSpeechFallback(text, lang, btnElement, playbackToken) {
   });
 }
 
-async function playElevenLabsNarration(text, lang, btnElement, playbackToken) {
+async function playCloudNarration(text, lang, btnElement, playbackToken) {
   const chunks = splitNarrationText(text);
   let nextChunk = 0;
 
   try {
     for (; nextChunk < chunks.length; nextChunk += 1) {
       if (playbackToken !== speechPlaybackToken) return;
-      await playElevenLabsClip(chunks[nextChunk], lang, btnElement, playbackToken);
+      await playNarrationClip(chunks[nextChunk], lang, btnElement, playbackToken);
     }
     finishNarration(playbackToken, btnElement);
   } catch (error) {
     if (playbackToken !== speechPlaybackToken || error?.name === 'AbortError') return;
 
-    console.warn('ElevenLabs narration failed; trying the device voice.', error);
+    console.warn('Online narration failed; trying the device voice.', error);
     const remainingText = chunks.slice(nextChunk).join(' ');
     try {
       await playDeviceSpeechFallback(remainingText || text, lang, btnElement, playbackToken);

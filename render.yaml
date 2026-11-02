@@ -17,10 +17,14 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-3.5-flash-lite
-      - key: ELEVENLABS_API_KEY
+      - key: AZURE_SPEECH_KEY
         sync: false
-      - key: ELEVENLABS_VOICE_ID
+      - key: AZURE_SPEECH_REGION
         sync: false
+      - key: AZURE_SPEECH_VOICE_ENGLISH
+        value: en-PH-RosaNeural
+      - key: AZURE_SPEECH_VOICE_TAGALOG
+        value: fil-PH-BlessicaNeural
       - key: APP_KEY
         generateValue: true
       - key: LOG_CHANNEL
