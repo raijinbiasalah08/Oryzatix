@@ -2294,6 +2294,10 @@
         <h4>Brown Spot (Bipolaris oryzae)</h4>
         <p>Small circular brown spots scattered across leaf blade.</p>
       </div>
+      <div class="treatment-item" style="cursor:pointer;" onclick="closeModal('modalDiseaseLibrary'); selectAndShowTreatment('sheath_blight');">
+        <h4>Sheath Blight (Rhizoctonia solani)</h4>
+        <p>Oval or irregular lesions with gray-green centers and brown margins, often starting on lower leaf sheaths near the waterline.</p>
+      </div>
       <div class="treatment-item" style="cursor:pointer;" onclick="closeModal('modalDiseaseLibrary'); selectAndShowTreatment('tungro');">
         <h4>Rice Tungro Disease (RTBV / RTSV)</h4>
         <p>Stunted plant growth and yellow-orange discoloration.</p>
