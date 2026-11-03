@@ -93,8 +93,9 @@ def main():
         baseline = results[:, 0]
         candidate = results.mean(axis=1)
         if split == 'validation':
+            baseline_thresholds = calibrate(baseline, truth, keys)
             candidate_thresholds = calibrate(candidate, truth, keys)
-        before = metrics(baseline, truth, keys, thresholds['disease']['thresholds'])
+        before = metrics(baseline, truth, keys, baseline_thresholds)
         after = metrics(candidate, truth, keys, candidate_thresholds)
         report[split] = {'single_view': before, 'four_views': after}
         if split == 'validation':
@@ -104,12 +105,13 @@ def main():
             print(f'Validation selected {selected} view(s)', flush=True)
     report['selected_orientation_views'] = selected
     (args.output / 'evaluation.json').write_text(json.dumps(report, indent=2) + '\n')
-    if selected == 4:
-        thresholds['disease'].update({'orientation_views': 4, 'thresholds': candidate_thresholds,
-            'threshold_policy': 'Four full-image orientations averaged; minimum 20 validation accepts per class at 95% empirical precision.',
-            'model_sha256': report['model_sha256']})
-        thresholds['disease'].pop('per_class_validation', None)
-        (args.output / 'scan_validation_thresholds.json').write_text(json.dumps(thresholds, indent=2) + '\n')
+    thresholds['disease'].update({'orientation_views': selected,
+        'thresholds': candidate_thresholds if selected == 4 else baseline_thresholds,
+        'threshold_policy': f'{selected} full-image orientation(s); minimum 20 validation accepts per class at 95% empirical precision.',
+        'validation_image_count': sum(r['split'] == 'validation' for r in rows),
+        'model_sha256': report['model_sha256']})
+    thresholds['disease'].pop('per_class_validation', None)
+    (args.output / 'scan_validation_thresholds.json').write_text(json.dumps(thresholds, indent=2) + '\n')
     print(json.dumps(report, indent=2), flush=True)
 
 

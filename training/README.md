@@ -34,6 +34,32 @@ Negative images must clearly show something other than a rice leaf. The local `N
 
 ## Windows setup
 
+### Combined local and Kaggle retraining
+
+The optional `--kaggle-root` reads the downloaded dataset in place, alongside
+the seven existing project class folders. Point it to the directory containing
+`train` and `test`, not the download's top-level directory:
+
+```powershell
+.\.venv-training\Scripts\python.exe training/train_mobilenet.py train --kaggle-root datasets/kaggle/rice-leaf-diseases-detection/Rice_Leaf_Diease/Rice_Leaf_Diease --output-dir outputs/kaggle-retraining-candidate
+```
+
+Only bacterial leaf blight, brown spot, healthy, leaf blast, sheath blight, and
+tungro are imported from Kaggle. Not Rice Leaf comes from the existing local
+folder. Leaf Scald, Neck Blast, Rice Hispa, and Narrow Brown Leaf Spot are not
+imported. The separate `Rice_Leaf_AUG` tree is not read; training augmentation
+is applied online instead.
+
+Kaggle test images are reserved for evaluation, including any byte-identical
+copies in the local or Kaggle training folders. Remaining unique images are
+split 70/15/15; the test report covers that local holdout plus the reserved
+Kaggle test images. Exact duplicates are deduplicated globally and conflicting
+labels are excluded. This does not detect visually similar or recompressed
+copies, so test results do not establish independent field accuracy.
+
+Use a candidate output directory as above to retain the deployed model. Review
+evaluation and recalibrate scanner thresholds before deploying a new model.
+
 Use 64-bit Python 3.9 or newer. TensorFlow 2.20 supports the system Python 3.9 currently available on this machine; TensorFlow 2.21 no longer supports Python 3.9. The package installs CPU support on native Windows. Create and activate a project-local virtual environment, then install the optional training dependencies:
 
 ```powershell

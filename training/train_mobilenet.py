@@ -44,16 +44,33 @@ def image_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
-def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int], list[dict[str, str]]]:
+def collect_images(data_root: Path, kaggle_root: Path | None = None) -> tuple[list[dict[str, Any]], dict[str, int], list[dict[str, str]]]:
     by_digest: dict[str, list[dict[str, Any]]] = defaultdict(list)
     invalid: list[str] = []
     excluded_images: list[dict[str, str]] = []
 
+    kaggle_folders = {
+        "blb": ("bacterial_leaf_blight", "bacterial_leaf_blight"),
+        "brown_spot": ("brown_spot", "brown_spot"),
+        "healthy": ("healthy", "healthy"),
+        "blast": ("leaf_blast", "leaf_blast"),
+        "sheath_blight": ("sheath_blight", "Sheath Blight"),
+        "tungro": ("tungro", "Tungro"),
+    }
+    sources = []
     for class_index, class_info in enumerate(CLASSES):
         class_dir = data_root / class_info["folder"]
         if not class_dir.is_dir():
             raise FileNotFoundError(f"Missing class folder: {class_dir}")
+        sources.append((class_index, class_info, class_dir, False))
+        if kaggle_root is not None and class_info["key"] in kaggle_folders:
+            for split, folder in zip(("train", "test"), kaggle_folders[class_info["key"]]):
+                extra_dir = kaggle_root / split / folder
+                if not extra_dir.is_dir():
+                    raise FileNotFoundError(f"Missing Kaggle class folder: {extra_dir}")
+                sources.append((class_index, class_info, extra_dir, split == "test"))
 
+    for class_index, class_info, class_dir, reserved_test in sources:
         for path in sorted(class_dir.rglob("*")):
             if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
                 continue
@@ -87,6 +104,7 @@ def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int
                     "path": path.absolute(),
                     "label": class_index,
                     "class_key": class_info["key"],
+                    "reserved_test": reserved_test,
                 })
             except (OSError, UnidentifiedImageError, ValueError):
                 invalid.append(str(path))
@@ -99,7 +117,9 @@ def collect_images(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, int
             ambiguous_hashes += 1
             continue
         # Keep one copy per exact image so duplicates cannot leak across splits.
-        records.append({**copies[0], "sha256": digest})
+        # Keep any duplicate of a Kaggle test image out of training.
+        selected = next((copy for copy in copies if copy["reserved_test"]), copies[0])
+        records.append({**selected, "sha256": digest})
 
     counts = {class_info["key"]: 0 for class_info in CLASSES}
     for record in records:
@@ -120,7 +140,8 @@ def stratified_split(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     split_records: list[dict[str, Any]] = []
 
     for class_index, class_info in enumerate(CLASSES):
-        class_records = [row for row in records if row["label"] == class_index]
+        class_records = [row for row in records if row["label"] == class_index and not row.get("reserved_test")]
+        reserved_records = [row for row in records if row["label"] == class_index and row.get("reserved_test")]
         if len(class_records) < 20:
             raise ValueError(
                 f"Class {class_info['name']} has only {len(class_records)} usable images; "
@@ -137,7 +158,9 @@ def stratified_split(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             split = "train" if index < train_count else (
                 "validation" if index < train_count + validation_count else "test"
             )
-            split_records.append({**record, "split": split})
+            split_records.append({**{k: v for k, v in record.items() if k != "reserved_test"}, "split": split})
+        for record in reserved_records:
+            split_records.append({**{k: v for k, v in record.items() if k != "reserved_test"}, "split": "test"})
 
     return split_records
 
@@ -265,7 +288,9 @@ def train(args: argparse.Namespace) -> None:
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
 
-    records, counts, excluded_images = collect_images(args.data_root.absolute())
+    records, counts, excluded_images = collect_images(
+        args.data_root.absolute(), args.kaggle_root.absolute() if args.kaggle_root else None
+    )
     split_records = stratified_split(records)
     save_manifest(args.output_dir, split_records)
     exclusions_path = args.output_dir / "dataset_exclusions.csv"
@@ -432,6 +457,7 @@ def main() -> None:
 
     train_parser = commands.add_parser("train", help="Train from the labeled class folders and export Keras/TFLite models.")
     train_parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
+    train_parser.add_argument("--kaggle-root", type=Path, help="Additional source with train/test folders; only supported classes are included, with test images held out.")
     train_parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     train_parser.add_argument("--batch-size", type=int, default=32)
     train_parser.add_argument("--head-epochs", type=int, default=8)

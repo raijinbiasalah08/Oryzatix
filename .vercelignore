@@ -4,6 +4,7 @@ public/hot
 .git
 outputs/
 training/
+datasets/
 .venv-training/
 **/__pycache__/
 *.zip

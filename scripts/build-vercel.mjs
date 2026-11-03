@@ -16,7 +16,7 @@ const functionDir = path.join(output, 'functions/api/index.php.func');
 // back into their source directory truncates same-path references (including
 // composer.json) before they can be read.
 const workPath = await mkdtemp(path.join(root, '.vercel/php-work-'));
-const excludeFiles = '{node_modules/**,.git/**,.vercel/**,outputs/**,training/**,tests/**,scripts/**,.venv-training/**,**/__pycache__/**,*.zip,*.log,.env*,vercel.json,.vercelignore,now.json,.nowignore,Bacterial Leaf Blight/**,Brown Spot/**,Healthy Rice Leaf/**,Sheath Blight/**,Tungro/**,Not Rice Leaf/**,leaf_blast/**}';
+const excludeFiles = '{node_modules/**,.git/**,.vercel/**,outputs/**,training/**,datasets/**,tests/**,scripts/**,.venv-training/**,**/__pycache__/**,*.zip,*.log,.env*,vercel.json,.vercelignore,now.json,.nowignore,Bacterial Leaf Blight/**,Brown Spot/**,Healthy Rice Leaf/**,Sheath Blight/**,Tungro/**,Not Rice Leaf/**,leaf_blast/**}';
 
 // Build with the pinned PHP package, then materialize its files ourselves so
 // handler metadata is not lost through its legacy Lambda constructor.
@@ -24,7 +24,7 @@ const result = await php.build({
     files: await glob('**', {
         cwd: root,
         ignore: ['.git/**', '.vercel/**', 'node_modules/**', '.venv-training/**',
-            'outputs/**', 'training/**', 'tests/**', 'scripts/**', '**/__pycache__/**',
+            'outputs/**', 'training/**', 'datasets/**', 'tests/**', 'scripts/**', '**/__pycache__/**',
             '*.zip', '*.log', '.env*', 'Bacterial Leaf Blight/**', 'Brown Spot/**',
             'Healthy Rice Leaf/**', 'Sheath Blight/**', 'Tungro/**', 'Not Rice Leaf/**',
             'leaf_blast/**'],

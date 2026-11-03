@@ -28,6 +28,10 @@ Homestead.yaml
 Thumbs.db
 
 # Raw image datasets (over 1GB)
+/datasets/
+/leaf_blast/
+/*.zip
+/outputs/kaggle-retraining-*/
 /Bacterial Leaf Blight
 /Brown Spot
 /Healthy Rice Leaf
