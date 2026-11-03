@@ -2029,7 +2029,6 @@ async function handleRegister(e) {
 
   const nameEl = document.getElementById('regName');
   const emailEl = document.getElementById('regEmail');
-  const roleEl = document.getElementById('regRole');
   const locEl = document.getElementById('regLocation');
   const passEl = document.getElementById('regPassword');
   const passConfirmEl = document.getElementById('regPasswordConfirm');
@@ -2042,7 +2041,6 @@ async function handleRegister(e) {
 
   const name = nameEl ? nameEl.value.trim() : '';
   const email = emailEl ? emailEl.value.trim().toLowerCase() : '';
-  const role = roleEl ? roleEl.value : 'farmer';
   const location = locEl ? locEl.value.trim() : '';
   const password = passEl ? passEl.value : '';
   const password_confirmation = passConfirmEl ? passConfirmEl.value : '';
@@ -2079,7 +2077,7 @@ async function handleRegister(e) {
       method: 'POST',
       credentials: 'include',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ name, email, role, location, password, password_confirmation }),
+      body: JSON.stringify({ name, email, role: 'farmer', location, password, password_confirmation }),
     });
 
     const data = await res.json();
@@ -2234,8 +2232,6 @@ function resetAuthForms() {
   if (regEmail) regEmail.value = '';
   const regLoc = document.getElementById('regLocation');
   if (regLoc) regLoc.value = '';
-  const regRole = document.getElementById('regRole');
-  if (regRole) regRole.selectedIndex = 0;
   const regPass = document.getElementById('regPassword');
   if (regPass) {
     regPass.value = '';

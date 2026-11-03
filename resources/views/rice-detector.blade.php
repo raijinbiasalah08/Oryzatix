@@ -551,14 +551,6 @@
               </div>
 
               <div class="form-group">
-                <label for="regRole">USER ROLE</label>
-                <select id="regRole" required>
-                  <option value="farmer">Rice Farmer</option>
-                  <option value="agri_worker">Agricultural Extension Worker</option>
-                </select>
-              </div>
-
-              <div class="form-group">
                 <label for="regLocation">FARM LOCATION</label>
                 <input type="text" id="regLocation" placeholder="Enter farm location (e.g. Barangay San Jose, Bicol)" autocomplete="address-level2">
               </div>
