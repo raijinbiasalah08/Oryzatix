@@ -37,4 +37,5 @@ php artisan route:cache || true
 php artisan view:cache || true
 
 echo "[Oryzatix] Starting Apache web server on port ${PORT}..."
+"${ORYZATIX_PYTHON:-/opt/oryzatix-ml/bin/python}" /var/www/html/inference/check_scanner.py
 exec apache2-foreground

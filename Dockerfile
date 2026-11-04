@@ -51,6 +51,9 @@ ENV ORYZATIX_PYTHON=/opt/oryzatix-ml/bin/python
 RUN python3 -m venv /opt/oryzatix-ml \
     && /opt/oryzatix-ml/bin/python -m pip install --no-cache-dir -r /var/www/html/training/requirements-inference.txt
 
+# A successful deploy must include a working, correctly calibrated scanner.
+RUN /opt/oryzatix-ml/bin/python /var/www/html/inference/check_scanner.py --load-models
+
 # Exclude dev files, ensure storage directories exist and have proper permissions
 RUN mkdir -p /var/www/html/storage/framework/cache/data \
     /var/www/html/storage/framework/sessions \

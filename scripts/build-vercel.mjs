@@ -4,7 +4,6 @@ import { createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { bundleScannerRuntime } from './bundle-scanner-runtime.mjs';
 
 const require = createRequire(import.meta.url);
 const { glob } = require('@vercel/build-utils');
@@ -54,7 +53,6 @@ await writeFile(path.join(functionDir, '.vc-config.json'), JSON.stringify({
 }, null, 2));
 await access(path.join(functionDir, 'user/vendor/autoload.php'));
 await access(path.join(functionDir, 'user/public/build/manifest.json'));
-await bundleScannerRuntime(root, functionDir);
 await cp(path.join(root, 'public'), path.join(output, 'static'), {
     recursive: true,
     filter: source => !['index.php', 'hot', 'storage'].includes(path.basename(source)) && !source.endsWith('.php'),
