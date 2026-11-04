@@ -35,18 +35,18 @@
   },
   "disease": {
     "target_precision": 0.95,
-    "threshold_policy": "4 full-image orientation(s); minimum 20 validation accepts per class at 95% empirical precision.",
+    "threshold_policy": "Four full-image orientations averaged; minimum 20 validation accepts per class at 95% empirical precision.",
     "thresholds": {
-      "blb": 0.3561091125011444,
-      "brown_spot": 0.4029407203197479,
-      "healthy": 0.3963963985443115,
-      "sheath_blight": 0.5503467917442322,
-      "tungro": 0.5138149261474609,
-      "blast": 0.5889503955841064
+      "blb": 0.831451416015625,
+      "brown_spot": 0.6848785281181335,
+      "healthy": 0.4488687515258789,
+      "sheath_blight": 0.516076922416687,
+      "tungro": 0.5875284075737,
+      "blast": 0.7569734454154968
     },
-    "validation_image_count": 2262,
+    "validation_image_count": 1074,
     "orientation_views": 4,
-    "model_sha256": "d15fbacd1f592985902f0c35cda66ac6c1be8012689758d196c029105e198b52"
+    "model_sha256": "9d620a488271ac102c44a99f0e9050f97aba0458b068ca87ffa5c54dcf8a434a"
   },
   "binary_test": {
     "overall": {
