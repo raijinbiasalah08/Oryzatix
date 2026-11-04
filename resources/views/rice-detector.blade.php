@@ -885,15 +885,16 @@
           <p id="unrecPrediction" style="display: none; margin: 12px 0 20px; padding: 12px 16px; border: 1px solid #fcd34d; border-radius: 12px; background: #fffbeb; color: #78350f; font-size: 14px; line-height: 1.5;"></p>
 
           <div class="unrec-box">
-            <h4 data-en="MobileNetV2 Model Classes:" data-tl="Mga Klase ng Modelong MobileNetV2:">MobileNetV2 Model Classes:</h4>
+            <h4 data-en="Scanner Classes:" data-tl="Mga Klase ng Scanner:">Scanner Classes:</h4>
             <ul>
               <li><strong>Bacterial Leaf Blight (BLB)</strong></li>
               <li><strong>Brown Spot (Bipolaris oryzae)</strong></li>
               <li><strong>Sheath Blight (Rhizoctonia solani)</strong></li>
               <li><strong>Rice Tungro Disease (RTBV/RTSV)</strong></li>
+              <li><strong>Leaf Blast (Magnaporthe oryzae)</strong></li>
               <li><strong>Healthy Rice Leaves</strong></li>
             </ul>
-            <p style="margin: 10px 0 0; font-size: 12px; color: #475569;">Leaf Blast is not included in the current MobileNetV2 model.</p>
+            <p style="margin: 10px 0 0; font-size: 12px; color: #475569;">The scanner also checks that the photo shows a rice leaf and may reject other images.</p>
           </div>
 
           <div class="unrec-tips">

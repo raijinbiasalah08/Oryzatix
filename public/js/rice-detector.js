@@ -2859,6 +2859,20 @@ async function uploadAndAnalyze(file) {
       } else if (res.status === 401 || res.status === 403) {
         reason = 'authentication_required';
       }
+
+      // The hosted PHP runtime may not have the server-side inference runtime
+      // available. Try the bundled on-device scanner for temporary server
+      // failures so a signed-in user can still get a diagnosis and local record.
+      if (res.status >= 500 || reason === 'model_unavailable') {
+        try {
+          await scanWithOfflineModel(file, localFileUrl);
+        } catch (offlineError) {
+          console.error('On-device scan fallback error:', offlineError);
+          showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
+        }
+        return;
+      }
+
       showUnrecognizedScreen({
         ...data,
         reason,
@@ -2872,15 +2886,13 @@ async function uploadAndAnalyze(file) {
     await displayScanResponse(data, file, localFileUrl);
   } catch (err) {
     console.error('Upload and scan error:', err);
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      try {
-        await scanWithOfflineModel(file, localFileUrl);
-      } catch (offlineError) {
-        console.error('Offline scan fallback error:', offlineError);
-        showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
-      }
-    } else {
-      showUnrecognizedScreen({ reason: 'server_error' });
+    // navigator.onLine can remain true during captive portal, DNS, or API
+    // outages, so use the local model for network failures as well.
+    try {
+      await scanWithOfflineModel(file, localFileUrl);
+    } catch (offlineError) {
+      console.error('On-device scan fallback error:', offlineError);
+      showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
     }
   }
 }
