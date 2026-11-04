@@ -6,11 +6,9 @@
         "node": "22.x"
     },
     "scripts": {
-        "prebuild": "node scripts/copy-offline-assets.mjs",
         "build": "vite build",
         "build:vercel": "npm run build && node scripts/build-vercel.mjs",
         "test:vercel": "node --test tests/vercel-runtime.test.cjs",
-        "predev": "node scripts/copy-offline-assets.mjs",
         "dev": "vite"
     },
     "devDependencies": {

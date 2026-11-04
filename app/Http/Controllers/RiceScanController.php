@@ -128,7 +128,8 @@ class RiceScanController extends Controller
         $diseasePath = base_path('oryzatix_app/assets/models/mobilenetv2_rice_leaf.tflite');
         $labelsPath = base_path('oryzatix_app/assets/models/class_labels.json');
         $thresholdsPath = base_path('oryzatix_app/assets/models/scan_validation_thresholds.json');
-        $python = env('ORYZATIX_PYTHON', PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3');
+        $bundledPython = base_path('.scanner-python/bin/python3.11');
+        $python = env('ORYZATIX_PYTHON', is_file($bundledPython) ? $bundledPython : (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3'));
 
         $pipes = [];
         try {

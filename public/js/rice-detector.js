@@ -2611,129 +2611,6 @@ function completeScanProgress() {
   });
 }
 
-function makeOfflineScanResponse(prediction, localFileUrl) {
-  const disease = ALL_DISEASES[prediction.diseaseKey];
-  if (!disease) throw new Error('The offline model returned an unsupported disease label.');
-  const now = new Date();
-  const healthy = prediction.diseaseKey === 'healthy';
-  const estimated = !healthy && prediction.severity?.source === 'model_estimated' &&
-    ['mild', 'moderate', 'severe'].includes(prediction.severity.level);
-  const confidence = Number(prediction.confidence);
-  const minimumConfidence = prediction.minimumConfidence === null || prediction.minimumConfidence === undefined
-    ? null
-    : Number(prediction.minimumConfidence);
-  return {
-    success: true,
-    recognized: true,
-    rice_leaf_validated: true,
-    validation: { rice_leaf: true, rice_leaf_probability: prediction.riceProbability },
-    quality: { status: 'passed', focus_score: prediction.qualityScore },
-    saved: false,
-    local_only: true,
-    scan: {
-      recognized: true,
-      id: 0,
-      disease_key: disease.key,
-      disease: disease.name,
-      scientific: disease.scientific,
-      confidence: (confidence * 100).toFixed(1),
-      minimum_confidence: Number.isFinite(minimumConfidence) ? (minimumConfidence * 100).toFixed(1) : null,
-      orientation_agreement: prediction.orientationAgreement,
-      severity: healthy ? 'healthy' : estimated ? prediction.severity.level : 'unassessed',
-      severity_status: healthy ? 'not_applicable' : estimated ? 'model_estimated' : 'unassessed',
-      severity_model_version: estimated ? prediction.severity.version : null,
-      severity_message: healthy ? null : estimated ? null : 'Disease detected: Not Healthy Leaf. The scanner has not assessed a severity level. Ask an agriculturist before using severity-based treatment advice.',
-      severity_class: healthy ? 'healthy-bg' : estimated ? prediction.severity.level + '-bg' : 'unassessed-bg',
-      affected_percentage: null,
-      treatments: { chemical: [], organic: [] },
-      treatment_source: 'offline_model',
-      analysis_source: 'on_device_litert_wasm',
-      saved: false,
-      local_only: true,
-      image_url: localFileUrl,
-      date: now.toLocaleDateString(),
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      created_at: now.toISOString(),
-    },
-  };
-}
-
-function offlineFailureReason(status) {
-  if (status === 'blurry_image') return 'blurry_image';
-  if (status === 'not_rice_leaf') return 'not_rice_leaf';
-  if (status === 'uncertain_prediction') return 'uncertain_prediction';
-  return 'offline_model_unavailable';
-}
-
-async function scanWithOfflineModel(file, localFileUrl) {
-  const scanner = window.OryzatixOfflineScanner;
-  if (!scanner || typeof scanner.classify !== 'function') {
-    throw new Error('The offline scanner has not finished loading.');
-  }
-  const prediction = await scanner.classify(file);
-  if (prediction.status !== 'diagnosed') {
-    showUnrecognizedScreen({
-      reason: offlineFailureReason(prediction.status),
-      rice_leaf_validated: prediction.riceProbability >= prediction.riceThreshold,
-      validation: { rice_leaf: prediction.riceProbability >= prediction.riceThreshold },
-      scan: prediction.diseaseKey ? {
-        disease_key: prediction.diseaseKey,
-        disease: prediction.diseaseName,
-        confidence: (Number(prediction.confidence) * 100).toFixed(1),
-        minimum_confidence: prediction.minimumConfidence !== null && prediction.minimumConfidence !== undefined && Number.isFinite(Number(prediction.minimumConfidence))
-          ? (Number(prediction.minimumConfidence) * 100).toFixed(1)
-          : null,
-      } : null,
-    });
-    return;
-  }
-
-  completeScanProgress();
-  const response = makeOfflineScanResponse(prediction, localFileUrl);
-  await displayScanResponse(response, file, localFileUrl, true);
-}
-
-async function estimateAndSaveSeverity(scan, file) {
-  const levels = ['mild', 'moderate', 'severe'];
-  if (!scan || !file || scan.disease_key === 'healthy' || scan.severity === 'healthy') return false;
-  if (['model_estimated', 'user_assessed', 'expert_validated'].includes(scan.severity_status) &&
-      levels.includes(scan.severity)) return false;
-
-  const scanner = window.OryzatixOfflineScanner;
-  if (!scanner || typeof scanner.estimateSeverity !== 'function') return false;
-  const estimate = await scanner.estimateSeverity(file, scan.disease_key);
-  if (!estimate || estimate.source !== 'model_estimated' || !levels.includes(estimate.level)) return false;
-
-  scan.severity = estimate.level;
-  scan.severity_status = 'model_estimated';
-  scan.severity_model_version = estimate.version;
-  scan.severity_class = estimate.level + '-bg';
-  scan.severity_message = null;
-
-  const scanId = Number(scan.id);
-  if (Number.isInteger(scanId) && scanId > 0 && !scan.local_only) {
-    try {
-      await ensureCsrfCookie();
-      const response = await fetch(apiUrl(`/rice-detector/scan/${scanId}/severity`), {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          severity: estimate.level,
-          source: 'model_estimated',
-          model_version: estimate.version,
-        }),
-      });
-      if (!response.ok) {
-        console.warn('The severity estimate is shown but could not be saved to scan history.');
-      }
-    } catch (error) {
-      console.warn('The severity estimate is shown but could not be saved to scan history:', error);
-    }
-  }
-  return true;
-}
-
 async function displayScanResponse(data, file, localFileUrl, localOnly = false) {
   await new Promise(resolve => setTimeout(resolve, 450));
   const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
@@ -2750,9 +2627,7 @@ async function displayScanResponse(data, file, localFileUrl, localOnly = false) 
   const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
 
   if (diagnosisIsValid && (recordWasSaved || isGuestMode() || localOnly || data.local_only === true)) {
-    if (!isGuestMode() && !localOnly && data.local_only !== true) {
-      await estimateAndSaveSeverity(scan, file);
-    }
+
     if (isGuestMode() || localOnly || data.local_only === true) {
       scan.local_only = true;
       scan.saved = false;
@@ -2814,13 +2689,8 @@ async function uploadAndAnalyze(file) {
     }, delay);
   });
 
-  if (isGuestMode() || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-    try {
-      await scanWithOfflineModel(file, localFileUrl);
-    } catch (error) {
-      console.error('Offline scan error:', error);
-      showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
-    }
+  if (navigator.onLine === false) {
+    showUnrecognizedScreen({ reason: 'internet_required' });
     return;
   }
 
@@ -2860,19 +2730,6 @@ async function uploadAndAnalyze(file) {
         reason = 'authentication_required';
       }
 
-      // The hosted PHP runtime may not have the server-side inference runtime
-      // available. Try the bundled on-device scanner for temporary server
-      // failures so a signed-in user can still get a diagnosis and local record.
-      if (res.status >= 500 || reason === 'model_unavailable') {
-        try {
-          await scanWithOfflineModel(file, localFileUrl);
-        } catch (offlineError) {
-          console.error('On-device scan fallback error:', offlineError);
-          showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
-        }
-        return;
-      }
-
       showUnrecognizedScreen({
         ...data,
         reason,
@@ -2886,14 +2743,7 @@ async function uploadAndAnalyze(file) {
     await displayScanResponse(data, file, localFileUrl);
   } catch (err) {
     console.error('Upload and scan error:', err);
-    // navigator.onLine can remain true during captive portal, DNS, or API
-    // outages, so use the local model for network failures as well.
-    try {
-      await scanWithOfflineModel(file, localFileUrl);
-    } catch (offlineError) {
-      console.error('On-device scan fallback error:', offlineError);
-      showUnrecognizedScreen({ reason: 'offline_model_unavailable' });
-    }
+    showUnrecognizedScreen({ reason: navigator.onLine === false ? 'internet_required' : 'server_error' });
   }
 }
 
@@ -2909,7 +2759,7 @@ function showUnrecognizedScreen(data) {
     upload_too_large: { en: 'Image File Too Large', tl: 'Masyadong Malaki ang Larawan' },
     unsupported_image: { en: 'Unsupported Image', tl: 'Hindi Suportadong Uri ng Larawan' },
     authentication_required: { en: 'Sign-in Required', tl: 'Kailangang Mag-sign In' },
-    offline_model_unavailable: { en: 'Offline Scanner Not Ready', tl: 'Hindi Pa Handa ang Offline Scanner' },
+    internet_required: { en: 'Internet Connection Required', tl: 'Kailangan ng Internet' },
     guest_scan_limit: { en: 'Guest Scan Limit Reached', tl: 'Naabot ang Limit ng Guest Scan' },
     record_save_failed: { en: 'Scan Not Saved', tl: 'Hindi Na-save ang Scan' },
     server_error: { en: 'Scan Could Not Be Completed', tl: 'Hindi Nakumpleto ang Pag-scan' },
@@ -2952,9 +2802,9 @@ function showUnrecognizedScreen(data) {
         en: 'Your session may have expired. Sign in again, then retry the scan.',
         tl: 'Maaaring nag-expire ang iyong session. Mag-sign in muli at subukan ang pag-scan.',
       },
-      offline_model_unavailable: {
-        en: 'The offline scanner files are not ready on this device. Connect to the internet, reopen Oryzatix once to download them, then try again.',
-        tl: 'Hindi pa handa ang offline scanner files sa device na ito. Kumonekta sa internet at buksan muli ang Oryzatix para ma-download ang mga ito, saka subukan ulit.',
+      internet_required: {
+        en: 'Scanning requires an internet connection. Connect to the internet and try again.',
+        tl: 'Kailangan ng internet para mag-scan. Kumonekta at subukan muli.',
       },
       guest_scan_limit: {
         en: 'The guest scan limit was reached. Wait a minute before scanning again.',
@@ -7931,8 +7781,8 @@ function updateConsultationAvailability(isOnline = isConsultationOnline()) {
   if (notice) {
     notice.hidden = isOnline;
     notice.textContent = language === 'tagalog'
-      ? 'Kailangan ng internet para magamit ang AI Consultant. Magagamit pa rin offline ang rice-leaf scanner at mga scan record na naka-save sa device.'
-      : 'AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.';
+      ? 'Kailangan ng internet para magamit ang AI Consultant. Kailangan din ng internet para mag-scan. Magagamit pa rin ang mga record na naka-save sa device.'
+      : 'AI Consultant requires an internet connection. Scanning also requires internet. Previously saved records remain available on this device.';
   }
   if (status) {
     const key = isOnline ? 'online' : 'offline';

@@ -1078,7 +1078,7 @@
         </div>
 
         <div class="consultation-offline-notice" id="consultationOfflineNotice" role="status" aria-live="polite" hidden>
-          AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.
+          AI Consultant requires an internet connection. Scanning also requires internet. Previously saved records remain available on this device.
         </div>
 
         <div class="chat-messages" id="chatMessages">
@@ -2839,13 +2839,7 @@
   </div>
 </div>
 
-<script>
-window.ORYZATIX_OFFLINE_ASSETS = {
-  models: @json(asset('models/')),
-  runtime: @json(asset('litert/litert_wasm_internal.js')),
-};
-</script>
-@vite('resources/js/offline-scanner.js')
+
 <script src="{{ asset('js/qrcode.min.js') }}"></script>
 <script src="{{ asset('js/rice-detector.js') }}?v={{ substr(hash_file('sha256', public_path('js/rice-detector.js')) ?: '1', 0, 12) }}"></script>
 <script>

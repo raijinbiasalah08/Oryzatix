@@ -1,5 +1,5 @@
 // Refresh the app shell and precache the shared visual system.
-const CACHE_NAME = 'oryzatix-pwa-v31';
+const CACHE_NAME = 'oryzatix-pwa-v32';
 const PRECACHE_ASSETS = [
     './manifest.json',
     './css/rice-detector.css',
@@ -11,37 +11,10 @@ const PRECACHE_ASSETS = [
     './images/icons/icon-192.png',
     './images/icons/icon-512.png'
 ];
-const OFFLINE_SCANNER_ASSETS = [
-    './models/class_labels.json',
-    './models/mobilenetv2_rice_leaf.tflite',
-    './models/rice_leaf_validator.tflite',
-    './models/scan_validation_thresholds.json',
-    './models/severity_experimental_v1.tflite',
-    './models/severity_experimental_v1.json',
-    './litert/litert_wasm_internal.js',
-    './litert/litert_wasm_internal.wasm'
-];
-
-async function precacheOfflineScannerEntry(cache) {
-    const manifestUrl = new URL('./build/manifest.json', self.location.href);
-    const response = await fetch(manifestUrl);
-    if (!response.ok) throw new Error('The Vite manifest could not be cached.');
-    await cache.put(manifestUrl, response.clone());
-
-    const manifest = await response.json();
-    const entry = manifest['resources/js/offline-scanner.js'];
-    if (!entry?.file) throw new Error('The offline scanner entry is missing from the Vite manifest.');
-
-    const entryFiles = [entry.file, ...(entry.css || [])];
-    await Promise.all(entryFiles.map(file => cache.add(new URL(`./build/${file}`, self.location.href))));
-}
-
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             await Promise.allSettled(PRECACHE_ASSETS.map(asset => cache.add(asset)));
-            await Promise.all(OFFLINE_SCANNER_ASSETS.map(asset => cache.add(asset)));
-            await precacheOfflineScannerEntry(cache);
             await self.skipWaiting();
         })
     );
@@ -59,6 +32,8 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
     const url = new URL(event.request.url);
+
+    if (url.pathname.includes('/models/') || url.pathname.includes('/litert/')) return;
 
     // Bypass dynamic APIs, auth tokens, Google OAuth, and storage uploads
     if (

@@ -11,7 +11,7 @@ export default defineConfig({
     },
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/main.jsx', 'resources/js/offline-scanner.js'],
+            input: ['resources/css/app.css', 'resources/js/main.jsx'],
             refresh: true,
         }),
         react(),
