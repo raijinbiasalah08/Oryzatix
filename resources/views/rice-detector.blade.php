@@ -722,15 +722,11 @@
           <a onclick="showScreen('history');">View All Logs →</a>
         </div>
 
-        <div class="recent-scans-grid" id="homeRecentScansContainer">
-          <div class="empty-scans-card">
-            <div class="esc-icon">🌱</div>
-            <div class="esc-text">
-              <h4>No recent scans yet</h4>
-              <p>Capture or upload a leaf photo to diagnose rice diseases.</p>
-            </div>
-            <button class="esc-btn" onclick="showScreen('scan')">Scan Leaf</button>
-          </div>
+        <div class="recent-scans-grid" id="homeRecentScansContainer" aria-busy="true">
+          <span class="sr-only" role="status">Loading recent scans...</span>
+          <div class="recent-scan-card app-skeleton-recent-scan" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-recent-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div>
+          <div class="recent-scan-card app-skeleton-recent-scan" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-recent-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div>
+          <div class="recent-scan-card app-skeleton-recent-scan" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-recent-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div>
         </div>
       </section>
 
@@ -1035,9 +1031,12 @@
                   <th style="text-align: center; width: 130px;">Action</th>
                 </tr>
               </thead>
-              <tbody id="historyTableBody">
-                <!-- Rows injected dynamically -->
-              </tbody>
+              <tbody id="historyTableBody" aria-busy="true">
+                <tr class="app-skeleton-status-row"><td colspan="5"><span class="sr-only" role="status">Loading scan records...</span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                </tbody>
             </table>
           </div>
 
@@ -1224,8 +1223,11 @@
                     <th>Staff Action</th>
                   </tr>
                 </thead>
-                <tbody id="staffScansTableBody">
-                  <tr><td colspan="6" class="empty-table-msg">Loading field surveillance records...</td></tr>
+                <tbody id="staffScansTableBody" aria-busy="true">
+                  <tr class="app-skeleton-status-row"><td colspan="6"><span class="sr-only" role="status">Loading field surveillance records...</span></td></tr>
+                  <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                  <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                  <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1242,8 +1244,10 @@
             </div>
           </div>
 
-          <div class="barangay-cards-grid" id="staffBarangayCardsContainer">
-            <div class="empty-table-msg">Loading barangay surveillance data...</div>
+          <div class="barangay-cards-grid" id="staffBarangayCardsContainer" aria-busy="true">
+            <span class="sr-only" role="status">Loading barangay surveillance data...</span>
+            <div class="app-skeleton-barangay" aria-hidden="true"><div class="app-skeleton-barangay-head"><span><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div><div class="app-skeleton-barangay-pills"><i></i><i></i><i></i><i></i></div><i class="app-skeleton-bar wide"></i></div>
+            <div class="app-skeleton-barangay" aria-hidden="true"><div class="app-skeleton-barangay-head"><span><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div><div class="app-skeleton-barangay-pills"><i></i><i></i><i></i><i></i></div><i class="app-skeleton-bar wide"></i></div>
           </div>
         </div>
 
@@ -1316,7 +1320,7 @@
             <button type="button" class="hero-secondary-btn" onclick="showScreen('treatment')">Treatment Guide <span aria-hidden="true">→</span></button>
           </div>
         </div>
-        <p class="dashboard-status" id="adminOverviewStatus" role="status">Loading your dashboard…</p>
+        <p class="dashboard-status" id="adminOverviewStatus" role="status" aria-busy="true"><span class="sr-only">Loading your dashboard...</span><span class="app-skeleton-bar app-skeleton-status-line" aria-hidden="true"></span></p>
 
         <!-- 4 Primary KPI Executive Stat Cards -->
         <div class="admin-stats-grid">
@@ -1376,10 +1380,14 @@
               <button type="button" class="panel-text-link" onclick="showScreen('admin-reports')">Analytics <span aria-hidden="true">→</span></button>
             </div>
             <div class="panel-card-body health-distribution">
-              <div class="health-donut" id="adminHealthDonut" role="img" aria-label="Loading leaf health distribution">
+              <div class="health-donut app-skeleton-donut" id="adminHealthDonut" role="img" aria-label="Loading leaf health distribution">
                 <div class="health-donut-center"><strong id="adminHealthDonutTotal">—</strong><span>Total scans</span></div>
               </div>
-              <div id="adminHealthLegend" class="health-legend"><p class="overview-empty">Loading scan distribution…</p></div>
+              <div id="adminHealthLegend" class="health-legend" aria-busy="true"><span class="sr-only" role="status">Loading scan distribution...</span>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+              </div>
             </div>
           </div>
 
@@ -1392,8 +1400,11 @@
               </div>
               <button type="button" class="panel-text-link" onclick="showScreen('admin-scans-logs')">View all <span aria-hidden="true">→</span></button>
             </div>
-            <div class="panel-card-body activity-list" id="adminRecentActivity">
-              <p class="overview-empty">Loading recent activity…</p>
+            <div class="panel-card-body activity-list" id="adminRecentActivity" aria-busy="true">
+              <span class="sr-only" role="status">Loading recent activity...</span>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
             </div>
           </div>
         </div>
@@ -1424,8 +1435,10 @@
                     <th style="text-align: center; width: 100px;">Action</th>
                   </tr>
                 </thead>
-                <tbody id="adminRecentScansTableBody">
-                  <tr><td colspan="7" class="empty-table-msg">Loading recent detection records...</td></tr>
+                <tbody id="adminRecentScansTableBody" aria-busy="true">
+                  <tr class="app-skeleton-status-row"><td colspan="7"><span class="sr-only" role="status">Loading recent detection records...</span></td></tr>
+                  <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                  <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1564,8 +1577,10 @@
                   <th style="text-align: right; width: 140px;">Actions</th>
                 </tr>
               </thead>
-              <tbody id="adminUsersTableBody">
-                <tr><td colspan="7" class="empty-table-msg">Loading user accounts...</td></tr>
+              <tbody id="adminUsersTableBody" aria-busy="true">
+                <tr class="app-skeleton-status-row"><td colspan="7"><span class="sr-only" role="status">Loading user accounts...</span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar medium"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar medium"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1674,8 +1689,10 @@
                   <th style="text-align: right; width: 120px;">Action</th>
                 </tr>
               </thead>
-              <tbody id="adminScansLogsTableBody">
-                <tr><td colspan="7" class="empty-table-msg">Loading all detection records...</td></tr>
+              <tbody id="adminScansLogsTableBody" aria-busy="true">
+                <tr class="app-skeleton-status-row"><td colspan="7"><span class="sr-only" role="status">Loading all detection records...</span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1726,8 +1743,12 @@
               <span class="badge-pill" style="background: var(--neutral-100); color: var(--neutral-700);">System-Wide</span>
             </div>
             <div class="panel-card-body">
-              <div class="disease-meter-list" id="adminReportsDiseaseList">
-                <!-- Injected dynamically -->
+              <div class="disease-meter-list" id="adminReportsDiseaseList" aria-busy="true">
+                <span class="sr-only" role="status">Loading disease metrics...</span>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
+                <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
               </div>
             </div>
           </div>
@@ -1742,8 +1763,8 @@
               <span class="badge-pill" style="background: var(--blue-100); color: var(--blue-700);">Timeline</span>
             </div>
             <div class="panel-card-body" style="padding: 20px;">
-              <div class="admin-chart-container" id="adminReportTrendChart">
-                <!-- Injected dynamically -->
+              <div class="admin-chart-container" id="adminReportTrendChart" aria-busy="true">
+                <span class="sr-only" role="status">Loading trends...</span><div class="app-skeleton-chart" aria-hidden="true"><i style="height:38%;"></i><i style="height:67%;"></i><i style="height:50%;"></i><i style="height:82%;"></i><i style="height:58%;"></i><i style="height:74%;"></i></div>
               </div>
             </div>
           </div>
@@ -2367,7 +2388,7 @@
       <button class="modal-close-btn" onclick="closeModal('modalNotifications')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="notifications-toolbar">
-      <span id="notificationsUnreadCount" class="notifications-unread-count">Checking for updates…</span>
+      <span id="notificationsUnreadCount" class="notifications-unread-count" aria-busy="true"><span class="sr-only" role="status">Checking for notification updates...</span><span class="app-skeleton-bar app-skeleton-unread" aria-hidden="true"></span></span>
       <div class="notifications-toolbar-actions">
         <button type="button" class="notifications-text-btn" onclick="markNotificationsRead()">Mark all read</button>
         <button type="button" class="notifications-refresh-btn" onclick="loadNotifications(true)" aria-label="Refresh notifications" title="Refresh notifications">
@@ -2375,8 +2396,11 @@
         </button>
       </div>
     </div>
-    <div id="notificationsList" class="notifications-list" aria-live="polite" aria-busy="false">
-      <div class="notifications-empty">Loading recent scans…</div>
+    <div id="notificationsList" class="notifications-list" aria-live="polite" aria-busy="true">
+      <span class="sr-only" role="status">Loading recent scans...</span>
+      <div class="app-skeleton-notification" aria-hidden="true"><span class="app-skeleton-notification-icon"></span><span class="app-skeleton-notification-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-notification-time"></i></div>
+      <div class="app-skeleton-notification" aria-hidden="true"><span class="app-skeleton-notification-icon"></span><span class="app-skeleton-notification-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-notification-time"></i></div>
+      <div class="app-skeleton-notification" aria-hidden="true"><span class="app-skeleton-notification-icon"></span><span class="app-skeleton-notification-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-notification-time"></i></div>
     </div>
   </div>
 </div>
@@ -2605,8 +2629,10 @@
             <th>Date & Time</th>
           </tr>
         </thead>
-        <tbody id="adminUserScansTableBody">
-          <tr><td colspan="5" class="empty-table-msg">Loading user scans...</td></tr>
+        <tbody id="adminUserScansTableBody" aria-busy="true">
+          <tr class="app-skeleton-status-row"><td colspan="5"><span class="sr-only" role="status">Loading user scans...</span></td></tr>
+          <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td></tr>
+          <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td></tr>
         </tbody>
       </table>
     </div>

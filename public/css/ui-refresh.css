@@ -258,6 +258,74 @@ body { background: #f6f8f3; }
   .admin-disease-skeleton-image::after { animation: none; transform: none; opacity: .25; }
 }
 
+/* Shared skeleton loading for data screens, tables, cards, charts, and notifications. */
+.app-skeleton-bar,
+.app-skeleton-cell-image,
+.app-skeleton-notification-icon,
+.app-skeleton-meter-track,
+.app-skeleton-barangay-pills i {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e8eeea;
+}
+.app-skeleton-bar::after,
+.app-skeleton-cell-image::after,
+.app-skeleton-notification-icon::after,
+.app-skeleton-meter-track::after,
+.app-skeleton-barangay-pills i::after {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.76), transparent);
+  animation: disease-skeleton-shimmer 1.35s ease-in-out infinite;
+  content: '';
+}
+.app-skeleton-bar { height: 12px; }
+.app-skeleton-value { display: inline-block; height: 15px; vertical-align: middle; }
+.app-skeleton-bar.wide { width: 84%; }
+.app-skeleton-bar.medium { width: 62%; }
+.app-skeleton-bar.short { width: 38%; }
+.app-skeleton-cell-image { width: 42px; height: 42px; border-radius: 9px; }
+.app-skeleton-status-row td { height: 0; padding: 0 !important; border: 0 !important; line-height: 0; }
+.app-skeleton-table-row td { height: 62px; vertical-align: middle; }
+.app-skeleton-table-row .app-skeleton-cell-image { width: 38px; height: 38px; }
+.app-skeleton-dashboard-status { min-height: 14px; }
+.app-skeleton-status-line { width: min(240px, 55%); height: 12px; }
+.app-skeleton-donut { background: #e8eeea !important; }
+.app-skeleton-donut .health-donut-center strong { position: relative; display: inline-block; min-width: 36px; min-height: 18px; color: transparent !important; }
+.app-skeleton-donut .health-donut-center strong::after { position: absolute; inset: 0; margin: auto; width: 36px; height: 18px; border-radius: 6px; background: #dce5df; content: ''; animation: skeleton-pulse 1.25s ease-in-out infinite alternate; }
+.app-skeleton-activity { cursor: default !important; pointer-events: none; }
+.app-skeleton-activity-copy,
+.app-skeleton-notification-copy,
+.app-skeleton-recent-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; justify-content: center; gap: 9px; }
+.app-skeleton-activity-time { width: 72px; height: 10px; }
+.app-skeleton-notification { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-bottom: 1px solid #edf2ee; }
+.app-skeleton-notification-icon { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; }
+.app-skeleton-notification-time { width: 52px; height: 10px; }
+.app-skeleton-unread { width: 76px; height: 12px; }
+.app-skeleton-recent-scan { cursor: default !important; pointer-events: none; }
+.app-skeleton-chip { width: 58px; height: 24px; border-radius: 999px; }
+.app-skeleton-barangay { padding: 18px; border: 1px solid #e1e9e3; border-radius: 14px; background: #fff; }
+.app-skeleton-barangay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.app-skeleton-barangay-head > span { display: flex; flex: 1; flex-direction: column; gap: 9px; }
+.app-skeleton-barangay-pills { display: flex; gap: 7px; margin: 18px 0; }
+.app-skeleton-barangay-pills i { width: 48px; height: 27px; }
+.app-skeleton-meter { display: flex; flex-direction: column; gap: 10px; margin: 0 0 18px; }
+.app-skeleton-meter > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.app-skeleton-meter-track { height: 9px; border-radius: 999px; }
+.app-skeleton-meter-track > i { display: block; width: 45%; height: 100%; border-radius: inherit; background: #dce5df; }
+.app-skeleton-chart { display: flex; align-items: end; justify-content: space-around; gap: 12px; min-height: 190px; padding: 18px 14px 0; border-bottom: 1px solid #e1e9e3; }
+.app-skeleton-chart > i { position: relative; display: block; flex: 1; max-width: 44px; min-height: 20px; overflow: hidden; border-radius: 7px 7px 0 0; background: #e8eeea; }
+.app-skeleton-chart > i::after { position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.76), transparent); animation: disease-skeleton-shimmer 1.35s ease-in-out infinite; content: ''; }
+@keyframes skeleton-pulse { from { opacity: .55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-skeleton-bar::after, .app-skeleton-cell-image::after, .app-skeleton-notification-icon::after,
+  .app-skeleton-meter-track::after, .app-skeleton-barangay-pills i::after, .app-skeleton-chart > i::after { animation: none; transform: none; opacity: .28; }
+  .app-skeleton-donut .health-donut-center strong::after { animation: none; opacity: .7; }
+}
+
 /* Controls: soft tracks, obvious selections, and visible keyboard focus. */
 .admin-tabs-bar, .staff-tabs-bar, .treatment-tabs { background: #e8eeea; padding: 5px; gap: 5px; border-radius: 13px; }
 .admin-tab-btn, .staff-tab-btn, .treatment-tabs button { min-height: 42px; font-weight: 700; border-radius: 9px; }

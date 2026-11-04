@@ -799,6 +799,91 @@ function closeModal(modalId) {
 let cropNotifications = [];
 let notificationsLoading = false;
 
+function tableSkeletonMarkup(columns, rows = 4, label = 'Loading records...', mediaFirst = true) {
+  const widths = ['72%', '54%', '84%', '64%', '78%', '48%'];
+  const status = `<tr class="app-skeleton-status-row"><td colspan="${columns}"><span class="sr-only" role="status">${escapeHtml(label)}</span></td></tr>`;
+  const skeletonRows = Array.from({ length: rows }, (_, row) => `
+    <tr class="app-skeleton-table-row" aria-hidden="true">
+      ${Array.from({ length: columns }, (_, column) => `<td>${column === 0 && mediaFirst
+        ? '<span class="app-skeleton-cell-image"></span>'
+        : `<span class="app-skeleton-bar" style="width:${widths[(row + column) % widths.length]};"></span>`}</td>`).join('')}
+    </tr>`).join('');
+  return status + skeletonRows;
+}
+
+function activitySkeletonMarkup(rows = 3, label = 'Loading recent activity...') {
+  const items = Array.from({ length: rows }, () => `
+    <div class="activity-row app-skeleton-activity" aria-hidden="true">
+      <span class="app-skeleton-cell-image"></span>
+      <span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span>
+      <i class="app-skeleton-bar app-skeleton-activity-time"></i>
+    </div>`).join('');
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span>${items}`;
+}
+
+function notificationsSkeletonMarkup(rows = 4, label = 'Loading recent scans...') {
+  const items = Array.from({ length: rows }, () => `
+    <div class="app-skeleton-notification" aria-hidden="true">
+      <span class="app-skeleton-notification-icon"></span>
+      <span class="app-skeleton-notification-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span>
+      <i class="app-skeleton-bar app-skeleton-notification-time"></i>
+    </div>`).join('');
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span>${items}`;
+}
+
+function recentScanSkeletonMarkup(rows = 3, label = 'Loading recent scans...') {
+  const items = Array.from({ length: rows }, () => `
+    <div class="recent-scan-card app-skeleton-recent-scan" aria-hidden="true">
+      <span class="app-skeleton-cell-image"></span>
+      <span class="app-skeleton-recent-copy"><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span>
+      <i class="app-skeleton-bar app-skeleton-chip"></i>
+    </div>`).join('');
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span>${items}`;
+}
+
+function barangaySkeletonMarkup(rows = 3, label = 'Loading field surveillance...') {
+  const cards = Array.from({ length: rows }, () => `
+    <div class="app-skeleton-barangay" aria-hidden="true">
+      <div class="app-skeleton-barangay-head"><span><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-chip"></i></div>
+      <div class="app-skeleton-barangay-pills"><i></i><i></i><i></i><i></i></div>
+      <i class="app-skeleton-bar wide"></i>
+    </div>`).join('');
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span>${cards}`;
+}
+
+function meterSkeletonMarkup(rows = 5, label = 'Loading disease metrics...') {
+  const items = Array.from({ length: rows }, () => `
+    <div class="app-skeleton-meter" aria-hidden="true">
+      <div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div>
+      <i class="app-skeleton-meter-track"><i></i></i>
+    </div>`).join('');
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span>${items}`;
+}
+
+function chartSkeletonMarkup(label = 'Loading trends...') {
+  return `<span class="sr-only" role="status">${escapeHtml(label)}</span><div class="app-skeleton-chart" aria-hidden="true">${[38, 67, 50, 82, 58, 74].map(height => `<i style="height:${height}%;"></i>`).join('')}</div>`;
+}
+
+function setDataSkeleton(element, markup) {
+  if (!element) return;
+  element.setAttribute('aria-busy', 'true');
+  element.innerHTML = markup;
+}
+
+function setTextSkeleton(element, width = '42px', label = 'Loading data...') {
+  setDataSkeleton(element, `<span class="sr-only" role="status">${escapeHtml(label)}</span><span class="app-skeleton-bar app-skeleton-value" style="width:${width};" aria-hidden="true"></span>`);
+}
+
+function setLoadedText(element, value) {
+  if (!element) return;
+  clearDataSkeleton(element);
+  element.textContent = String(value);
+}
+
+function clearDataSkeleton(element) {
+  element?.removeAttribute('aria-busy');
+}
+
 function notificationStorageKey() {
   const userKey = currentUser && (currentUser.id || currentUser.email || currentUser.role);
   return 'oryzatix_seen_notifications_' + String(userKey || 'guest');
@@ -820,6 +905,7 @@ function getNotificationId(scan) {
 function setNotificationIndicator() {
   const dot = document.getElementById('topbarNotificationDot');
   const count = document.getElementById('notificationsUnreadCount');
+  clearDataSkeleton(count);
   if (!dot) return;
   const seen = getSeenNotificationIds();
   const unread = cropNotifications.filter(scan => !seen.has(getNotificationId(scan))).length;
@@ -845,7 +931,11 @@ async function loadNotifications(showLoading = false) {
   const count = document.getElementById('notificationsUnreadCount');
   if (!currentUser) {
     cropNotifications = [];
-    if (list) list.innerHTML = '<div class="notifications-empty">Sign in to view crop notifications.</div>';
+    if (list) {
+      list.innerHTML = '<div class="notifications-empty">Sign in to view crop notifications.</div>';
+      clearDataSkeleton(list);
+      list.setAttribute('aria-busy', 'false');
+    }
     if (count) count.textContent = 'Sign in to view updates';
     setNotificationIndicator();
     return;
@@ -854,7 +944,11 @@ async function loadNotifications(showLoading = false) {
   notificationsLoading = true;
   if (list) {
     list.setAttribute('aria-busy', 'true');
-    if (showLoading) list.innerHTML = '<div class="notifications-empty">Loading recent scans…</div>';
+    if (showLoading) list.innerHTML = notificationsSkeletonMarkup();
+  }
+  if (showLoading && count) {
+    count.setAttribute('aria-busy', 'true');
+    count.innerHTML = '<span class="sr-only" role="status">Checking for notification updates...</span><span class="app-skeleton-bar app-skeleton-unread" aria-hidden="true"></span>';
   }
 
   try {
@@ -878,10 +972,12 @@ async function loadNotifications(showLoading = false) {
     renderNotifications();
   } catch (error) {
     if (list) list.innerHTML = '<div class="notifications-empty notifications-error">Could not load notifications. Check your connection and try again.</div>';
+    clearDataSkeleton(count);
     if (count) count.textContent = 'Updates unavailable';
   } finally {
     notificationsLoading = false;
     if (list) list.setAttribute('aria-busy', 'false');
+    clearDataSkeleton(list);
   }
 }
 
@@ -4373,7 +4469,14 @@ async function loadHistory() {
     button.setAttribute('aria-busy', 'true');
   }
   if (buttonLabel) buttonLabel.textContent = 'Refreshing…';
-  setHistoryLoadStatus('Loading scan records…', 'loading');
+  setHistoryLoadStatus('', 'loading');
+  const tableWrapper = document.getElementById('historyTableWrapper');
+  const emptyMessage = document.getElementById('historyEmptyMessage');
+  const historyBody = document.getElementById('historyTableBody');
+  ['statHealthy', 'statMild', 'statModerate', 'statSevere'].forEach(id => setTextSkeleton(document.getElementById(id), '36px', 'Loading scan totals...'));
+  if (tableWrapper) tableWrapper.style.display = 'block';
+  if (emptyMessage) emptyMessage.style.display = 'none';
+  setDataSkeleton(historyBody, tableSkeletonMarkup(5, 5, 'Loading scan records...'));
 
   historyLoadPromise = (async () => {
     if (isGuestMode()) {
@@ -4381,7 +4484,7 @@ async function loadHistory() {
       allHistoryScans = localScans;
       const setStat = (id, value) => {
         const element = document.getElementById(id);
-        if (element) element.textContent = String(value);
+      setLoadedText(element, value);
       };
       setStat('statHealthy', localScans.filter(scan => (scan.disease_key || '').toLowerCase() === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')).length);
       setStat('statMild', localScans.filter(scan => scan.severity === 'mild').length);
@@ -4412,10 +4515,10 @@ async function loadHistory() {
     const mild = document.getElementById('statMild');
     const m = document.getElementById('statModerate');
     const s = document.getElementById('statSevere');
-    if (h) h.textContent = stats.healthy || 0;
-    if (mild) mild.textContent = stats.mild || 0;
-    if (m) m.textContent = stats.moderate || 0;
-    if (s) s.textContent = stats.severe || 0;
+    setLoadedText(h, stats.healthy || 0);
+    setLoadedText(mild, stats.mild || 0);
+    setLoadedText(m, stats.moderate || 0);
+    setLoadedText(s, stats.severe || 0);
 
     const loadedScans = [];
     const groups = data.scans || {};
@@ -4440,10 +4543,10 @@ async function loadHistory() {
           ? disease === 'healthy' || disease.includes('healthy')
           : (scan.severity || '').toLowerCase() === key;
       }).length;
-      if (h) h.textContent = (Number(stats.healthy) || 0) + localCount('healthy');
-      if (mild) mild.textContent = (Number(stats.mild) || 0) + localCount('mild');
-      if (m) m.textContent = (Number(stats.moderate) || 0) + localCount('moderate');
-      if (s) s.textContent = (Number(stats.severe) || 0) + localCount('severe');
+      setLoadedText(h, (Number(stats.healthy) || 0) + localCount('healthy'));
+      setLoadedText(mild, (Number(stats.mild) || 0) + localCount('mild'));
+      setLoadedText(m, (Number(stats.moderate) || 0) + localCount('moderate'));
+      setLoadedText(s, (Number(stats.severe) || 0) + localCount('severe'));
     }
     loadedScans.sort((a, b) => {
       const timestamp = scan => Date.parse(scan.created_at || `${scan.date || ''} ${scan.time || ''}`) || 0;
@@ -4464,11 +4567,17 @@ async function loadHistory() {
       if (localScans.length) {
         const accountScans = allHistoryScans.filter(scan => Number(scan.id) > 0);
         allHistoryScans = [...localScans, ...accountScans];
+        const diseaseKey = scan => String(scan.disease_key || scan.disease || scan.disease_name || '').toLowerCase();
+        setLoadedText(document.getElementById('statHealthy'), allHistoryScans.filter(scan => diseaseKey(scan).includes('healthy')).length);
+        setLoadedText(document.getElementById('statMild'), allHistoryScans.filter(scan => scan.severity === 'mild').length);
+        setLoadedText(document.getElementById('statModerate'), allHistoryScans.filter(scan => scan.severity === 'moderate').length);
+        setLoadedText(document.getElementById('statSevere'), allHistoryScans.filter(scan => scan.severity === 'severe').length);
         filterHistoryList();
         setHistoryLoadStatus('Showing device-only guest scans. Online records need an internet connection.', 'info');
         return true;
       }
     } catch (_) {}
+    ['statHealthy', 'statMild', 'statModerate', 'statSevere'].forEach(id => setLoadedText(document.getElementById(id), '—'));
     setHistoryLoadStatus(error?.message || 'Could not load scan records. Please try again.', 'error');
     renderHistoryList(allHistoryScans);
     return false;
@@ -4492,6 +4601,7 @@ function renderHistoryList(scans) {
   const paginationControls = document.getElementById('historyPaginationControls');
 
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!scans || !scans.length) {
     if (tableWrapper) tableWrapper.style.display = 'none';
@@ -4687,6 +4797,8 @@ async function deleteScan(id) {
 }
 
 async function loadHomeRecentScans() {
+  const container = document.getElementById('homeRecentScansContainer');
+  if (container) setDataSkeleton(container, recentScanSkeletonMarkup());
   const all = [];
   if (!isGuestMode()) {
     try {
@@ -4721,6 +4833,7 @@ async function loadHomeRecentScans() {
 function renderHomeScanRecords(recent) {
   const container = document.getElementById('homeRecentScansContainer');
   if (!container) return;
+  clearDataSkeleton(container);
   if (!recent || !recent.length) {
     renderHomeEmptyScans();
     return;
@@ -4759,6 +4872,7 @@ function renderHomeScanRecords(recent) {
 function renderHomeEmptyScans() {
   const container = document.getElementById('homeRecentScansContainer');
   if (!container) return;
+  clearDataSkeleton(container);
   container.innerHTML = `
     <div class="empty-scans-card">
       <div class="esc-icon">🌱</div>
@@ -5590,7 +5704,51 @@ function escapeHtml(str) {
 
 /* ═══════════ ADMIN EXECUTIVE DASHBOARD ═══════════ */
 async function loadAdminDashboard() {
-  await ensureCsrfCookie();
+  const overviewStatus = document.getElementById('adminOverviewStatus');
+  if (overviewStatus) {
+    overviewStatus.hidden = false;
+    setDataSkeleton(overviewStatus, '<span class="sr-only" role="status">Loading your dashboard...</span><span class="app-skeleton-bar app-skeleton-status-line" aria-hidden="true"></span>');
+  }
+  const donut = document.getElementById('adminHealthDonut');
+  [
+    ['adminDashTotalUsers', '48px'], ['adminDashTotalScans', '48px'],
+    ['adminDashDetectedDiseases', '48px'], ['adminDashHealthyLeaves', '48px'],
+    ['adminDashUserBreakdown', '150px'], ['adminDashTodayScans', '72px'],
+    ['adminDashOutbreakPercent', '120px'], ['adminDashHealthyRatio', '120px'],
+  ].forEach(([id, width]) => setTextSkeleton(document.getElementById(id), width, 'Loading dashboard totals...'));
+  ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
+    setTextSkeleton(document.getElementById(`adminDist${key}Count`), '52px', 'Loading disease totals...');
+    setTextSkeleton(document.getElementById(`adminDist${key}Percent`), '38px', 'Loading disease percentages...');
+  });
+  if (donut) {
+    donut.classList.add('app-skeleton-donut');
+    donut.setAttribute('aria-label', 'Loading leaf health distribution');
+  }
+  setDataSkeleton(document.getElementById('adminHealthLegend'), meterSkeletonMarkup(6, 'Loading scan distribution...'));
+  setDataSkeleton(document.getElementById('adminRecentActivity'), activitySkeletonMarkup(4, 'Loading recent activity...'));
+  setDataSkeleton(document.getElementById('adminLocationsBody'), tableSkeletonMarkup(4, 3, 'Loading location records...', false));
+  setDataSkeleton(document.getElementById('adminRecentScansTableBody'), tableSkeletonMarkup(7, 4, 'Loading recent detection records...'));
+
+  try {
+    await ensureCsrfCookie();
+  } catch (_) {
+    setAdminOverviewStatus('Unable to refresh the dashboard. Check your connection and try again.');
+    ['adminDashTotalUsers', 'adminDashTotalScans', 'adminDashDetectedDiseases', 'adminDashHealthyLeaves', 'adminDashUserBreakdown', 'adminDashTodayScans', 'adminDashOutbreakPercent', 'adminDashHealthyRatio'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+    ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
+      setLoadedText(document.getElementById(`adminDist${key}Count`), '—');
+      setLoadedText(document.getElementById(`adminDist${key}Percent`), '—');
+    });
+    const locations = document.getElementById('adminLocationsBody');
+    const recentScans = document.getElementById('adminRecentScansTableBody');
+    if (locations) { clearDataSkeleton(locations); locations.innerHTML = '<tr><td colspan="4" class="empty-table-msg">Server unavailable.</td></tr>'; }
+    if (recentScans) { clearDataSkeleton(recentScans); recentScans.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Server unavailable.</td></tr>'; }
+    const legend = document.getElementById('adminHealthLegend');
+    if (legend) { clearDataSkeleton(legend); legend.innerHTML = '<p class="overview-empty">Dashboard distribution is unavailable.</p>'; }
+    const activity = document.getElementById('adminRecentActivity');
+    if (activity) { clearDataSkeleton(activity); activity.innerHTML = '<p class="overview-empty">Recent activity is unavailable.</p>'; }
+    if (donut) { donut.classList.remove('app-skeleton-donut'); donut.setAttribute('aria-label', 'Leaf health distribution unavailable.'); }
+    return;
+  }
   fetch(apiUrl('/admin/overview'), {
     credentials: 'include',
     headers: authHeaders(),
@@ -5605,14 +5763,14 @@ async function loadAdminDashboard() {
 
         // KPIs
         const uTot = document.getElementById('adminDashTotalUsers');
-        if (uTot) uTot.textContent = stats.total_users || 0;
+        setLoadedText(uTot, stats.total_users || 0);
         const uBrk = document.getElementById('adminDashUserBreakdown');
-        if (uBrk) uBrk.textContent = `${stats.total_farmers || 0} Farmers · ${stats.total_staff || 0} Staff · ${stats.total_admins || 0} Admin`;
+        setLoadedText(uBrk, `${stats.total_farmers || 0} Farmers · ${stats.total_staff || 0} Staff · ${stats.total_admins || 0} Admin`);
 
         const sTot = document.getElementById('adminDashTotalScans');
-        if (sTot) sTot.textContent = stats.total_scans || 0;
+        setLoadedText(sTot, stats.total_scans || 0);
         const sToday = document.getElementById('adminDashTodayScans');
-        if (sToday) sToday.textContent = stats.today_scans || 0;
+        setLoadedText(sToday, stats.today_scans || 0);
 
         renderAdminHealthOverview(stats, dist);
         renderAdminRecentActivity(d.recent_scans || []);
@@ -5639,20 +5797,45 @@ async function loadAdminDashboard() {
         renderAdminStaffRoster(d.staff_roster || []);
       } else {
         setAdminOverviewStatus('Dashboard data could not be loaded. Open the dashboard again to retry.');
-        renderAdminEmpty('adminLocationsBody', 'Failed to load telemetry.');
-        renderAdminEmpty('adminRecentScansTableBody', 'Failed to load telemetry.');
+        ['adminDashTotalUsers', 'adminDashTotalScans', 'adminDashDetectedDiseases', 'adminDashHealthyLeaves', 'adminDashUserBreakdown', 'adminDashTodayScans', 'adminDashOutbreakPercent', 'adminDashHealthyRatio'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+        ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
+          setLoadedText(document.getElementById(`adminDist${key}Count`), '—');
+          setLoadedText(document.getElementById(`adminDist${key}Percent`), '—');
+        });
+        const locations = document.getElementById('adminLocationsBody');
+        const recentScans = document.getElementById('adminRecentScansTableBody');
+        if (locations) { clearDataSkeleton(locations); locations.innerHTML = '<tr><td colspan="4" class="empty-table-msg">Failed to load telemetry.</td></tr>'; }
+        if (recentScans) { clearDataSkeleton(recentScans); recentScans.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Failed to load telemetry.</td></tr>'; }
+        const legend = document.getElementById('adminHealthLegend');
+        if (legend) { clearDataSkeleton(legend); legend.innerHTML = '<p class="overview-empty">Dashboard distribution is unavailable.</p>'; }
+        const activity = document.getElementById('adminRecentActivity');
+        if (activity) { clearDataSkeleton(activity); activity.innerHTML = '<p class="overview-empty">Recent activity is unavailable.</p>'; }
+        if (donut) { donut.classList.remove('app-skeleton-donut'); donut.setAttribute('aria-label', 'Leaf health distribution unavailable.'); }
       }
     })
     .catch(() => {
       setAdminOverviewStatus('Unable to refresh the dashboard. Check your connection and try again.');
-      renderAdminEmpty('adminLocationsBody', 'Server unavailable.');
-      renderAdminEmpty('adminRecentScansTableBody', 'Server unavailable.');
+      ['adminDashTotalUsers', 'adminDashTotalScans', 'adminDashDetectedDiseases', 'adminDashHealthyLeaves', 'adminDashUserBreakdown', 'adminDashTodayScans', 'adminDashOutbreakPercent', 'adminDashHealthyRatio'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+      ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
+        setLoadedText(document.getElementById(`adminDist${key}Count`), '—');
+        setLoadedText(document.getElementById(`adminDist${key}Percent`), '—');
+      });
+      const locations = document.getElementById('adminLocationsBody');
+      const recentScans = document.getElementById('adminRecentScansTableBody');
+      if (locations) { clearDataSkeleton(locations); locations.innerHTML = '<tr><td colspan="4" class="empty-table-msg">Server unavailable.</td></tr>'; }
+      if (recentScans) { clearDataSkeleton(recentScans); recentScans.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Server unavailable.</td></tr>'; }
+      const legend = document.getElementById('adminHealthLegend');
+      if (legend) { clearDataSkeleton(legend); legend.innerHTML = '<p class="overview-empty">Dashboard distribution is unavailable.</p>'; }
+      const activity = document.getElementById('adminRecentActivity');
+      if (activity) { clearDataSkeleton(activity); activity.innerHTML = '<p class="overview-empty">Recent activity is unavailable.</p>'; }
+      if (donut) { donut.classList.remove('app-skeleton-donut'); donut.setAttribute('aria-label', 'Leaf health distribution unavailable.'); }
     });
 }
 
 function setAdminOverviewStatus(message) {
   const status = document.getElementById('adminOverviewStatus');
   if (!status) return;
+  clearDataSkeleton(status);
   status.textContent = message;
   status.hidden = !message;
 }
@@ -5673,10 +5856,12 @@ function renderAdminHealthOverview(stats, distribution) {
   };
   Object.entries(values).forEach(([id, value]) => {
     const element = document.getElementById(id);
-    if (element) element.textContent = value;
+        setLoadedText(element, value);
   });
   const donut = document.getElementById('adminHealthDonut');
   if (donut) {
+    clearDataSkeleton(donut);
+    donut.classList.remove('app-skeleton-donut');
     donut.style.background = total
       ? `conic-gradient(#d93642 0% ${diseasedPercent}%, #2b9654 ${diseasedPercent}% 100%)`
       : 'var(--neutral-100)';
@@ -5686,6 +5871,7 @@ function renderAdminHealthOverview(stats, distribution) {
   }
   const legend = document.getElementById('adminHealthLegend');
   if (!legend) return;
+  clearDataSkeleton(legend);
   if (!total) {
     legend.innerHTML = '<p class="overview-empty">Your disease distribution will appear after the first leaf scan.</p>';
     return;
@@ -5705,6 +5891,7 @@ function renderAdminHealthOverview(stats, distribution) {
 function renderAdminRecentActivity(scans) {
   const container = document.getElementById('adminRecentActivity');
   if (!container) return;
+  clearDataSkeleton(container);
   container.replaceChildren();
   if (!scans.length) {
     container.innerHTML = '<p class="overview-empty">No scans yet. New detections will appear here.</p>';
@@ -5739,11 +5926,11 @@ function renderAdminRecentActivity(scans) {
 }
 
 function setMeterData(prefix, info) {
-  if (!info) return;
+  info = info || {};
   const countEl = document.getElementById(prefix + 'Count');
-  if (countEl) countEl.textContent = `${info.count || 0} scans`;
+  setLoadedText(countEl, `${info.count || 0} scans`);
   const pctEl = document.getElementById(prefix + 'Percent');
-  if (pctEl) pctEl.textContent = `${info.percent || 0}%`;
+  setLoadedText(pctEl, `${info.percent || 0}%`);
   const barEl = document.getElementById(prefix + 'Bar');
   if (barEl) barEl.style.width = `${Math.min(100, info.percent || 0)}%`;
 }
@@ -5751,6 +5938,7 @@ function setMeterData(prefix, info) {
 function renderAdminLocationsTable(locations) {
   const tbody = document.getElementById('adminLocationsBody');
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!locations || locations.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-table-msg">No location records yet.</td></tr>';
@@ -5786,6 +5974,7 @@ function renderAdminLocationsTable(locations) {
 function renderAdminRecentScansTable(scans) {
   const tbody = document.getElementById('adminRecentScansTableBody');
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!scans || scans.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No disease scans recorded in system yet.</td></tr>';
@@ -5878,7 +6067,17 @@ let adminUsersCurrentPage = 1;
 let adminFilteredUsersList = [];
 
 async function loadAdminUsers() {
-  await ensureCsrfCookie();
+  const tbody = document.getElementById('adminUsersTableBody');
+  ['adminStatFarmers', 'adminStatStaff', 'adminStatTotal', 'adminStatScans'].forEach(id => setTextSkeleton(document.getElementById(id), '44px', 'Loading account totals...'));
+  setDataSkeleton(tbody, tableSkeletonMarkup(7, 5, 'Loading user accounts...'));
+  try {
+    await ensureCsrfCookie();
+  } catch (_) {
+    ['adminStatFarmers', 'adminStatStaff', 'adminStatTotal', 'adminStatScans'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+    renderAdminEmpty('adminUsersTableBody', 'Unable to connect to server.');
+    renderAdminUsersPagination(0);
+    return;
+  }
   fetch(apiUrl('/admin/users'), {
     credentials: 'include',
     headers: authHeaders(),
@@ -5892,13 +6091,13 @@ async function loadAdminUsers() {
         const stats = data.data.stats || {};
 
         const sf = document.getElementById('adminStatFarmers');
-        if (sf) sf.textContent = stats.total_farmers || adminFarmersList.length;
+        setLoadedText(sf, stats.total_farmers || adminFarmersList.length);
         const ss = document.getElementById('adminStatStaff');
-        if (ss) ss.textContent = stats.total_staff || adminStaffList.length;
+        setLoadedText(ss, stats.total_staff || adminStaffList.length);
         const st = document.getElementById('adminStatTotal');
-        if (st) st.textContent = stats.total_users || adminAllUsersList.length;
+        setLoadedText(st, stats.total_users || adminAllUsersList.length);
         const sc = document.getElementById('adminStatScans');
-        if (sc) sc.textContent = stats.total_scans || 0;
+        setLoadedText(sc, stats.total_scans || 0);
 
         const tfc = document.getElementById('adminTabFarmersCount');
         if (tfc) tfc.textContent = stats.total_farmers || adminFarmersList.length;
@@ -5911,11 +6110,13 @@ async function loadAdminUsers() {
 
         filterAdminUsersList();
       } else {
+        ['adminStatFarmers', 'adminStatStaff', 'adminStatTotal', 'adminStatScans'].forEach(id => setLoadedText(document.getElementById(id), '—'));
         renderAdminEmpty('adminUsersTableBody', data.message || 'Failed to load user accounts.');
         renderAdminUsersPagination(0);
       }
     })
     .catch(() => {
+      ['adminStatFarmers', 'adminStatStaff', 'adminStatTotal', 'adminStatScans'].forEach(id => setLoadedText(document.getElementById(id), '—'));
       renderAdminEmpty('adminUsersTableBody', 'Unable to connect to server.');
       renderAdminUsersPagination(0);
     });
@@ -6032,6 +6233,7 @@ function renderAdminUsersPagination(totalUsers) {
 function renderAdminUsersTable(users) {
   const tbody = document.getElementById('adminUsersTableBody');
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!users || users.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No user accounts found matching current filter.</td></tr>';
@@ -6084,7 +6286,10 @@ function renderAdminUsersTable(users) {
 
 function renderAdminEmpty(tbodyId, msg) {
   const tbody = document.getElementById(tbodyId);
-  if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="empty-table-msg">${escapeHtml(msg)}</td></tr>`;
+  if (tbody) {
+    clearDataSkeleton(tbody);
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-table-msg">${escapeHtml(msg)}</td></tr>`;
+  }
 }
 
 async function openAdminUserScansModal(userId, userName) {
@@ -6094,17 +6299,24 @@ async function openAdminUserScansModal(userId, userName) {
 
   if (titleEl) titleEl.textContent = `${userName}'s Detection History`;
   if (subEl) subEl.textContent = `All rice leaf scans submitted by User #${userId}`;
-  if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">Loading user scan history...</td></tr>';
+  setDataSkeleton(tbody, tableSkeletonMarkup(5, 4, 'Loading user scan history...'));
 
   openModal('modalAdminUserScans');
 
-  await ensureCsrfCookie();
+  try {
+    await ensureCsrfCookie();
+  } catch (_) {
+    clearDataSkeleton(tbody);
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">Unable to load scan records.</td></tr>';
+    return;
+  }
   fetch(apiUrl(`/admin/users/${userId}/scans`), {
     credentials: 'include',
     headers: authHeaders(),
   })
     .then(r => r.json())
     .then(data => {
+      clearDataSkeleton(tbody);
       if (data && data.success && data.data && data.data.scans) {
         const scans = data.data.scans;
         if (scans.length === 0) {
@@ -6138,6 +6350,7 @@ async function openAdminUserScansModal(userId, userName) {
     })
     .catch(() => {
       if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">Network error while fetching scans.</td></tr>';
+      clearDataSkeleton(tbody);
     });
 }
 
@@ -6773,9 +6986,15 @@ let pendingDeleteScanId = null;
 
 async function loadAdminScansLogs() {
   const tbody = document.getElementById('adminScansLogsTableBody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Loading all detection records...</td></tr>';
+  setDataSkeleton(tbody, tableSkeletonMarkup(7, 5, 'Loading all detection records...'));
 
-  await ensureCsrfCookie();
+  try {
+    await ensureCsrfCookie();
+  } catch (_) {
+    clearDataSkeleton(tbody);
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Unable to connect to server.</td></tr>';
+    return;
+  }
   fetch(apiUrl('/admin/scans'), {
     credentials: 'include',
     headers: authHeaders(),
@@ -6786,10 +7005,12 @@ async function loadAdminScansLogs() {
         adminScansLogsList = data.data.scans || [];
         filterAdminScansLogs();
       } else {
+        clearDataSkeleton(tbody);
         if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Failed to load detection logs.</td></tr>';
       }
     })
     .catch(() => {
+      clearDataSkeleton(tbody);
       if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">Network error while fetching logs.</td></tr>';
     });
 }
@@ -6830,6 +7051,7 @@ function filterAdminScansLogs() {
 function renderAdminScansLogsTable(scans) {
   const tbody = document.getElementById('adminScansLogsTableBody');
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!scans || scans.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-table-msg">No detection records match current filter.</td></tr>';
@@ -6971,10 +7193,18 @@ async function loadAdminReports(period = 'daily') {
   const meterContainer = document.getElementById('adminReportsDiseaseList');
   const chartContainer = document.getElementById('adminReportTrendChart');
 
-  if (meterContainer) meterContainer.innerHTML = '<div class="empty-table-msg">Loading disease metrics...</div>';
-  if (chartContainer) chartContainer.innerHTML = '<div class="empty-table-msg">Loading trends...</div>';
+  setDataSkeleton(meterContainer, meterSkeletonMarkup(5, 'Loading disease metrics...'));
+  setDataSkeleton(chartContainer, chartSkeletonMarkup('Loading trends...'));
 
-  await ensureCsrfCookie();
+  try {
+    await ensureCsrfCookie();
+  } catch (_) {
+    clearDataSkeleton(meterContainer);
+    clearDataSkeleton(chartContainer);
+    if (meterContainer) meterContainer.innerHTML = '<div class="empty-table-msg">Unable to load disease metrics.</div>';
+    if (chartContainer) chartContainer.innerHTML = '<div class="empty-table-msg">Unable to load trends.</div>';
+    return;
+  }
   fetch(apiUrl(`/admin/reports?period=${period}`), {
     credentials: 'include',
     headers: authHeaders(),
@@ -6985,9 +7215,19 @@ async function loadAdminReports(period = 'daily') {
         const d = data.data;
         renderAdminReportsBreakdown(d.disease_breakdown || []);
         renderAdminReportTimelineChart(d.timeline || []);
+      } else {
+        clearDataSkeleton(meterContainer);
+        clearDataSkeleton(chartContainer);
+        if (meterContainer) meterContainer.innerHTML = '<div class="empty-table-msg">Disease metrics are unavailable.</div>';
+        if (chartContainer) chartContainer.innerHTML = '<div class="empty-table-msg">Trends are unavailable.</div>';
       }
     })
-    .catch(() => { });
+    .catch(() => {
+      clearDataSkeleton(meterContainer);
+      clearDataSkeleton(chartContainer);
+      if (meterContainer) meterContainer.innerHTML = '<div class="empty-table-msg">Unable to load disease metrics.</div>';
+      if (chartContainer) chartContainer.innerHTML = '<div class="empty-table-msg">Unable to load trends.</div>';
+    });
 }
 
 function switchAdminReportPeriod(period) {
@@ -7002,6 +7242,7 @@ function switchAdminReportPeriod(period) {
 function renderAdminReportsBreakdown(breakdown) {
   const container = document.getElementById('adminReportsDiseaseList');
   if (!container) return;
+  clearDataSkeleton(container);
 
   if (!breakdown || breakdown.length === 0) {
     container.innerHTML = '<div class="empty-table-msg">No detection data in this period.</div>';
@@ -7028,6 +7269,7 @@ function renderAdminReportsBreakdown(breakdown) {
 function renderAdminReportTimelineChart(timeline) {
   const container = document.getElementById('adminReportTrendChart');
   if (!container) return;
+  clearDataSkeleton(container);
 
   if (!timeline || timeline.length === 0) {
     container.innerHTML = '<div class="empty-table-msg">No timeline trend data logged yet.</div>';
@@ -7059,12 +7301,9 @@ let staffActiveDiseaseFilter = 'all';
 async function loadStaffDashboard() {
   const tableBody = document.getElementById('staffScansTableBody');
   const cardsContainer = document.getElementById('staffBarangayCardsContainer');
-  if (tableBody) {
-    tableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">Loading field surveillance records...</td></tr>';
-  }
-  if (cardsContainer) {
-    cardsContainer.innerHTML = '<div class="empty-table-msg">Loading barangay surveillance data...</div>';
-  }
+  ['staffStatTotalScans', 'staffStatActiveOutbreaks', 'staffStatTotalFarmers', 'staffStatHealthyRatio'].forEach(id => setTextSkeleton(document.getElementById(id), '48px', 'Loading field totals...'));
+  setDataSkeleton(tableBody, tableSkeletonMarkup(6, 5, 'Loading field surveillance records...', false));
+  setDataSkeleton(cardsContainer, barangaySkeletonMarkup(3, 'Loading barangay surveillance data...'));
 
   fetch(apiUrl('/staff/overview'), {
     credentials: 'include',
@@ -7078,16 +7317,16 @@ async function loadStaffDashboard() {
 
         // Populate Stat Cards
         const elScans = document.getElementById('staffStatTotalScans');
-        if (elScans) elScans.textContent = stats.total_field_scans || 0;
+        setLoadedText(elScans, stats.total_field_scans || 0);
 
         const elOutbreaks = document.getElementById('staffStatActiveOutbreaks');
-        if (elOutbreaks) elOutbreaks.textContent = stats.severity_reviews_needed || 0;
+        setLoadedText(elOutbreaks, stats.severity_reviews_needed || 0);
 
         const elFarmers = document.getElementById('staffStatTotalFarmers');
-        if (elFarmers) elFarmers.textContent = stats.total_farmers || 0;
+        setLoadedText(elFarmers, stats.total_farmers || 0);
 
         const elHealthy = document.getElementById('staffStatHealthyRatio');
-        if (elHealthy) elHealthy.textContent = (stats.healthy_ratio !== undefined ? stats.healthy_ratio : 100) + '%';
+        setLoadedText(elHealthy, (stats.healthy_ratio !== undefined ? stats.healthy_ratio : 100) + '%');
 
         staffScansList = d.recent_scans || [];
         staffBarangayList = d.location_surveillance || [];
@@ -7101,11 +7340,19 @@ async function loadStaffDashboard() {
         renderStaffScansTable(staffScansList);
         renderBarangayCards(staffBarangayList);
       } else {
+        ['staffStatTotalScans', 'staffStatActiveOutbreaks', 'staffStatTotalFarmers', 'staffStatHealthyRatio'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+        clearDataSkeleton(tableBody);
+        clearDataSkeleton(cardsContainer);
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">Unable to load staff data. Extension access required.</td></tr>';
+        if (cardsContainer) cardsContainer.innerHTML = '<div class="empty-table-msg">Unable to load barangay surveillance data.</div>';
       }
     })
     .catch(() => {
+      ['staffStatTotalScans', 'staffStatActiveOutbreaks', 'staffStatTotalFarmers', 'staffStatHealthyRatio'].forEach(id => setLoadedText(document.getElementById(id), '—'));
+      clearDataSkeleton(tableBody);
+      clearDataSkeleton(cardsContainer);
       if (tableBody) tableBody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">Network error while fetching extension data.</td></tr>';
+      if (cardsContainer) cardsContainer.innerHTML = '<div class="empty-table-msg">Network error while loading barangay surveillance data.</div>';
     });
 }
 
@@ -7122,6 +7369,7 @@ function switchStaffTab(tab) {
 function renderStaffScansTable(scans) {
   const tbody = document.getElementById('staffScansTableBody');
   if (!tbody) return;
+  clearDataSkeleton(tbody);
 
   if (!scans || scans.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-table-msg">No farmer scans match the current filter.</td></tr>';
@@ -7213,6 +7461,7 @@ function filterStaffScansByDisease(diseaseKey, chipEl) {
 function renderBarangayCards(barangays) {
   const container = document.getElementById('staffBarangayCardsContainer');
   if (!container) return;
+  clearDataSkeleton(container);
 
   if (!barangays || barangays.length === 0) {
     container.innerHTML = '<div class="empty-table-msg">No location surveillance data currently logged.</div>';
