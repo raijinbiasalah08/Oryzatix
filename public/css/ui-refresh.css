@@ -181,6 +181,83 @@ body { background: #f6f8f3; }
 .table-responsive, .history-table-responsive, .disease-selector-bar { scrollbar-width: thin; scrollbar-color: #b6cbbd transparent; }
 .admin-disease-card { border-radius: 18px; box-shadow: var(--shadow-xs); }
 
+/* Disease Management loading cards and roomier, readable page typography. */
+#admin-diseases .admin-title h2 { font-size: clamp(27px, 2.2vw, 32px); }
+#admin-diseases .admin-title p { font-size: 15.5px; line-height: 1.65; }
+#admin-diseases .admin-add-btn { min-height: 46px; font-size: 15.5px; }
+#admin-diseases .admin-tab-btn { min-height: 46px; font-size: 15.5px; }
+#admin-diseases .admin-disease-card h3 { line-height: 1.3; }
+#admin-diseases .admin-disease-card .badge-pill { font-size: 13px; }
+#admin-diseases .admin-disease-load-error {
+  grid-column: 1 / -1;
+  padding: 22px 16px;
+  border: 1px solid #f2c4bd;
+  border-radius: 14px;
+  background: #fff7f5;
+  color: #8d3027;
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: center;
+}
+.admin-disease-skeleton {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--neutral-200);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--shadow-xs);
+}
+.admin-disease-skeleton-image {
+  position: relative;
+  overflow: hidden;
+  height: 160px;
+  background: #e8eeea;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.admin-disease-skeleton-body { padding: 16px; }
+.admin-disease-skeleton-line,
+.admin-disease-skeleton-treatment,
+.admin-disease-skeleton-actions i {
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #e8eeea;
+}
+.admin-disease-skeleton-line { height: 13px; margin: 11px 0; }
+.admin-disease-skeleton-line.title { width: 58%; height: 18px; margin: 0 0 11px; }
+.admin-disease-skeleton-line.short { width: 36%; height: 11px; }
+.admin-disease-skeleton-line.medium { width: 76%; }
+.admin-disease-skeleton-treatment { height: 64px; margin-top: 16px; }
+.admin-disease-skeleton-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf2ee; }
+.admin-disease-skeleton-actions i:first-child { width: 98px; height: 36px; }
+.admin-disease-skeleton-actions i:last-child { width: 36px; height: 36px; border-radius: 10px; }
+.admin-disease-skeleton-line::after,
+.admin-disease-skeleton-treatment::after,
+.admin-disease-skeleton-actions i::after,
+.admin-disease-skeleton-image::after {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  animation: disease-skeleton-shimmer 1.35s ease-in-out infinite;
+  content: '';
+}
+@keyframes disease-skeleton-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .admin-disease-skeleton :is(.admin-disease-skeleton-line, .admin-disease-skeleton-treatment, .admin-disease-skeleton-actions i)::after,
+  .admin-disease-skeleton-image::after { animation: none; transform: none; opacity: .25; }
+}
+
 /* Controls: soft tracks, obvious selections, and visible keyboard focus. */
 .admin-tabs-bar, .staff-tabs-bar, .treatment-tabs { background: #e8eeea; padding: 5px; gap: 5px; border-radius: 13px; }
 .admin-tab-btn, .staff-tab-btn, .treatment-tabs button { min-height: 42px; font-weight: 700; border-radius: 9px; }

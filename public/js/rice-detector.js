@@ -6329,40 +6329,58 @@ let adminDiseasesList = [];
 let activeDiseaseFilter = 'all';
 let pendingDeleteDiseaseId = null;
 
+function adminDiseaseSkeletonMarkup() {
+  const card = `
+    <div class="admin-disease-skeleton" aria-hidden="true">
+      <div class="admin-disease-skeleton-image"></div>
+      <div class="admin-disease-skeleton-body">
+        <div class="admin-disease-skeleton-line title"></div>
+        <div class="admin-disease-skeleton-line short"></div>
+        <div class="admin-disease-skeleton-line"></div>
+        <div class="admin-disease-skeleton-line medium"></div>
+        <div class="admin-disease-skeleton-treatment"></div>
+        <div class="admin-disease-skeleton-actions"><i></i><i></i></div>
+      </div>
+    </div>`;
+  return `<span class="sr-only" role="status">Loading disease records...</span>${card.repeat(3)}`;
+}
+
 async function loadAdminDiseases() {
   const container = document.getElementById('adminDiseasesGrid');
-  if (container) container.innerHTML = '<div class="empty-table-msg">Loading rice disease records...</div>';
+  if (container) {
+    container.setAttribute('aria-busy', 'true');
+    container.innerHTML = adminDiseaseSkeletonMarkup();
+  }
 
-  await ensureCsrfCookie();
-  fetch(apiUrl('/admin/diseases'), {
-    credentials: 'include',
-    headers: authHeaders(),
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data && data.success && data.data) {
-        adminDiseasesList = data.data.diseases || [];
-
-        const countAll = document.getElementById('adminDiseasesCountAll');
-        if (countAll) countAll.textContent = adminDiseasesList.length;
-
-        const activeCount = adminDiseasesList.filter(d => d.status === 'active' || d.is_active).length;
-        const inactiveCount = adminDiseasesList.length - activeCount;
-
-        const tabActive = document.getElementById('adminTabDiseaseActive');
-        if (tabActive) tabActive.innerHTML = `<span>Active (${activeCount})</span>`;
-
-        const tabInactive = document.getElementById('adminTabDiseaseInactive');
-        if (tabInactive) tabInactive.innerHTML = `<span>Inactive (${inactiveCount})</span>`;
-
-        renderAdminDiseasesGrid();
-      } else {
-        if (container) container.innerHTML = '<div class="empty-table-msg">Failed to load disease library.</div>';
-      }
-    })
-    .catch(() => {
-      if (container) container.innerHTML = '<div class="empty-table-msg">Network error while fetching diseases.</div>';
+  try {
+    await ensureCsrfCookie();
+    const response = await fetch(apiUrl('/admin/diseases'), {
+      credentials: 'include',
+      headers: authHeaders(),
     });
+    const data = await response.json();
+    if (!response.ok || !data?.success || !data?.data) {
+      throw new Error('Failed to load disease library.');
+    }
+
+    adminDiseasesList = data.data.diseases || [];
+    const countAll = document.getElementById('adminDiseasesCountAll');
+    if (countAll) countAll.textContent = adminDiseasesList.length;
+
+    const activeCount = adminDiseasesList.filter(d => d.status === 'active' || d.is_active).length;
+    const inactiveCount = adminDiseasesList.length - activeCount;
+    const tabActive = document.getElementById('adminTabDiseaseActive');
+    if (tabActive) tabActive.innerHTML = `<span>Active (${activeCount})</span>`;
+    const tabInactive = document.getElementById('adminTabDiseaseInactive');
+    if (tabInactive) tabInactive.innerHTML = `<span>Inactive (${inactiveCount})</span>`;
+    renderAdminDiseasesGrid();
+  } catch (error) {
+    if (container) {
+      container.innerHTML = `<div class="admin-disease-load-error" role="alert">${error instanceof TypeError ? 'Network error while fetching diseases.' : 'Failed to load disease library. Please try again.'}</div>`;
+    }
+  } finally {
+    container?.removeAttribute('aria-busy');
+  }
 }
 
 function filterAdminDiseases(status, btnEl) {
@@ -6402,28 +6420,28 @@ function renderAdminDiseasesGrid() {
         <div style="padding:16px; flex:1; display:flex; flex-direction:column;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
             <div style="cursor:pointer;" onclick="openAdminViewDiseaseModal(${d.id})">
-              <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--neutral-900);">${escapeHtml(d.name)}</h3>
-              <div style="font-size:12px; font-style:italic; color:var(--neutral-500); margin-top:2px;">${escapeHtml(d.scientific_name || '')}</div>
+              <h3 style="margin:0; font-size:18px; font-weight:800; color:var(--neutral-900);">${escapeHtml(d.name)}</h3>
+              <div style="font-size:13.5px; font-style:italic; color:var(--neutral-500); margin-top:3px;">${escapeHtml(d.scientific_name || '')}</div>
             </div>
             <span class="badge-pill" style="${isActive ? 'background:var(--green-100); color:var(--brand-green); font-weight:700;' : 'background:var(--neutral-100); color:var(--neutral-500);'}">
               ${isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
 
-          <p style="font-size:12.5px; color:var(--neutral-600); line-height:1.5; margin:8px 0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+          <p style="font-size:14.5px; color:var(--neutral-600); line-height:1.55; margin:9px 0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
             ${escapeHtml(d.description || 'No description provided.')}
           </p>
 
-          <div style="background:var(--neutral-50); border:1px solid var(--neutral-200); border-radius:8px; padding:10px; margin-top:auto; font-size:12px;">
+          <div style="background:var(--neutral-50); border:1px solid var(--neutral-200); border-radius:8px; padding:11px; margin-top:auto; font-size:14px; line-height:1.5;">
             <div style="margin-bottom:4px;"><strong style="color:var(--brand-green);">Treatment:</strong> <span style="color:var(--neutral-700);">${escapeHtml(treatmentPreview.length > 90 ? treatmentPreview.slice(0, 90) + '...' : treatmentPreview)}</span></div>
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--neutral-100);">
             <div style="display:flex; gap:6px;">
-              <button class="panel-action-btn" onclick="openAdminViewDiseaseModal(${d.id})" style="font-size:11.5px; padding:4px 8px; background:var(--neutral-100); color:var(--neutral-700);">
+              <button class="panel-action-btn" onclick="openAdminViewDiseaseModal(${d.id})" style="font-size:13.5px; padding:6px 10px; background:var(--neutral-100); color:var(--neutral-700);">
                 View Details
               </button>
-              ${isActive ? '' : `<button class="panel-action-btn" onclick="toggleAdminDiseaseStatus(${d.id})" style="font-size:11.5px; padding:4px 8px;">Activate</button>`}
+              ${isActive ? '' : `<button class="panel-action-btn" onclick="toggleAdminDiseaseStatus(${d.id})" style="font-size:13.5px; padding:6px 10px;">Activate</button>`}
             </div>
             <div style="display:flex; gap:6px;">
               <button class="action-icon-btn edit" onclick="openAdminEditDiseaseModalById(${d.id})" title="Edit Disease">

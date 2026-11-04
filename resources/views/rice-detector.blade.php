@@ -1603,8 +1603,32 @@
         </div>
 
         <!-- Disease Cards Grid Container -->
-        <div class="admin-diseases-grid" id="adminDiseasesGrid">
-          <div class="empty-table-msg">Loading disease records...</div>
+        <div class="admin-diseases-grid" id="adminDiseasesGrid" aria-busy="true">
+          <span class="sr-only" role="status">Loading disease records...</span>
+          <div class="admin-disease-skeleton" aria-hidden="true">
+            <div class="admin-disease-skeleton-image"></div>
+            <div class="admin-disease-skeleton-body">
+              <div class="admin-disease-skeleton-line title"></div><div class="admin-disease-skeleton-line short"></div>
+              <div class="admin-disease-skeleton-line"></div><div class="admin-disease-skeleton-line medium"></div>
+              <div class="admin-disease-skeleton-treatment"></div><div class="admin-disease-skeleton-actions"><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="admin-disease-skeleton" aria-hidden="true">
+            <div class="admin-disease-skeleton-image"></div>
+            <div class="admin-disease-skeleton-body">
+              <div class="admin-disease-skeleton-line title"></div><div class="admin-disease-skeleton-line short"></div>
+              <div class="admin-disease-skeleton-line"></div><div class="admin-disease-skeleton-line medium"></div>
+              <div class="admin-disease-skeleton-treatment"></div><div class="admin-disease-skeleton-actions"><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="admin-disease-skeleton" aria-hidden="true">
+            <div class="admin-disease-skeleton-image"></div>
+            <div class="admin-disease-skeleton-body">
+              <div class="admin-disease-skeleton-line title"></div><div class="admin-disease-skeleton-line short"></div>
+              <div class="admin-disease-skeleton-line"></div><div class="admin-disease-skeleton-line medium"></div>
+              <div class="admin-disease-skeleton-treatment"></div><div class="admin-disease-skeleton-actions"><i></i><i></i></div>
+            </div>
+          </div>
         </div>
       </section>
 
