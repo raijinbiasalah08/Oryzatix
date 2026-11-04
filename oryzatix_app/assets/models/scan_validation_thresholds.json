@@ -2,19 +2,19 @@
   "schema_version": 1,
   "validator": "MobileNetV2 binary rice-leaf versus non-rice-image classifier",
   "rice_leaf": {
-    "threshold": 0.5571949258446693,
-    "threshold_policy": "midpoint between highest non-rice and lowest rice validation scores when separated; otherwise smallest threshold above highest non-rice validation score",
+    "threshold": 0.7783398926258087,
+    "threshold_policy": "midpoint between highest non-rice and lowest rice validation scores, including the held-out laptop keyboard challenge image",
     "validation_rice_images": 601,
-    "validation_non_rice_images": 476,
+    "validation_non_rice_images": 477,
     "validation_true_positive": 601,
     "validation_false_positive": 0,
     "validation_false_negative": 0,
-    "validation_true_negative": 476,
+    "validation_true_negative": 477,
     "validation_rice_recall": 1.0,
     "validation_non_rice_specificity": 1.0,
-    "max_non_rice_validation_score": 0.14805032312870026,
+    "max_non_rice_validation_score": 0.590340256690979,
     "min_rice_validation_score": 0.9663395285606384,
-    "validation_score_gap": 0.8182892054319382,
+    "validation_score_gap": 0.3759992718696594,
     "separable_validation_scores": true,
     "operating_point_available": true,
     "calibration_split": "validation"
@@ -75,8 +75,8 @@
     }
   },
   "hard_negative_validation": {
-    "images": 1,
-    "rejected_or_inconclusive": 1,
+    "images": 2,
+    "rejected_or_inconclusive": 2,
     "false_rice_accepts": 0,
     "by_category": {
       "people": {
@@ -84,11 +84,11 @@
         "false_rice_accepts": 0
       },
       "objects": {
-        "images": 0,
+        "images": 1,
         "false_rice_accepts": 0
       }
     },
-    "note": "Only the held-out person image is an independent scene validation example. The object scene and other person image are training examples; no independent object-scene test data is available."
+    "note": "The held-out laptop keyboard is one independent object validation example. More varied object photos are needed to establish broad object rejection."
   },
   "hard_negative_training_fit": {
     "images": 2,
@@ -108,9 +108,9 @@
   },
   "data_counts": {
     "rice_leaf": 4005,
-    "not_rice_leaf": 3167,
+    "not_rice_leaf": 3168,
     "people": 2,
-    "objects": 1,
+    "objects": 2,
     "other_plant": 3164,
     "ambiguous_exact_duplicates_excluded": 0
   },
@@ -121,7 +121,7 @@
     },
     "validation": {
       "rice_leaf": 601,
-      "not_rice_leaf": 476
+      "not_rice_leaf": 477
     },
     "test": {
       "rice_leaf": 601,

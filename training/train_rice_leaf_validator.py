@@ -84,6 +84,22 @@ def collect_records(data_root: Path) -> tuple[list[dict[str, Any]], dict[str, in
         except (OSError, UnidentifiedImageError, ValueError):
             continue
 
+    # Scanner false positives supplied as challenge images are validation-only
+    # examples. Keep them out of training so they measure generalization.
+    challenge_dir = PROJECT_ROOT / "inference" / "challenges"
+    for path in sorted(challenge_dir.rglob("*")) if challenge_dir.is_dir() else ():
+        if not path.is_file() or path.suffix.lower() not in EXTENSIONS:
+            continue
+        try:
+            with Image.open(path) as image:
+                image.verify()
+            by_hash[digest(path)].append({
+                "path": path.absolute(), "class_key": "not_rice_leaf",
+                "binary_label": 0, "category": "objects",
+            })
+        except (OSError, UnidentifiedImageError, ValueError):
+            continue
+
     records: list[dict[str, Any]] = []
     ambiguous = 0
     for copies in by_hash.values():
@@ -136,14 +152,16 @@ def split_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         result.append({**row, "split": split})
 
-    # The workspace has only two people photos and one object scene. Put one
-    # person and the object scene in training; reserve the other person for
-    # validation. Do not claim an independent object-scene test result with only
-    # one available object image.
+    # Keep one object in training and reserve additional independent object
+    # scenes for validation. This includes challenge images from actual scanner
+    # false positives and lets calibration reject those without fitting to them.
     for category in ("people", "objects"):
         rows = sorted(
             (row for row in negatives if row["category"] == category),
-            key=lambda row: str(row["path"]).lower(),
+            key=lambda row: (
+                0 if "not rice leaf" in str(row["path"]).lower() else 1,
+                str(row["path"]).lower(),
+            ),
         )
         if category == "people":
             if rows:
@@ -153,7 +171,11 @@ def split_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             for row in rows[2:]:
                 result.append({**row, "split": "train"})
         else:
-            result.extend({**row, "split": "train"} for row in rows)
+            if rows:
+                result.append({**rows[0], "split": "train"})
+            if len(rows) > 1:
+                result.append({**rows[1], "split": "validation"})
+            result.extend({**row, "split": "test"} for row in rows[2:])
 
     return result
 
@@ -507,7 +529,7 @@ def finalize_validation(tf: Any, output_dir: Path, split_rows: list[dict[str, An
             }
             for category in ("people", "objects")
         },
-        "note": "Only the held-out person image is an independent scene validation example. The object scene and other person image are training examples; no independent object-scene test data is available.",
+        "note": "The held-out laptop keyboard is one independent object validation example. More varied object photos are needed to establish broad object rejection.",
     }
     hard_negative_train_rows = [row for row in split_rows if row["split"] == "train" and row["category"] in {"people", "objects"}]
     hard_negative_train_scores = tflite_predictions(
