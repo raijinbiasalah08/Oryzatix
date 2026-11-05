@@ -13,6 +13,22 @@ services:
         value: "false"
       - key: APP_URL
         value: https://oryzatix-backend.onrender.com
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_ENCRYPTION
+        value: tls
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Oryzatix
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL

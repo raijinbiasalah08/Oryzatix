@@ -450,24 +450,37 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Generate 6-digit OTP code
-        $otp = (string) mt_rand(100000, 999999);
+        // A log/array mailer only records the message locally; it does not deliver an email.
+        // Never tell the user that a reset code was sent when no delivery transport is active.
+        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+            Log::warning('Password reset requested, but the configured mailer does not deliver email.', [
+                'mailer' => config('mail.default'),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Password reset email is not configured on the server. Please contact support.',
+            ], 503);
+        }
 
-        // Store OTP in password_reset_tokens table
+        // Generate 6-digit OTP code
+        $otp = (string) random_int(100000, 999999);
+        $otpHash = Hash::make($otp);
+
+        // Store only a hash of the OTP in the password_reset_tokens table.
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $email],
-            ['token' => $otp, 'created_at' => Carbon::now()]
+            ['token' => $otpHash, 'created_at' => Carbon::now()]
         );
 
-        // Send Email via Laravel Mailer to actual Gmail
+        // Deliver the code through the configured production mail transport.
         try {
-            Mail::send('emails.otp', ['name' => $user->name, 'email' => $email, 'otp' => $otp], function ($message) use ($email, $user, $otp) {
+            Mail::send('emails.otp', ['name' => $user->name, 'email' => $email, 'otp' => $otp], function ($message) use ($email, $user) {
                 $message->to($email, $user->name)
-                    ->subject('ORYZATIX - Password Reset Verification Code: ' . $otp);
+                    ->subject('ORYZATIX - Password Reset Verification Code');
             });
         } catch (Exception $e) {
             Log::warning('Mail delivery warning: ' . $e->getMessage());
-            DB::table('password_reset_tokens')->where('email', $email)->where('token', $otp)->delete();
+            DB::table('password_reset_tokens')->where('email', $email)->where('token', $otpHash)->delete();
             return response()->json([
                 'success' => false,
                 'message' => 'The verification email could not be sent. Please try again later.',
@@ -505,10 +518,9 @@ class AuthController extends Controller
 
         $resetRecord = DB::table('password_reset_tokens')
             ->where('email', $email)
-            ->where('token', $token)
             ->first();
 
-        if (!$resetRecord) {
+        if (!$resetRecord || !Hash::check($token, $resetRecord->token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid verification code. Please check the 6-digit code in your Gmail.',

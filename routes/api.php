@@ -43,8 +43,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
     Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
     Route::get('/security-config', [AuthController::class, 'getSecurityConfig'])->name('auth.security-config');
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('auth.forgot-password');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('auth.reset-password');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1')
+        ->name('auth.forgot-password');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')
+        ->name('auth.reset-password');
     Route::post('/google-login', [AuthController::class, 'googleLogin'])->name('auth.google-login');
     Route::get('/google-accounts', [AuthController::class, 'googleAccounts'])->name('auth.google-accounts');
 });
