@@ -252,28 +252,6 @@ function apiUrl(path) {
 
 let lastScannedLeafBlobUrl = null;
 
-function getDiseaseSampleImage(keyOrName) {
-  const base = (window.INITIAL_AUTH && window.INITIAL_AUTH.assetBase)
-    ? window.INITIAL_AUTH.assetBase.replace(/\/+$/, '')
-    : (apiBase() ? apiBase().replace(/\/+$/, '') : '');
-  const k = (keyOrName || '').toLowerCase();
-  let fn = 'healthy.jpg';
-  if (k.includes('sheath') || (k.includes('blight') && !k.includes('bacterial') && !k.includes('blb'))) {
-    fn = 'sheath_blight.jpg';
-  } else if (k.includes('blb') || k.includes('bacterial')) {
-    fn = 'blb.webp';
-  } else if (k.includes('brown')) {
-    fn = 'brown_spot.webp';
-  } else if (k.includes('tungro')) {
-    fn = 'tungro.jpg';
-  } else if (k.includes('blast')) {
-    fn = 'blast.webp';
-  } else if (k.includes('healthy')) {
-    fn = 'healthy.jpg';
-  }
-  return base ? (base + '/images/diseases/' + fn) : ('/images/diseases/' + fn);
-}
-
 function getDiseaseCartoonName(keyOrName) {
   const key = String(keyOrName || '').toLowerCase();
   if (key === 'blb' || key.includes('bacterial')) return 'bacterial-leaf-blight';
@@ -284,10 +262,8 @@ function getDiseaseCartoonName(keyOrName) {
   return 'leaf-blast';
 }
 
-function resolveClientImageUrl(url, keyOrName) {
-  if (!url) {
-    return getDiseaseSampleImage(keyOrName);
-  }
+function resolveClientImageUrl(url) {
+  if (!url) return null;
   if (url.startsWith('data:')) {
     return url;
   }
@@ -299,11 +275,23 @@ function resolveClientImageUrl(url, keyOrName) {
         const base = apiBase().replace(/\/+$/, '');
         return base + parsed.pathname + parsed.search;
       } catch (e) {
-        return getDiseaseSampleImage(keyOrName);
+        return null;
       }
     }
   }
   return url;
+}
+
+function markScanPhotoUnavailable(image) {
+  if (!image) return;
+  const style = window.getComputedStyle(image);
+  const placeholder = document.createElement('span');
+  placeholder.setAttribute('role', 'img');
+  placeholder.setAttribute('aria-label', 'Uploaded photo unavailable');
+  placeholder.title = 'Uploaded photo unavailable';
+  placeholder.textContent = '📷';
+  placeholder.style.cssText = `display:flex;align-items:center;justify-content:center;width:${style.width};height:${style.height};border-radius:${style.borderRadius};background:var(--neutral-100);color:var(--neutral-400);border:1px solid var(--neutral-200);`;
+  image.replaceWith(placeholder);
 }
 
 function getAuthToken() {
@@ -3203,8 +3191,8 @@ function applyScanResult(scan) {
 
   const icon = document.getElementById('resultImageCardIcon');
   if (icon && imgCard) {
-    const rawImageUrl = scan.image_url || lastScannedLeafBlobUrl || getDiseaseSampleImage(scan.disease_key || scan.disease);
-    const resolvedUrl = resolveClientImageUrl(rawImageUrl, scan.disease_key || scan.disease);
+    const rawImageUrl = scan.image_url || lastScannedLeafBlobUrl;
+    const resolvedUrl = resolveClientImageUrl(rawImageUrl);
     if (resolvedUrl) {
       icon.style.display = 'none';
       let img = imgCard.querySelector('img.result-uploaded-img');
@@ -3223,10 +3211,8 @@ function applyScanResult(scan) {
         if (lastScannedLeafBlobUrl && this.src !== lastScannedLeafBlobUrl) {
           this.src = lastScannedLeafBlobUrl;
         } else {
-          const fallback = getDiseaseSampleImage(scan.disease_key || scan.disease);
-          if (this.src !== fallback) {
-            this.src = fallback;
-          }
+          this.remove();
+          icon.style.display = '';
         }
       };
       img.src = resolvedUrl;
@@ -4492,10 +4478,9 @@ function renderHistoryList(scans) {
     const badgeText = scanSeverityLabel(scan);
 
     const rawThumbUrl = scan.image_url;
-    const resolvedThumbUrl = resolveClientImageUrl(rawThumbUrl, scan.disease);
-    const fallbackThumbUrl = getDiseaseSampleImage(scan.disease);
+    const resolvedThumbUrl = resolveClientImageUrl(rawThumbUrl);
     const thumb = resolvedThumbUrl
-      ? '<img src="' + escapeHtml(resolvedThumbUrl) + '" alt="' + escapeHtml(scan.disease) + '" onerror="this.onerror=null;this.src=\'' + escapeHtml(fallbackThumbUrl) + '\';">'
+      ? '<img src="' + escapeHtml(resolvedThumbUrl) + '" alt="' + escapeHtml(scan.disease) + '" onerror="markScanPhotoUnavailable(this);">'
       : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>';
 
     const sciname = scan.scientific ? '<em>' + escapeHtml(scan.scientific) + '</em>' : (sev === 'healthy' ? 'Optimal Plant Health' : 'Diagnosed via MobileNet');
@@ -4712,10 +4697,9 @@ function renderHomeScanRecords(recent) {
         const sevLabel = scanSeverityLabel(s);
 
         const rawUrl = s.image_url;
-        const resolvedUrl = resolveClientImageUrl(rawUrl, s.disease);
-        const fallbackUrl = getDiseaseSampleImage(s.disease);
+        const resolvedUrl = resolveClientImageUrl(rawUrl);
         const thumbContent = resolvedUrl
-          ? '<img src="' + escapeHtml(resolvedUrl) + '" alt="' + escapeHtml(s.disease) + '" onerror="this.onerror=null;this.src=\'' + escapeHtml(fallbackUrl) + '\';" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">'
+          ? '<img src="' + escapeHtml(resolvedUrl) + '" alt="' + escapeHtml(s.disease) + '" onerror="markScanPhotoUnavailable(this);" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M7 12h10"/></svg>';
 
         return '<div class="recent-scan-card fade-in" onclick="viewHistoryScanDetail(' + (s.id || 0) + ')">' +
@@ -5766,11 +5750,19 @@ function renderAdminRecentActivity(scans) {
     row.className = 'activity-row';
     row.setAttribute('aria-label', `View ${scan.disease_name || 'leaf'} scan from ${scan.created_at || ''}`);
     row.addEventListener('click', () => openAdminScanPreview(scan.id));
-    const image = document.createElement('img');
-    image.src = resolveClientImageUrl(scan.image_url, scan.disease_name) || getDiseaseSampleImage(scan.disease_name);
-    image.alt = '';
-    image.loading = 'lazy';
-    image.onerror = () => { image.onerror = null; image.src = getDiseaseSampleImage(scan.disease_name); };
+    const imageUrl = resolveClientImageUrl(scan.image_url);
+    const image = document.createElement(imageUrl ? 'img' : 'span');
+    if (imageUrl) {
+      image.src = imageUrl;
+      image.alt = 'Uploaded scan photo';
+      image.loading = 'lazy';
+      image.onerror = () => markScanPhotoUnavailable(image);
+    } else {
+      image.setAttribute('aria-label', 'Uploaded photo unavailable');
+      image.title = 'Uploaded photo unavailable';
+      image.textContent = '📷';
+      image.style.cssText = 'display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;background:var(--neutral-100);color:var(--neutral-400);';
+    }
     const info = document.createElement('span');
     info.className = 'activity-info';
     const name = document.createElement('strong');
@@ -5849,11 +5841,10 @@ function renderAdminRecentScansTable(scans) {
       ? '<span class="health-status healthy">Healthy Leaf</span>'
       : '<span class="health-status diseased">Not Healthy Leaf</span>';
 
-    const resolvedAdminThumb = resolveClientImageUrl(s.image_url, s.disease_name);
-    const fallbackAdminThumb = getDiseaseSampleImage(s.disease_name);
+    const resolvedAdminThumb = resolveClientImageUrl(s.image_url);
     const thumbHtml = resolvedAdminThumb
-      ? `<img src="${resolvedAdminThumb}" alt="Leaf Specimen" onerror="this.onerror=null;this.src='${fallbackAdminThumb}';" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--neutral-200); cursor: pointer;" onclick="openAdminScanPreview(${s.id})">`
-      : `<div style="width: 38px; height: 38px; border-radius: 8px; background: var(--neutral-100); display: flex; align-items: center; justify-content: center; color: var(--neutral-400); font-size: 16px;">🌿</div>`;
+      ? `<img src="${resolvedAdminThumb}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 1px solid var(--neutral-200); cursor: pointer;" onclick="openAdminScanPreview(${s.id})">`
+      : `<div aria-label="Uploaded photo unavailable" title="Uploaded photo unavailable" style="width: 38px; height: 38px; border-radius: 8px; background: var(--neutral-100); display: flex; align-items: center; justify-content: center; color: var(--neutral-400); font-size: 16px;">📷</div>`;
 
     return `
       <tr>
@@ -6186,11 +6177,10 @@ async function openAdminUserScansModal(userId, userName) {
           return;
         }
         tbody.innerHTML = scans.map(s => {
-          const resolvedUserThumb = resolveClientImageUrl(s.image_url, s.disease_name);
-          const fallbackUserThumb = getDiseaseSampleImage(s.disease_name);
+          const resolvedUserThumb = resolveClientImageUrl(s.image_url);
           const imgThumb = resolvedUserThumb
-            ? `<img src="${resolvedUserThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackUserThumb}';" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
-            : `<div style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
+            ? `<img src="${resolvedUserThumb}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="width:38px; height:38px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
+            : `<div aria-label="Uploaded photo unavailable" title="Uploaded photo unavailable" style="width:38px; height:38px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">📷</div>`;
           const isHealthy = s.severity === 'healthy';
           const sevBadge = isHealthy
             ? '<span class="health-status healthy">Healthy Leaf</span>'
@@ -6926,11 +6916,10 @@ function renderAdminScansLogsTable(scans) {
       ? '<span class="health-status healthy">Healthy Leaf</span>'
       : '<span class="health-status diseased">Not Healthy Leaf</span>';
 
-    const resolvedScanThumb = resolveClientImageUrl(s.image_url, s.disease_name);
-    const fallbackScanThumb = getDiseaseSampleImage(s.disease_name);
+    const resolvedScanThumb = resolveClientImageUrl(s.image_url);
     const thumbHtml = resolvedScanThumb
-      ? `<img src="${resolvedScanThumb}" alt="Leaf Specimen" onerror="this.onerror=null;this.src='${fallbackScanThumb}';" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:1px solid var(--neutral-200); cursor:pointer;" onclick="openAdminScanPreview(${s.id})">`
-      : `<div style="width:42px; height:42px; border-radius:8px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">🌿</div>`;
+      ? `<img src="${resolvedScanThumb}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:1px solid var(--neutral-200); cursor:pointer;" onclick="openAdminScanPreview(${s.id})">`
+      : `<div aria-label="Uploaded photo unavailable" title="Uploaded photo unavailable" style="width:42px; height:42px; border-radius:8px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);">📷</div>`;
 
     return `
       <tr>
@@ -6973,12 +6962,11 @@ function openAdminScanPreview(scanId) {
     const isHealthy = scan.severity === 'healthy';
     const sevDisplay = isHealthy ? 'HEALTHY LEAF' : 'NOT HEALTHY LEAF';
 
-    const resolvedScanPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
-    const fallbackScanPreview = getDiseaseSampleImage(scan.disease_name);
+    const resolvedScanPreview = resolveClientImageUrl(scan.image_url);
 
     content.innerHTML = `
       <div style="text-align:center; margin-bottom:14px;">
-        ${resolvedScanPreview ? `<img src="${resolvedScanPreview}" alt="Specimen" onerror="this.onerror=null;this.src='${fallbackScanPreview}';" style="max-width:100%; max-height:260px; border-radius:10px; object-fit:contain; border:1px solid var(--neutral-200);">` : ''}
+        ${resolvedScanPreview ? `<img src="${resolvedScanPreview}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="max-width:100%; max-height:260px; border-radius:10px; object-fit:contain; border:1px solid var(--neutral-200);">` : '<p>Uploaded scan photo unavailable.</p>'}
       </div>
       <div style="background:var(--neutral-50); border-radius:8px; padding:12px; font-size:13px; line-height:1.6;">
         <div><strong>User:</strong> ${escapeHtml(scan.farmer_name)} (${escapeHtml(scan.farmer_email || 'No email')})</div>
@@ -7245,10 +7233,9 @@ function renderStaffScansTable(scans) {
     const statusClass = isHealthy ? 'healthy' : 'unassessed';
     const hasNote = Boolean(s.notes && s.notes.trim());
 
-    const resolvedStaffThumb = resolveClientImageUrl(s.image_url, s.disease_name);
-    const fallbackStaffThumb = getDiseaseSampleImage(s.disease_name);
+    const resolvedStaffThumb = resolveClientImageUrl(s.image_url);
     const imgThumb = resolvedStaffThumb
-      ? `<img src="${resolvedStaffThumb}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackStaffThumb}';" style="width:42px; height:42px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
+      ? `<img src="${resolvedStaffThumb}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="width:42px; height:42px; border-radius:6px; object-fit:cover; border:1px solid var(--neutral-200);">`
       : `<div style="width:42px; height:42px; border-radius:6px; background:var(--neutral-100); display:flex; align-items:center; justify-content:center; color:var(--neutral-400);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>`;
 
     return `
@@ -7381,12 +7368,11 @@ function openStaffAdvisoryModal(scanId) {
     const isHealthy = sev === 'healthy' || (scan.disease_name || '').toLowerCase().includes('healthy');
     const sevDisplay = isHealthy ? 'HEALTHY LEAF' : 'NOT HEALTHY LEAF';
 
-    const resolvedStaffPreview = resolveClientImageUrl(scan.image_url, scan.disease_name);
-    const fallbackStaffPreview = getDiseaseSampleImage(scan.disease_name);
+    const resolvedStaffPreview = resolveClientImageUrl(scan.image_url);
 
     preview.innerHTML = `
       <div style="display:flex; align-items:center; gap:12px;">
-        ${resolvedStaffPreview ? `<img src="${resolvedStaffPreview}" alt="Leaf" onerror="this.onerror=null;this.src='${fallbackStaffPreview}';" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : ''}
+        ${resolvedStaffPreview ? `<img src="${resolvedStaffPreview}" alt="Uploaded scan photo" onerror="markScanPhotoUnavailable(this);" style="width:50px; height:50px; border-radius:6px; object-fit:cover;">` : '<span>Uploaded scan photo unavailable.</span>'}
         <div>
           <div style="font-weight:700; font-size:14px; color:var(--neutral-900);">${escapeHtml(scan.farmer_name)} · <span style="font-weight:500; font-size:12px; color:var(--neutral-500);">${escapeHtml(scan.location)}</span></div>
           <div style="font-size:13px; font-weight:700; color:var(--brand-green); margin-top:2px;">${escapeHtml(scan.disease_name)} (${sevDisplay})</div>

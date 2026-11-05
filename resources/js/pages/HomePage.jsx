@@ -71,7 +71,7 @@ export default function HomePage() {
                                     {s.image_url ? (
                                         <img src={resolveImageUrl(s.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24"><path d="M12 2v4M7 12h10" /></svg>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24" aria-label="Uploaded photo unavailable"><path d="M14 4h-4l-2 3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2-3Z" /><circle cx="12" cy="13" r="3" /></svg>
                                     )}
                                 </div>
                                 <div className="scan-info">
