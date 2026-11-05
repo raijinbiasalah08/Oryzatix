@@ -3705,6 +3705,95 @@ select {
   scrollbar-width: thin;
 }
 
+.history-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  margin: 0 0 10px;
+  background: #fff;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+}
+
+.history-select-page,
+.history-bulk-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.history-select-page {
+  color: var(--neutral-700);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-select-page input,
+.history-row-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--brand-green);
+  cursor: pointer;
+}
+
+.history-selected-count {
+  color: var(--neutral-500);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-delete-selected {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid var(--red-100);
+  border-radius: var(--radius-md);
+  background: var(--red-50);
+  color: var(--red-600);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.history-delete-selected:hover:not(:disabled) {
+  background: var(--red-600);
+  border-color: var(--red-600);
+  color: #fff;
+}
+
+.history-delete-selected:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-bulk-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--red-600);
+  font-size: 12.5px;
+}
+
+.history-select-column {
+  width: 42px;
+  text-align: center !important;
+}
+
+.history-row-checkbox {
+  vertical-align: middle;
+}
+
+@media (max-width: 480px) {
+  .history-bulk-toolbar { padding: 10px 12px; }
+  .history-select-page { font-size: 12px; }
+  .history-delete-selected { min-height: 40px; padding-inline: 10px; }
+}
+
 .history-data-table {
   width: 100%;
   min-width: 520px;

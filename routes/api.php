@@ -101,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('rice-detector')->group(function () {
         Route::get('/history', [RiceScanController::class, 'history'])->name('rice-detector.history');
+        Route::delete('/scans', [RiceScanController::class, 'destroyMany'])->name('rice-detector.destroy-many');
         Route::delete('/scan/{id}', [RiceScanController::class, 'destroy'])->name('rice-detector.destroy');
         Route::patch('/scan/{id}/severity', [RiceScanController::class, 'updateSeverity'])->name('rice-detector.severity');
     });

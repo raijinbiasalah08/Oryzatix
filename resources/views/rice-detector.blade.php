@@ -1021,10 +1021,22 @@
         </div>
 
         <div class="history-table-wrapper" id="historyTableWrapper">
+          <div class="history-bulk-toolbar" id="historyBulkToolbar">
+            <label class="history-select-page">
+              <input type="checkbox" id="historySelectPage" onchange="toggleCurrentHistoryPage(this.checked)" aria-label="Select all scans on this page">
+              <span>Select all on this page</span>
+            </label>
+            <div class="history-bulk-actions">
+              <span class="history-selected-count" id="historySelectedCount">0 selected</span>
+              <button type="button" class="history-delete-selected" id="historyDeleteSelectedButton" onclick="deleteSelectedHistoryScans()" disabled>Delete selected</button>
+            </div>
+            <p class="history-bulk-error" id="historyBulkDeleteError" role="alert" style="display:none;"></p>
+          </div>
           <div class="history-table-responsive">
             <table class="history-data-table">
               <thead>
                 <tr>
+                  <th class="history-select-column"><span class="sr-only">Select</span></th>
                   <th style="width: 70px;">Photo</th>
                   <th>Disease Diagnosis</th>
                   <th>Severity Level</th>
@@ -1033,10 +1045,10 @@
                 </tr>
               </thead>
               <tbody id="historyTableBody" aria-busy="true">
-                <tr class="app-skeleton-status-row"><td colspan="5"><span class="sr-only" role="status">Loading scan records...</span></td></tr>
-                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
-                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
-                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-status-row"><td colspan="6"><span class="sr-only" role="status">Loading scan records...</span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
+                <tr class="app-skeleton-table-row" aria-hidden="true"><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-cell-image"></span></td><td><span class="app-skeleton-bar medium"></span></td><td><span class="app-skeleton-bar short"></span></td><td><span class="app-skeleton-bar wide"></span></td><td><span class="app-skeleton-bar short"></span></td></tr>
                 </tbody>
             </table>
           </div>

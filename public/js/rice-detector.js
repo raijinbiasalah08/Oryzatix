@@ -4288,6 +4288,8 @@ function consultAboutCurrentDisease() {
 let historyCurrentPage = 1;
 const historyPageSize = 10;
 let currentFilteredHistory = [];
+let currentVisibleHistoryPage = [];
+const selectedHistoryScanIds = new Set();
 let historyLoadPromise = null;
 let historyStatusTimer = null;
 
@@ -4324,12 +4326,13 @@ async function loadHistory() {
   ['statHealthy', 'statMild', 'statModerate', 'statSevere'].forEach(id => setTextSkeleton(document.getElementById(id), '36px', 'Loading scan totals...'));
   if (tableWrapper) tableWrapper.style.display = 'block';
   if (emptyMessage) emptyMessage.style.display = 'none';
-  setDataSkeleton(historyBody, tableSkeletonMarkup(5, 5, 'Loading scan records...'));
+  setDataSkeleton(historyBody, tableSkeletonMarkup(6, 5, 'Loading scan records...'));
 
   historyLoadPromise = (async () => {
     if (isGuestMode()) {
       const localScans = await readGuestScanRecords();
       allHistoryScans = localScans;
+      pruneHistorySelection();
       const setStat = (id, value) => {
         const element = document.getElementById(id);
       setLoadedText(element, value);
@@ -4402,6 +4405,7 @@ async function loadHistory() {
     });
 
     allHistoryScans = loadedScans;
+    pruneHistorySelection();
     filterHistoryList();
     setHistoryLoadStatus(localScans.length ? 'Scan records updated. Device-only guest scans are included.' : 'Scan records updated.', 'success');
     return true;
@@ -4415,6 +4419,7 @@ async function loadHistory() {
       if (localScans.length) {
         const accountScans = allHistoryScans.filter(scan => Number(scan.id) > 0);
         allHistoryScans = [...localScans, ...accountScans];
+        pruneHistorySelection();
         const diseaseKey = scan => String(scan.disease_key || scan.disease || scan.disease_name || '').toLowerCase();
         setLoadedText(document.getElementById('statHealthy'), allHistoryScans.filter(scan => diseaseKey(scan).includes('healthy')).length);
         setLoadedText(document.getElementById('statMild'), allHistoryScans.filter(scan => scan.severity === 'mild').length);
@@ -4468,6 +4473,8 @@ function renderHistoryList(scans) {
   const startIndex = (historyCurrentPage - 1) * historyPageSize;
   const endIndex = Math.min(startIndex + historyPageSize, totalItems);
   const pageItems = scans.slice(startIndex, endIndex);
+  currentVisibleHistoryPage = pageItems;
+  updateHistoryBulkControls();
 
   let html = '';
   pageItems.forEach(scan => {
@@ -4482,10 +4489,13 @@ function renderHistoryList(scans) {
     const thumb = resolvedThumbUrl
       ? '<img src="' + escapeHtml(resolvedThumbUrl) + '" alt="' + escapeHtml(scan.disease) + '" onerror="markScanPhotoUnavailable(this);">'
       : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>';
+    const idKey = String(scan.id ?? '');
+    const selected = idKey && selectedHistoryScanIds.has(idKey);
 
     const sciname = scan.scientific ? '<em>' + escapeHtml(scan.scientific) + '</em>' : (sev === 'healthy' ? 'Optimal Plant Health' : 'Diagnosed via MobileNet');
 
     html += '<tr>' +
+      '<td class="history-select-column">' + (idKey ? '<input type="checkbox" class="history-row-checkbox" ' + (selected ? 'checked' : '') + ' onchange="toggleHistoryScanSelection(\'' + escapeHtml(idKey) + '\')" aria-label="Select ' + escapeHtml(scan.disease || 'scan') + ' scan">' : '') + '</td>' +
       '<td>' +
       '<div class="ht-thumb ' + escapeHtml(scan.severity_class || '') + '" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' +
       thumb +
@@ -4636,10 +4646,104 @@ async function deleteScan(id) {
     if (!response.ok || !data || data.success !== true) {
       throw new Error(data?.message || 'Could not delete this scan record.');
     }
+    selectedHistoryScanIds.delete(String(id));
     await loadHistory();
     await loadHomeRecentScans();
   } catch (error) {
     setHistoryLoadStatus(error?.message || 'Could not delete this scan record. Please try again.', 'error');
+  }
+}
+
+function pruneHistorySelection() {
+  const available = new Set(allHistoryScans.map(scan => String(scan.id)));
+  for (const id of selectedHistoryScanIds) {
+    if (!available.has(id)) selectedHistoryScanIds.delete(id);
+  }
+}
+
+function updateHistoryBulkControls() {
+  const selectedCount = document.getElementById('historySelectedCount');
+  const deleteButton = document.getElementById('historyDeleteSelectedButton');
+  const selectPage = document.getElementById('historySelectPage');
+  const visibleIds = currentVisibleHistoryPage.map(scan => String(scan.id)).filter(Boolean);
+  const selectedVisible = visibleIds.filter(id => selectedHistoryScanIds.has(id)).length;
+  const selectedExistingCount = allHistoryScans.filter(scan => selectedHistoryScanIds.has(String(scan.id))).length;
+
+  if (selectedCount) selectedCount.textContent = selectedExistingCount + ' selected';
+  if (deleteButton) {
+    deleteButton.disabled = selectedExistingCount === 0;
+    deleteButton.textContent = selectedExistingCount ? 'Delete selected (' + selectedExistingCount + ')' : 'Delete selected';
+  }
+  if (selectPage) {
+    selectPage.checked = visibleIds.length > 0 && selectedVisible === visibleIds.length;
+    selectPage.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+  }
+}
+
+function toggleHistoryScanSelection(id) {
+  const key = String(id);
+  if (selectedHistoryScanIds.has(key)) selectedHistoryScanIds.delete(key);
+  else selectedHistoryScanIds.add(key);
+  const error = document.getElementById('historyBulkDeleteError');
+  if (error) { error.textContent = ''; error.style.display = 'none'; }
+  renderHistoryList(currentFilteredHistory);
+}
+
+function toggleCurrentHistoryPage(checked) {
+  currentVisibleHistoryPage.forEach(scan => {
+    const key = String(scan.id);
+    if (checked) selectedHistoryScanIds.add(key);
+    else selectedHistoryScanIds.delete(key);
+  });
+  const error = document.getElementById('historyBulkDeleteError');
+  if (error) { error.textContent = ''; error.style.display = 'none'; }
+  renderHistoryList(currentFilteredHistory);
+}
+
+async function deleteSelectedHistoryScans() {
+  const selectedScans = allHistoryScans.filter(scan => selectedHistoryScanIds.has(String(scan.id)));
+  if (!selectedScans.length) return;
+  if (!confirm('Delete ' + selectedScans.length + ' selected scan record' + (selectedScans.length === 1 ? '' : 's') + '? This cannot be undone.')) return;
+
+  const button = document.getElementById('historyDeleteSelectedButton');
+  const errorElement = document.getElementById('historyBulkDeleteError');
+  if (button) { button.disabled = true; button.textContent = 'Deleting…'; }
+  if (errorElement) { errorElement.textContent = ''; errorElement.style.display = 'none'; }
+
+  const localScans = selectedScans.filter(scan => Number(scan.id) < 0 || scan.local_only);
+  const serverIds = selectedScans.filter(scan => Number(scan.id) > 0 && !scan.local_only).map(scan => Number(scan.id));
+
+  try {
+    if (serverIds.length) {
+      await ensureCsrfCookie();
+      for (let offset = 0; offset < serverIds.length; offset += 100) {
+        const response = await fetch(apiUrl('/rice-detector/scans'), {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ ids: serverIds.slice(offset, offset + 100) }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data || data.success !== true) {
+          throw new Error(data?.message || 'Could not delete the selected scan records.');
+        }
+      }
+    }
+
+    for (const scan of localScans) await deleteGuestScanRecord(scan.id);
+    const removedIds = selectedScans.map(scan => String(scan.id));
+    removedIds.forEach(id => selectedHistoryScanIds.delete(id));
+    historyCurrentPage = 1;
+    await loadHistory();
+    await loadHomeRecentScans();
+    setHistoryLoadStatus(selectedScans.length + ' scan record' + (selectedScans.length === 1 ? '' : 's') + ' deleted.', 'success');
+  } catch (error) {
+    await loadHistory();
+    if (errorElement) {
+      errorElement.textContent = error?.message || 'Could not delete the selected scan records. Please try again.';
+      errorElement.style.display = 'block';
+    }
+    updateHistoryBulkControls();
   }
 }
 

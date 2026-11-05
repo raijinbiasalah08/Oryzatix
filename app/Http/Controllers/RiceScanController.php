@@ -1633,6 +1633,54 @@ class RiceScanController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function destroyMany(Request $request): JsonResponse
+    {
+        $userId = auth('sanctum')->id() ?: auth()->id();
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100',
+            'ids.*' => 'required|integer|min:1',
+        ]);
+        $requestedIds = array_values(array_unique($validated['ids']));
+
+        try {
+            $scans = RiceScan::where('user_id', $userId)
+                ->whereIn('id', $requestedIds)
+                ->get(['id', 'image_path']);
+
+            if ($scans->isEmpty()) {
+                return response()->json(['success' => true, 'deleted_count' => 0]);
+            }
+
+            $ownedIds = $scans->modelKeys();
+            \Illuminate\Support\Facades\DB::transaction(function () use ($userId, $ownedIds) {
+                RiceScan::where('user_id', $userId)->whereIn('id', $ownedIds)->delete();
+            });
+
+            foreach ($scans as $scan) {
+                $imagePath = $scan->image_path;
+                if ($imagePath && !str_starts_with($imagePath, 'data:') && !str_starts_with($imagePath, 'http://') && !str_starts_with($imagePath, 'https://')) {
+                    try {
+                        Storage::disk('public')->delete($imagePath);
+                    } catch (\Throwable $cleanupError) {
+                        Log::warning('Scan records deleted but an uploaded image could not be removed.', [
+                            'scan_id' => $scan->id,
+                            'error' => $cleanupError->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json(['success' => true, 'deleted_count' => count($ownedIds)]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to delete selected scans.', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to delete selected scan records.'], 500);
+        }
+    }
+
     private function resolveDiseaseKey(string $key): string
     {
         $aliases = [

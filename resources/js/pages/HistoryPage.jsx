@@ -17,10 +17,13 @@ export default function HistoryPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedIds, setSelectedIds] = useState(() => new Set());
+    const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
     const pageSize = 10;
 
     const loadHistory = useCallback(() => {
-        api.get('/rice-detector/history')
+        return api.get('/rice-detector/history')
             .then(({ data }) => {
                 if (!data.success) return;
                 setStats(data.stats || { healthy: 0, mild: 0, moderate: 0, severe: 0, total: 0 });
@@ -60,7 +63,14 @@ export default function HistoryPage() {
 
     const deleteScan = (id) => {
         if (!confirm(t('Delete this scan record?', 'Burahin ang scan record na ito?'))) return;
-        api.delete(`/rice-detector/scan/${id}`).then(() => loadHistory()).catch(() => loadHistory());
+        api.delete(`/rice-detector/scan/${id}`).then(() => {
+            setSelectedIds((previous) => {
+                const next = new Set(previous);
+                next.delete(id);
+                return next;
+            });
+            loadHistory();
+        }).catch(() => loadHistory());
     };
 
     const filteredScans = useMemo(() => {
@@ -101,6 +111,52 @@ export default function HistoryPage() {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, filteredScans.length);
     const paginatedItems = filteredScans.slice(startIndex, endIndex);
+    const pageIds = paginatedItems.map((scan) => scan.id).filter((id) => id !== null && id !== undefined);
+    const selectedCount = [...selectedIds].filter((id) => allScans.some((scan) => scan.id === id)).length;
+    const pageIsSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+    const toggleScanSelection = (id) => {
+        setSelectedIds((previous) => {
+            const next = new Set(previous);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+        setDeleteError('');
+    };
+
+    const togglePageSelection = () => {
+        setSelectedIds((previous) => {
+            const next = new Set(previous);
+            if (pageIsSelected) pageIds.forEach((id) => next.delete(id));
+            else pageIds.forEach((id) => next.add(id));
+            return next;
+        });
+        setDeleteError('');
+    };
+
+    const deleteSelectedScans = async () => {
+        const ids = [...selectedIds].filter((id) => allScans.some((scan) => scan.id === id));
+        if (!ids.length || isDeletingSelected) return;
+        if (!confirm(t(`Delete ${ids.length} selected scan records? This cannot be undone.`, `Burahin ang ${ids.length} napiling scan record? Hindi na ito maibabalik.`))) return;
+
+        setIsDeletingSelected(true);
+        setDeleteError('');
+        try {
+            for (let offset = 0; offset < ids.length; offset += 100) {
+                const { data } = await api.delete('/rice-detector/scans', { data: { ids: ids.slice(offset, offset + 100) } });
+                if (!data?.success) throw new Error(data?.message || t('Could not delete the selected records.', 'Hindi mabura ang mga napiling record.'));
+            }
+            setSelectedIds(new Set());
+            setCurrentPage(1);
+            await loadHistory();
+        } catch (error) {
+            await loadHistory();
+            setDeleteError(error.response?.data?.message || error.message || t('Could not delete the selected records. Please try again.', 'Hindi mabura ang mga napiling record. Subukan muli.'));
+        } finally {
+            setIsDeletingSelected(false);
+        }
+    };
 
     const handleFilterChange = (filter) => {
         setActiveFilter(filter);
@@ -204,6 +260,22 @@ export default function HistoryPage() {
                     </div>
                 </div>
 
+                {filteredScans.length > 0 && (
+                    <div className="history-bulk-toolbar">
+                        <label className="history-select-page">
+                            <input type="checkbox" checked={pageIsSelected} onChange={togglePageSelection} aria-label={t('Select all scans on this page', 'Piliin lahat ng scan sa pahinang ito')} />
+                            <span>{t('Select page', 'Piliin ang pahina')}</span>
+                        </label>
+                        <div className="history-bulk-actions">
+                            <span className="history-selected-count">{selectedCount} {t('selected', 'napili')}</span>
+                            <button type="button" className="history-delete-selected" onClick={deleteSelectedScans} disabled={!selectedCount || isDeletingSelected}>
+                                {isDeletingSelected ? t('Deleting…', 'Binubura…') : t(`Delete selected${selectedCount ? ` (${selectedCount})` : ''}`, `Burahin ang napili${selectedCount ? ` (${selectedCount})` : ''}`)}
+                            </button>
+                        </div>
+                        {deleteError && <p className="history-bulk-error" role="alert">{deleteError}</p>}
+                    </div>
+                )}
+
                 {!filteredScans.length ? (
                     <div style={{ padding: 40, textAlign: 'center', color: 'var(--neutral-500)', fontSize: 13.5, background: '#fff', borderRadius: 16, border: '1px solid var(--neutral-200)' }}>
                         {t('No scan records found.', 'Walang nahanap na tala ng scan.')}
@@ -218,6 +290,7 @@ export default function HistoryPage() {
                             <table className="history-data-table">
                                 <thead>
                                     <tr>
+                                        <th className="history-select-column"><span className="sr-only">{t('Select', 'Piliin')}</span></th>
                                         <th style={{ width: 70 }}>{t('Photo', 'Larawan')}</th>
                                         <th>{t('Disease Diagnosis', 'Diagnosis ng Sakit')}</th>
                                         <th>{t('Severity Level', 'Antas ng Severity')}</th>
@@ -228,6 +301,9 @@ export default function HistoryPage() {
                                 <tbody>
                                     {paginatedItems.map((scan) => (
                                         <tr key={scan.id || Math.random()}>
+                                            <td className="history-select-column">
+                                                {scan.id && <input type="checkbox" className="history-row-checkbox" checked={selectedIds.has(scan.id)} onChange={() => toggleScanSelection(scan.id)} aria-label={t(`Select ${scan.disease} scan`, `Piliin ang scan na ${scan.disease}`)} />}
+                                            </td>
                                             <td>
                                                 <div className={`ht-thumb ${scan.severity_class || 'blast-bg'}`} onClick={() => openScan(scan)} role="button" tabIndex={0}>
                                                     {scan.image_url ? (
