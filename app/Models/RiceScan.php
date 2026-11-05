@@ -15,6 +15,7 @@ class RiceScan extends Model
     protected $fillable = [
         'user_id',
         'image_path',
+        'image_data',
         'disease_name',
         'scientific_name',
         'confidence',

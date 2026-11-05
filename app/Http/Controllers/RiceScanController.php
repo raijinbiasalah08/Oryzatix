@@ -1408,9 +1408,8 @@ class RiceScanController extends Controller
 
                 $scan = RiceScan::create([
                     'user_id' => $user->id,
-                    // Keep only the storage path in the VARCHAR column. The
-                    // optimized data URL is for the immediate response image.
                     'image_path' => $path,
+                    'image_data' => $dataUrl,
                     'disease_name' => $disease['name'],
                     'scientific_name' => $disease['scientific'],
                     'confidence' => $confidence !== null ? round($confidence, 2) : null,
@@ -1532,7 +1531,7 @@ class RiceScanController extends Controller
                         ]
                         : ($isHealthy ? $scan->treatment_recommendation : null);
 
-                    $scanImageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
+                    $scanImageUrl = $this->resolveScanImageUrl($scan->image_data ?: $scan->image_path, $scan->disease_name, false);
 
                     return [
                         'id' => $scan->id,
@@ -1743,7 +1742,7 @@ class RiceScanController extends Controller
         // The public stats endpoint may show aggregate totals, but never individual
         // scan records or uploaded image URLs.
         $recentScans = $userId ? (clone $query)->latest()->take(5)->get()->map(function ($scan) {
-            $imageUrl = $this->resolveScanImageUrl($scan->image_path, $scan->disease_name);
+            $imageUrl = $this->resolveScanImageUrl($scan->image_data ?: $scan->image_path, $scan->disease_name, false);
             return [
                 'id' => $scan->id,
                 'disease' => $scan->disease_name,
@@ -1865,10 +1864,10 @@ class RiceScanController extends Controller
     }
 
     /**
-     * Resolve a robust, non-broken URL for any scan image.
-     * Handles Data URLs, local storage paths, and falls back to disease reference photos.
+     * Resolve scan or disease image locations.
+     * Scan callers disable reference fallbacks so a sample cannot be mistaken for an upload.
      */
-    public function resolveScanImageUrl(?string $imagePath, ?string $diseaseName = null): string
+    public function resolveScanImageUrl(?string $imagePath, ?string $diseaseName = null, bool $useDiseaseFallback = true): ?string
     {
         if (!empty($imagePath)) {
             if (str_starts_with($imagePath, 'data:')) {
@@ -1894,8 +1893,9 @@ class RiceScanController extends Controller
             }
         }
 
-        // Fallback to official disease sample reference photo
-        return $this->getDiseaseReferenceImageUrl($diseaseName);
+        // Disease cards may use a reference photo; scan records must never
+        // masquerade a disease sample as the farmer's uploaded photo.
+        return $useDiseaseFallback ? $this->getDiseaseReferenceImageUrl($diseaseName) : null;
     }
 
     public function getDiseaseReferenceImageUrl(?string $diseaseName): string

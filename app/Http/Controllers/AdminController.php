@@ -990,7 +990,7 @@ class AdminController extends Controller
 
     private function formatScan(RiceScan $scan): array
     {
-        $imageUrl = (new \App\Http\Controllers\RiceScanController)->resolveScanImageUrl($scan->image_path, $scan->disease_name);
+        $imageUrl = (new \App\Http\Controllers\RiceScanController)->resolveScanImageUrl($scan->image_data ?: $scan->image_path, $scan->disease_name, false);
 
         return [
             'id' => $scan->id,

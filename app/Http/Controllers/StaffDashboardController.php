@@ -46,7 +46,7 @@ class StaffDashboardController extends Controller
                 ->take(50)
                 ->get()
                 ->map(function ($scan) {
-                    $imageUrl = (new \App\Http\Controllers\RiceScanController)->resolveScanImageUrl($scan->image_path, $scan->disease_name);
+                    $imageUrl = (new \App\Http\Controllers\RiceScanController)->resolveScanImageUrl($scan->image_data ?: $scan->image_path, $scan->disease_name, false);
 
                     return [
                         'id' => $scan->id,
