@@ -5265,6 +5265,14 @@ function formatAiMessage(rawText) {
   text = text.replace(/^##\s+(.+)$/gm, '<h4>$1</h4>');
   text = text.replace(/^#\s+(.+)$/gm, '<h3>$1</h3>');
 
+  // Link only HTTPS references hosted by the Department of Agriculture or PhilRice.
+  text = text.replace(/https:\/\/[^\s<]+/gi, (rawUrl) => {
+    const url = rawUrl.replace(/[),.;!?]+$/, '');
+    const trailing = rawUrl.slice(url.length);
+    if (!/^https:\/\/(?:[a-z0-9-]+\.)*(?:philrice\.gov\.ph|da\.gov\.ph)(?:\/|$)/i.test(url)) return rawUrl;
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>' + trailing;
+  });
+
   // Break into lines to parse paragraphs, bullet lists, and numbered lists
   const lines = text.split(/\r?\n/);
   let html = '';
