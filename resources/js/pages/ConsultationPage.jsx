@@ -17,17 +17,9 @@ function formatAiText(text) {
         const cleanText = trimmed.replace(/^([\*\-•]|\d+[\.\)])\s+/, '');
         
         // Simple bold parser
-        const parts = cleanText.split(/(\*\*.*?\*\*|https?:\/\/[^\s]+)/g).map((part, pIdx) => {
+        const parts = cleanText.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => {
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
-            }
-            if (/^https?:\/\//i.test(part)) {
-                const url = part.replace(/[),.;!?]+$/, '');
-                const trailing = part.slice(url.length);
-                const isOfficialSource = /^https:\/\/(?:[a-z0-9-]+\.)*(?:philrice\.gov\.ph|da\.gov\.ph)(?:\/|$)/i.test(url);
-                return isOfficialSource
-                    ? <span key={pIdx}><a href={url} target="_blank" rel="noopener noreferrer">{url}</a>{trailing}</span>
-                    : part;
             }
             return part;
         });
@@ -242,7 +234,7 @@ export default function ConsultationPage() {
                     </div>
                     <div className="chat-header-info">
                         <h3>{t('Rice AI Assistant', 'Rice AI Assistant')}</h3>
-                        <p>{isOnline ? t('DA + PhilRice sources · English / Tagalog', 'Sanggunian: DA + PhilRice · English / Tagalog') : t('Internet required for AI consultation', 'Kailangan ng internet para sa AI consultation')}</p>
+                        <p>{isOnline ? t('Online · Tagalog / English', 'Online · Tagalog / English') : t('Internet required for AI consultation', 'Kailangan ng internet para sa AI consultation')}</p>
                     </div>
                     <button 
                         type="button" 
@@ -268,12 +260,6 @@ export default function ConsultationPage() {
                         <span>{isMuted ? 'Voice: Muted' : 'Voice: On'}</span>
                     </button>
                 </div>
-                <div role="note" style={{ margin: '12px 20px 0', padding: '10px 13px', border: '1px solid #dce9df', borderRadius: '12px', background: '#f4faf5', color: '#42614d', fontSize: '12px', lineHeight: 1.5 }}>
-                    {t(
-                        'Rice guidance uses a curated local library of DA and PhilRice publications; matching source links appear with each answer. Oryzatix is not an official agency service and cannot inspect your field.',
-                        'Ang gabay sa palay ay gumagamit ng piling lokal na koleksiyon ng mga publikasyon ng DA at PhilRice; ipinapakita ang kaugnay na sanggunian sa bawat sagot. Hindi opisyal na serbisyo ng mga ahensiya ang Oryzatix at hindi nito nasusuri ang inyong bukid.'
-                    )}
-                </div>
                 {!isOnline && (
                     <div role="status" aria-live="polite" style={{ margin: '12px 20px 0', padding: '11px 14px', border: '1px solid #f3d08b', borderRadius: '12px', background: '#fff8e8', color: '#765111', fontSize: '13px', lineHeight: 1.5 }}>
                         {t('AI Consultant requires an internet connection. Rice-leaf scans and device-saved scan records remain available offline.', 'Kailangan ng internet para magamit ang AI Consultant. Magagamit pa rin offline ang rice-leaf scanner at mga scan record na naka-save sa device.')}
@@ -283,7 +269,7 @@ export default function ConsultationPage() {
                     {messages.length === 0 && (
                         <div className="chat-bubble ai">
                             <div className="chat-text-content">
-                                <p>{t("Hello! I'm Ory. Ask me about rice diseases, pests, and crop care. I use DA and PhilRice references and show the sources I used.", "Kumusta! Ako si Ory. Magtanong tungkol sa sakit at peste ng palay at pangangalaga ng pananim. Gumagamit ako ng sanggunian ng DA at PhilRice at ipinapakita ko ang mga ginamit kong sanggunian.")}</p>
+                                <p>{t("Hello! I'm your Rice AI Assistant. Ask me about rice symptoms, crop care, or irrigation.", "Kumusta! Ako ang inyong Rice AI Assistant. Pwede ninyo akong tanungin tungkol sa mga sintomas ng palay, pangangalaga ng pananim, o patubig.")}</p>
                             </div>
                             <div className="chat-bubble-footer">
                                 <button 

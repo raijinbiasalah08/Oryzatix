@@ -1075,7 +1075,7 @@
           </div>
           <div class="chat-header-info">
             <h3 data-en="Ory · Rice AI Assistant" data-tl="Ory · Katulong sa pagsasaka ng palay">Ory · Rice AI Assistant</h3>
-            <p id="consultationStatusText" data-online-en="DA + PhilRice references · English / Tagalog" data-online-tl="Sanggunian ng DA + PhilRice · Ingles / Tagalog" data-offline-en="Internet required for AI consultation" data-offline-tl="Kailangan ng internet para sa AI consultation">DA + PhilRice references · English / Tagalog</p>
+            <p id="consultationStatusText" data-online-en="Your rice-farming companion · English / Tagalog" data-online-tl="Kasama mo sa pagsasaka ng palay · Ingles / Tagalog" data-offline-en="Internet required for AI consultation" data-offline-tl="Kailangan ng internet para sa AI consultation">Your rice-farming companion · English / Tagalog</p>
           </div>
           <div class="chat-header-actions">
             <button type="button" class="chat-mute-btn" id="aiMuteToggleBtn" onclick="toggleAiVoiceMute()" title="Mute/Unmute AI Voice">
@@ -1095,9 +1095,9 @@
 
         <div class="chat-messages" id="chatMessages">
           <div class="chat-time">Today · AI Assistant Active</div>
-          <div class="chat-bubble ai ory-intro-message" data-lang="english" data-raw-content="Hi! I'm Ory, your Oryzatix farm assistant. Rice-farming answers use selected DA and PhilRice publications, and I show the source links in each reply. My local reference library is not live internet search. Oryzatix is not an official agency service and I cannot inspect your field.">
+          <div class="chat-bubble ai ory-intro-message" data-lang="english" data-raw-content="Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog.">
             <div class="chat-text-content">
-              <p data-en="Hi! I'm Ory, your Oryzatix farm assistant. Rice-farming answers use selected DA and PhilRice publications, and I show the source links in each reply. My local reference library is not live internet search. Oryzatix is not an official agency service and I cannot inspect your field." data-tl="Kumusta! Ako si Ory, ang katuwang mo sa pagsasaka mula sa Oryzatix. Ang mga sagot tungkol sa palay ay batay sa piling publikasyon ng DA at PhilRice, at ipinapakita ang mga sanggunian sa bawat sagot. Hindi live na paghahanap sa internet ang lokal kong koleksiyon. Hindi opisyal na serbisyo ng mga ahensiya ang Oryzatix at hindi ko nasusuri ang inyong bukid.">Hi! I'm Ory, your Oryzatix farm assistant. Rice-farming answers use selected DA and PhilRice publications, and I show the source links in each reply. My local reference library is not live internet search. Oryzatix is not an official agency service and I cannot inspect your field.</p>
+              <p data-en="Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog." data-tl="Kumusta! Ako si Ory, ang katuwang mo sa pagsasaka mula sa Oryzatix. Magtanong tungkol sa sakit ng palay, pangangalaga ng tanim, o mga nakikita mo sa bukid. Maaari kang mag-type o magsalita sa Ingles o Tagalog.">Hi! I'm Ory, your Oryzatix farm assistant. Ask me about rice diseases, crop care, or what's happening in your field. You can type or speak in English or Tagalog.</p>
             </div>
             <div class="chat-bubble-footer">
               <button type="button" class="translate-bubble-btn" onclick="translateAiBubble(this)" title="Translate message">
