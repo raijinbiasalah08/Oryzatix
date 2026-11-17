@@ -53,6 +53,7 @@ it('uses only verified Google claims when signing in', function () {
 });
 
 it('reports failed password reset email delivery and removes the unusable code', function () {
+    config(['mail.default' => 'smtp']);
     User::factory()->create(['email' => 'farmer@gmail.com']);
     Mail::shouldReceive('send')->once()->andThrow(new RuntimeException('SMTP unavailable'));
     $this->postJson('/api/v1/auth/forgot-password', ['email' => 'farmer@gmail.com'])
@@ -61,15 +62,40 @@ it('reports failed password reset email delivery and removes the unusable code',
 });
 
 it('resets a password with a valid code and consumes the code', function () {
+    config(['mail.default' => 'smtp']);
     $user = User::factory()->create(['email' => 'farmer@gmail.com']);
-    DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => '123456', 'created_at' => now()]);
+    $oldToken = $user->createToken('previous device')->accessToken;
+    $code = null;
+    Mail::shouldReceive('send')->once()->withArgs(function ($view, $data) use (&$code) {
+        $code = $data['otp'];
+        return $view === 'emails.otp';
+    });
+    $this->postJson('/api/v1/auth/forgot-password', ['email' => $user->email])->assertOk();
+    $payload = [
+        'email' => $user->email, 'token' => $code,
+        'password' => 'new-password', 'password_confirmation' => 'new-password',
+    ];
+    $this->postJson('/api/v1/auth/reset-password', $payload)->assertOk()
+        ->assertJsonPath('user.id', $user->id)->assertJsonStructure(['token']);
+    expect(\Illuminate\Support\Facades\Hash::check('new-password', $user->fresh()->password))->toBeTrue();
+    $this->assertDatabaseCount('password_reset_tokens', 0);
+    $this->assertDatabaseMissing('personal_access_tokens', ['id' => $oldToken->id]);
+    $this->postJson('/api/v1/auth/reset-password', $payload)->assertUnprocessable();
+});
+
+it('rejects expired or legacy reset codes without changing the password', function (string $stored, int $age) {
+    $user = User::factory()->create(['email' => 'farmer@gmail.com']);
+    $original = $user->password;
+    DB::table('password_reset_tokens')->insert([
+        'email' => $user->email, 'token' => $stored === 'legacy' ? '123456' : bcrypt('123456'),
+        'created_at' => now()->subMinutes($age),
+    ]);
     $this->postJson('/api/v1/auth/reset-password', [
         'email' => $user->email, 'token' => '123456',
         'password' => 'new-password', 'password_confirmation' => 'new-password',
-    ])->assertOk()->assertJsonPath('success', true);
-    expect(\Illuminate\Support\Facades\Hash::check('new-password', $user->fresh()->password))->toBeTrue();
-    $this->assertDatabaseCount('password_reset_tokens', 0);
-});
+    ])->assertUnprocessable();
+    expect($user->fresh()->password)->toBe($original);
+})->with([['legacy', 1], ['hash', 16]]);
 
 it('includes each calendar month and sheath blight in reports at month end', function () {
     $this->travelTo(\Carbon\Carbon::parse('2026-03-31 12:00:00'));

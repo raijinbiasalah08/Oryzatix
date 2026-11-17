@@ -1854,18 +1854,14 @@ async function handleResetPassword(e) {
     const data = await res.json();
 
     if (res.ok && data && data.success) {
-      const resetEmail = email;
+      clearLoginLockoutUI();
+      try { localStorage.removeItem('oryzatix_guest_mode'); } catch (_) {}
+      currentUser = data.user;
+      setAuthToken(data.token);
+      try { sessionStorage.setItem('oryzatix_is_logged_in', 'true'); } catch (_) {}
+      applyUserToUI();
       resetAuthForms();
-      showScreen('login');
-      showLoginSuccess(data.message || 'Your password has been successfully reset! Please log in with your new password.', 3000);
-      const loginEmailField = document.getElementById('loginEmail');
-      if (loginEmailField && resetEmail) {
-        loginEmailField.value = resetEmail;
-      }
-      const loginPassField = document.getElementById('loginPassword');
-      if (loginPassField) {
-        loginPassField.focus();
-      }
+      navigateAfterAuth();
     } else {
       let msg = (data && data.message) ? data.message : 'Invalid or expired verification code. Please try again.';
       if (errBanner) {

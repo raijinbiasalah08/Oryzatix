@@ -503,12 +503,12 @@ class AuthController extends Controller
                 'email',
                 'regex:/^[a-zA-Z0-9._%+-]+@gmail\.com$/i'
             ],
-            'token' => 'required|string|min:6|max:6',
+            'token' => 'required|string|regex:/^[0-9]{6}$/D',
             'password' => 'required|string|min:6|confirmed',
         ], [
             'email.regex' => 'Please enter a valid Gmail address (@gmail.com).',
             'token.required' => 'Please enter the 6-digit verification code.',
-            'token.min' => 'The verification code must be 6 digits.',
+            'token.regex' => 'The verification code must be 6 digits.',
             'password.min' => 'The new password must be at least 6 characters.',
             'password.confirmed' => 'New Password and Confirm Password do not match.',
         ]);
@@ -520,16 +520,23 @@ class AuthController extends Controller
             ->where('email', $email)
             ->first();
 
-        if (!$resetRecord || !Hash::check($token, $resetRecord->token)) {
+        try {
+            $valid = $resetRecord && Hash::check($token, $resetRecord->token);
+        } catch (\RuntimeException $e) {
+            // Older records may lack a supported hash. A fresh code is required.
+            $valid = false;
+        }
+        if (!$valid) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid verification code. Please check the 6-digit code in your Gmail.',
+                'message' => 'Invalid verification code. Use the latest email or request a new code.',
             ], 422);
         }
 
         // Check token age (15 minutes expiry)
-        if ($resetRecord->created_at && Carbon::parse($resetRecord->created_at)->addMinutes(15)->isPast()) {
-            DB::table('password_reset_tokens')->where('email', $email)->delete();
+        $issuedCode = DB::table('password_reset_tokens')->where('email', $email)->where('token', $resetRecord->token);
+        if (!$resetRecord->created_at || Carbon::parse($resetRecord->created_at)->addMinutes(15)->isPast()) {
+            $issuedCode->delete();
             return response()->json([
                 'success' => false,
                 'message' => 'The verification code has expired. Please request a new code.',
@@ -544,19 +551,24 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $user->password = $request->password;
-        $user->save();
-
-        // Delete reset token
-        DB::table('password_reset_tokens')->where('email', $email)->delete();
+        $authToken = DB::transaction(function () use ($issuedCode, $user, $request) {
+            if ($issuedCode->delete() !== 1) {
+                return null;
+            }
+            $user->password = $request->password;
+            $user->save();
+            $user->tokens()->delete();
+            return $user->createToken('auth_token')->plainTextToken;
+        });
+        if ($authToken === null) {
+            return response()->json(['success' => false, 'message' => 'This code is no longer valid. Request a new code.'], 422);
+        }
 
         // Auto-login user
         if ($request->hasSession()) {
             Auth::guard('web')->login($user);
             $request->session()->regenerate();
         }
-
-        $authToken = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
