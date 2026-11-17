@@ -337,10 +337,11 @@ function authHeaders(extra = {}) {
   return headers;
 }
 
-async function ensureCsrfCookie(force) {
+async function ensureCsrfCookie(force, signal) {
   if (csrfReady && !force) return;
   try {
     await fetch(apiBase() + '/sanctum/csrf-cookie', {
+      signal,
       credentials: 'include',
       headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
     });
@@ -1754,9 +1755,12 @@ async function handleSendOtp(e) {
 
   if (btn) { btn.disabled = true; btn.textContent = 'Sending Verification Code...'; }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 75000);
   try {
-    await ensureCsrfCookie();
+    await ensureCsrfCookie(false, controller.signal);
     const res = await fetch(apiUrl('/auth/forgot-password'), {
+      signal: controller.signal,
       method: 'POST',
       credentials: 'include',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -1793,10 +1797,13 @@ async function handleSendOtp(e) {
   } catch (err) {
     console.error('Send OTP error:', err);
     if (errBanner) {
-      errBanner.textContent = 'Cannot connect to the server. Please check your connection.';
+      errBanner.textContent = controller.signal.aborted
+        ? 'The request timed out. Check your inbox and spam folder before requesting another code.'
+        : 'Cannot connect to the server. Please check your connection.';
       errBanner.classList.add('show');
     }
   } finally {
+    clearTimeout(timeout);
     if (btn) { btn.disabled = false; btn.textContent = 'Send Verification Code'; }
   }
 }

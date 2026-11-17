@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -452,7 +453,9 @@ class AuthController extends Controller
 
         // A log/array mailer only records the message locally; it does not deliver an email.
         // Never tell the user that a reset code was sent when no delivery transport is active.
-        if (in_array(config('mail.default'), ['log', 'array'], true)) {
+        $useResend = config('mail.default') === 'resend';
+        if (in_array(config('mail.default'), ['log', 'array'], true) ||
+            ($useResend && blank(config('services.resend.key')))) {
             Log::warning('Password reset requested, but the configured mailer does not deliver email.', [
                 'mailer' => config('mail.default'),
             ]);
@@ -474,10 +477,25 @@ class AuthController extends Controller
 
         // Deliver the code through the configured production mail transport.
         try {
-            Mail::send('emails.otp', ['name' => $user->name, 'email' => $email, 'otp' => $otp], function ($message) use ($email, $user) {
-                $message->to($email, $user->name)
-                    ->subject('ORYZATIX - Password Reset Verification Code');
-            });
+            $viewData = ['name' => $user->name, 'email' => $email, 'otp' => $otp];
+            $subject = 'ORYZATIX - Password Reset Verification Code';
+            if ($useResend) {
+                $response = Http::withToken(config('services.resend.key'))
+                    ->withoutRedirecting()->connectTimeout(5)->timeout(15)
+                    ->post('https://api.resend.com/emails', [
+                        'from' => config('mail.from.address'),
+                        'to' => [$email],
+                        'subject' => $subject,
+                        'html' => view('emails.otp', $viewData)->render(),
+                    ]);
+                if (!$response->successful() || blank($response->json('id'))) {
+                    throw new \RuntimeException('Email provider did not accept the message (HTTP ' . $response->status() . ').');
+                }
+            } else {
+                Mail::send('emails.otp', $viewData, function ($message) use ($email, $user, $subject) {
+                    $message->to($email, $user->name)->subject($subject);
+                });
+            }
         } catch (Exception $e) {
             Log::warning('Mail delivery warning: ' . $e->getMessage());
             DB::table('password_reset_tokens')->where('email', $email)->where('token', $otpHash)->delete();

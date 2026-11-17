@@ -52,6 +52,18 @@ it('uses only verified Google claims when signing in', function () {
     ])->assertOk()->assertJsonPath('user.id', $user->id);
 });
 
+it('submits the reset email to the registered Gmail address over HTTPS', function (int $status) {
+    config(['mail.default' => 'resend', 'services.resend.key' => 'test-key', 'mail.from.address' => 'reset@example.org']);
+    User::factory()->create(['email' => 'farmer@gmail.com']);
+    Http::fake(['https://api.resend.com/emails' => Http::response($status === 200 ? ['id' => 'test-id'] : [], $status)]);
+    $this->postJson('/api/v1/auth/forgot-password', ['email' => 'farmer@gmail.com'])
+        ->assertStatus($status === 200 ? 200 : 503);
+    Http::assertSent(fn ($request) => $request['to'] === ['farmer@gmail.com']
+        && $request['from'] === 'reset@example.org'
+        && preg_match('/class="otp-code">[0-9]{6}</', $request['html']));
+    $this->assertDatabaseCount('password_reset_tokens', $status === 200 ? 1 : 0);
+})->with([200, 403]);
+
 it('reports failed password reset email delivery and removes the unusable code', function () {
     config(['mail.default' => 'smtp']);
     User::factory()->create(['email' => 'farmer@gmail.com']);
