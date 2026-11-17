@@ -164,6 +164,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     required String email,
     required String password,
     required String passwordConfirmation,
+    bool acceptedTerms = false,
     String? location,
   }) async {
     _isLoading = true;
@@ -176,6 +177,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         'email': email,
         'password': password,
         'password_confirmation': passwordConfirmation,
+        'terms_accepted': acceptedTerms,
         'location': location ?? 'Roxas, Oriental Mindoro',
       });
 

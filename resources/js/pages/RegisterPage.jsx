@@ -9,7 +9,7 @@ export default function RegisterPage() {
     const { register } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const [form, setForm] = useState({ name: '', email: '', location: '', password: '', password_confirmation: '' });
+    const [form, setForm] = useState({ terms_accepted: false, name: '', email: '', location: '', password: '', password_confirmation: '' });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -96,6 +96,8 @@ export default function RegisterPage() {
                                 required
                             />
                         </div>
+                        <details><summary>{t('Terms & Conditions', 'Mga Tuntunin at Kundisyon')}</summary><p>Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.</p></details>
+                        <label><input type="checkbox" required checked={form.terms_accepted} onChange={e => setForm({ ...form, terms_accepted: e.target.checked })} /> {t('I agree to the Terms & Conditions.', 'Sumasang-ayon ako sa mga tuntunin at kundisyon.')}</label>
                         <button type="submit" className="auth-btn">{t('Create Account', 'Gumawa ng Account')}</button>
                     </form>
                     <div className="auth-switch">

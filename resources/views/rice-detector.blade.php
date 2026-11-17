@@ -575,6 +575,8 @@
                 </div>
               </div>
 
+              <details><summary>Terms &amp; Conditions</summary><p>Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.</p></details>
+              <label><input type="checkbox" id="regTerms" required> I agree to the Terms &amp; Conditions.</label>
               <button type="submit" class="auth-btn" id="regBtn">Create Account</button>
             </form>
 
@@ -585,7 +587,11 @@
             </div>
 
             <!-- Instant Direct Google Sign-Up Button -->
-            <a href="{{ route('auth.google.redirect') }}?mode=register" class="google-auth-btn" style="text-decoration: none;">
+            <form method="post" action="{{ route('auth.google.signup') }}" onsubmit="const consent = document.getElementById('regTerms'); if (!consent.reportValidity()) return false; this.elements.terms_accepted.value = consent.checked ? '1' : '';">
+              @csrf
+              <input type="hidden" name="mode" value="register">
+              <input type="hidden" name="terms_accepted">
+              <button type="submit" class="google-auth-btn">
               <svg viewBox="0 0 24 24" width="18" height="18">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -593,7 +599,7 @@
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
               <span>Continue with Google</span>
-            </a>
+            </button></form>
 
             <div class="auth-switch">
               <span>Already have an account? </span>

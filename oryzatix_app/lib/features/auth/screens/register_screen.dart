@@ -30,14 +30,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  bool _acceptedTerms = false;
+
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_acceptedTerms || !_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      acceptedTerms: _acceptedTerms,
       passwordConfirmation: _confirmPasswordController.text,
       location: _locationController.text.trim(),
     );
@@ -187,8 +190,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 28),
 
+                  const ExpansionTile(title: Text('Terms & Conditions'), children: [
+                    Padding(padding: EdgeInsets.all(12), child: Text('Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.')),
+                  ]),
+                  CheckboxListTile(title: const Text('I agree to the Terms & Conditions.'), value: _acceptedTerms,
+                    onChanged: (value) => setState(() => _acceptedTerms = value ?? false)),
                   ElevatedButton(
-                    onPressed: auth.isLoading ? null : _handleRegister,
+                    onPressed: auth.isLoading || !_acceptedTerms ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                     child: auth.isLoading
                         ? const SizedBox(

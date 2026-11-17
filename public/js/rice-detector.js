@@ -1678,7 +1678,7 @@ async function executeGoogleLogin(email, name, idToken) {
       method: 'POST',
       credentials: 'include',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ email, name, id_token: idToken, mode: currentGoogleAuthMode }),
+      body: JSON.stringify({ email, name, id_token: idToken, mode: currentGoogleAuthMode, terms_accepted: document.getElementById('regTerms')?.checked === true }),
     });
 
     let data = {};
@@ -2246,7 +2246,7 @@ async function handleRegister(e) {
       method: 'POST',
       credentials: 'include',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ name, email, role: 'farmer', location, password, password_confirmation }),
+      body: JSON.stringify({ name, email, role: 'farmer', location, password, password_confirmation, terms_accepted: document.getElementById('regTerms').checked }),
     });
 
     const data = await res.json();

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::post('/auth/google/signup', [AuthController::class, 'redirectToGoogle'])->name('auth.google.signup');
 Route::get('/auth/google/redirect', [AuthController::class, 'redirectToGoogle'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 

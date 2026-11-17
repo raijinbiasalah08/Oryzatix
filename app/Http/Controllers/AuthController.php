@@ -119,6 +119,7 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $request->validate([
+            'terms_accepted' => 'accepted',
             'name' => 'required|string|max:255',
             'email' => [
                 'required',
@@ -609,7 +610,14 @@ class AuthController extends Controller
             return redirect('/')->with('auth_error', 'Google Client ID not configured.');
         }
 
-        $mode = $request->query('mode', 'login');
+        $mode = $request->input('mode', 'login');
+        $request->session()->forget('google_signup_consent');
+        if ($mode === 'register') {
+            if (!$request->isMethod('post') || !$request->boolean('terms_accepted')) {
+                return redirect('/')->with('auth_error', 'Agree to the Terms & Conditions on the registration form first.');
+            }
+            $request->session()->put('google_signup_consent', true);
+        }
         $isHttps = $request->secure() || $request->header('X-Forwarded-Proto') === 'https' || str_contains($request->getHost(), 'vercel.app');
         $scheme = $isHttps ? 'https://' : 'http://';
         $baseUrl = rtrim($scheme . $request->getHttpHost() . ($request->getBaseUrl() ?: ''), '/');
@@ -676,6 +684,10 @@ class AuthController extends Controller
 
             $user = User::where('email', $email)->orWhere('google_id', $googleId)->first();
 
+            $accepted = $request->session()->pull('google_signup_consent', false);
+            if (!$user && !$accepted) {
+                return redirect('/')->with('auth_error', 'Create an account and agree to the Terms & Conditions first.');
+            }
             if (!$user) {
                 // Auto-register new farmer account with Google
                 $user = User::create([
@@ -764,6 +776,7 @@ class AuthController extends Controller
         $user = User::where('email', $email)->first();
 
         if ($mode === 'register') {
+            $request->validate(['terms_accepted' => 'accepted']);
             if ($user) {
                 return response()->json([
                     'success' => false,

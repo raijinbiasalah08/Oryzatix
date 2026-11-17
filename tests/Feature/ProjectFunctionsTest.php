@@ -14,10 +14,16 @@ beforeEach(function () {
     Http::preventStrayRequests();
 });
 
+it('requires explicit agreement before registering', function ($consent) {
+    $payload = ['name' => 'Farmer', 'email' => 'new@gmail.com', 'password' => 'password', 'password_confirmation' => 'password'];
+    $this->postJson('/api/v1/auth/register', $payload + $consent)->assertUnprocessable()->assertJsonValidationErrors('terms_accepted');
+    $this->assertDatabaseMissing('users', ['email' => 'new@gmail.com']);
+})->with([[[]], [['terms_accepted' => false]]]);
+
 it('registers farmers and supports password login and bearer logout', function () {
     $this->postJson('/api/v1/auth/register', [
         'name' => 'Test Farmer', 'email' => 'farmer@gmail.com',
-        'password' => 'password', 'password_confirmation' => 'password', 'role' => 'admin',
+        'password' => 'password', 'password_confirmation' => 'password', 'role' => 'admin', 'terms_accepted' => true,
     ])->assertCreated()->assertJsonPath('user.role', 'farmer');
     $login = $this->postJson('/api/v1/auth/login', ['email' => 'farmer@gmail.com', 'password' => 'password'])
         ->assertOk();
