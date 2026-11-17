@@ -1390,15 +1390,29 @@ button:disabled { cursor: not-allowed; }
 @media (min-width: 1024px) {
   :root { --sidebar-width: clamp(210px, 16.25vw, 260px); }
   .web-sidebar { background-color: #075335; }
-  .web-sidebar .sidebar-menu { overflow-y: auto; min-height: 0; margin-bottom: clamp(84px, 16vh, 145px); }
+  .web-sidebar .sidebar-menu { overflow-y: auto; min-height: 0; margin-bottom: calc(min(125px, 14vh) + 40px); }
   .oryzatix-assistant-shortcut {
     width: min(150px, 17vh);
     height: min(125px, 14vh);
     left: calc((var(--sidebar-width) - min(150px, 17vh)) / 2);
     right: auto;
-    bottom: 10px;
+    bottom: 30px;
   }
-  .oryzatix-assistant-shortcut__intro { left: 75%; right: auto; }
+  .oryzatix-assistant-shortcut__intro {
+    left: 50%;
+    right: auto;
+    bottom: calc(100% + 8px);
+    translate: -50% 0;
+    max-width: calc(var(--sidebar-width) - 32px);
+    box-sizing: border-box;
+    border-radius: 14px;
+    transform-origin: bottom center;
+  }
+  .oryzatix-assistant-shortcut__intro::after {
+    right: calc(50% - 5px);
+    bottom: -6px;
+    transform: rotate(45deg);
+  }
   .dashboard-summary {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
