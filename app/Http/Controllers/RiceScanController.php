@@ -1542,6 +1542,7 @@ class RiceScanController extends Controller
                         'time' => $scan->created_at->format('g:i A'),
                         'date' => $scan->created_at->format('M j, Y'),
                         'created_at_raw' => $scan->created_at->toISOString(),
+                        'advisory' => str_starts_with((string) $scan->notes, '[DA Extension Note by ') ? $scan->notes : null,
                         'severity' => $displaySeverity,
                         'severity_status' => $isHealthy ? 'not_applicable' : ($estimated ? 'model_estimated' : ($manual ? 'user_assessed' : 'unassessed')),
                         'severity_label' => $isHealthy ? 'Healthy Leaf' : (($estimated || $manual) ? ucfirst($displaySeverity) : 'Not assessed'),

@@ -959,6 +959,7 @@ function getSeenNotificationIds() {
 }
 
 function getNotificationId(scan) {
+  if (scan.isAdvisory) return 'advisory|' + scan.id + '|' + scan.advisory;
   return String(scan.id || [scan.created_at || scan.dateLabel || '', scan.disease_name || scan.disease || 'Rice leaf'].join('|'));
 }
 
@@ -1020,7 +1021,15 @@ async function loadNotifications(showLoading = false) {
     if (!response.ok || !payload || !payload.success) throw new Error('Unable to load crop notifications.');
 
     if (role === 'farmer') {
-      cropNotifications = flattenHistoryScans(payload.scans).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      cropNotifications = flattenHistoryScans(payload.scans).flatMap(scan => {
+        const events = [{ ...scan, eventTime: Date.parse(scan.created_at_raw) || 0 }];
+        if (scan.advisory) {
+          const issued = scan.advisory.match(/ on ([^\]]+)\]:/);
+          events.push({ ...scan, isAdvisory: true, time_ago: issued?.[1],
+            eventTime: Date.parse(issued?.[1]) || events[0].eventTime });
+        }
+        return events;
+      }).sort((a, b) => b.eventTime - a.eventTime || Number(Boolean(b.isAdvisory)) - Number(Boolean(a.isAdvisory)));
     } else {
       const data = payload.data || {};
       cropNotifications = (data.recent_scans || []).map(scan => ({
@@ -1070,9 +1079,10 @@ function renderNotifications() {
     const details = document.createElement('span');
     details.className = 'notification-details';
     const title = document.createElement('strong');
-    title.textContent = disease;
+    title.textContent = scan.isAdvisory ? 'Official Staff Advisory · ' + disease : disease;
     const subtitle = document.createElement('span');
-    subtitle.textContent = healthy ? 'Healthy Leaf' : 'Not Healthy Leaf';
+    subtitle.textContent = scan.isAdvisory ? scan.advisory : (healthy ? 'Healthy Leaf' : 'Not Healthy Leaf');
+    if (scan.isAdvisory) item.setAttribute('aria-label', title.textContent + '. ' + subtitle.textContent);
     details.append(title, subtitle);
 
     const time = document.createElement('span');
@@ -1088,7 +1098,8 @@ function renderNotifications() {
     } else if (scan.id && currentUser.role === 'farmer' && typeof viewHistoryScanDetail === 'function') {
       item.addEventListener('click', () => {
         closeModal('modalNotifications');
-        viewHistoryScanDetail(scan.id);
+        applyScanResult(scan);
+        navigateTo('results');
       });
     }
     list.appendChild(item);
@@ -4578,6 +4589,7 @@ function renderHistoryList(scans) {
       '<td>' +
       '<div class="ht-disease-name" style="cursor:pointer;" onclick="viewHistoryScanDetail(' + (scan.id || 0) + ')">' + escapeHtml(scan.disease) + '</div>' +
       '<div class="ht-scientific-name">' + sciname + '</div>' +
+      (scan.advisory ? '<div><strong>Official Staff Advisory</strong><br>' + escapeHtml(scan.advisory) + '</div>' : '') +
       (scan.local_only ? '<div class="ht-scientific-name" style="color:#167447;">Saved on this device</div>' : '') +
       '</td>' +
       '<td>' +
