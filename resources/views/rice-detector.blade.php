@@ -2865,6 +2865,7 @@
 
 <script src="{{ asset('js/qrcode.min.js') }}"></script>
 <script src="{{ asset('js/rice-detector.js') }}?v={{ substr(hash_file('sha256', public_path('js/rice-detector.js')) ?: '1', 0, 12) }}"></script>
+@vite('resources/js/ory-mascot.js')
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
