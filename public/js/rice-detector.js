@@ -497,6 +497,56 @@ function startOryAssistantGreetingLoop() {
   oryAssistantGreetingInterval = window.setInterval(showOryAssistantGreeting, 15000);
 }
 
+function enableOryDragging(button) {
+  if (!button) return;
+  let gesture = null;
+  let suppressClick = false;
+  function place(x, y) {
+    const left = Math.max(0, Math.min(x, document.documentElement.clientWidth - button.offsetWidth));
+    const top = Math.max(0, Math.min(y, window.innerHeight - button.offsetHeight));
+    Object.assign(button.style, { left: left + 'px', top: top + 'px', right: 'auto', bottom: 'auto' });
+  }
+  button.addEventListener('dragstart', event => event.preventDefault());
+  button.addEventListener('pointerdown', event => {
+    if (!event.isPrimary || event.button !== 0) return;
+    suppressClick = false;
+    const rect = button.getBoundingClientRect();
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+    button.setPointerCapture(event.pointerId);
+  });
+  button.addEventListener('pointermove', event => {
+    if (!gesture || event.pointerId !== gesture.id) return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (!suppressClick && Math.hypot(dx, dy) < 6) return;
+    suppressClick = true;
+    place(gesture.left + dx, gesture.top + dy);
+  });
+  button.addEventListener('lostpointercapture', event => {
+    if (gesture?.id === event.pointerId) gesture = null;
+  });
+  button.addEventListener('click', event => {
+    if (suppressClick && event.detail !== 0) {
+      event.stopImmediatePropagation();
+      event.preventDefault();
+    }
+    suppressClick = false;
+  }, true);
+  const steps = { ArrowUp: [0, -16], ArrowDown: [0, 16], ArrowLeft: [-16, 0], ArrowRight: [16, 0] };
+  button.addEventListener('keydown', event => {
+    if (!Object.hasOwn(steps, event.key)) return;
+    event.preventDefault();
+    place(button.offsetLeft + steps[event.key][0], button.offsetTop + steps[event.key][1]);
+  });
+  const resizeObserver = new ResizeObserver(() => {
+    if (button.style.left && button.offsetWidth) place(button.offsetLeft, button.offsetTop);
+  });
+  resizeObserver.observe(document.documentElement);
+  resizeObserver.observe(button);
+}
+
+enableOryDragging(document.querySelector('.oryzatix-assistant-shortcut'));
+
 function openOryAssistant() {
   hideOryAssistantGreeting();
   showScreen('consultation');
