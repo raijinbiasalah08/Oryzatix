@@ -6220,9 +6220,9 @@ function renderAdminUsersTable(users) {
         <td><span class="role-badge ${roleBadgeClass}">${escapeHtml(u.role_label)}</span></td>
         <td><strong>${escapeHtml(u.location)}</strong></td>
         <td>
-          <button class="scan-count-badge" onclick="openAdminUserScansModal(${u.id}, '${escapeHtml(u.name)}')" title="View All User Detections" style="cursor: pointer; border: none;">
+          <button type="button" class="scan-count-badge" data-name="${escapeHtml(u.name)}" onclick="openAdminUserScansModal(${Number(u.id)}, this.dataset.name)" title="View most recent scan" style="cursor: pointer; border: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            ${u.scans_count || 0} scans
+            ${u.scans_count || 0} ${Number(u.scans_count) === 1 ? 'scan' : 'scans'}
           </button>
         </td>
         <td><span style="color: var(--neutral-500); font-size: 12px;">${escapeHtml(u.created_at)}</span></td>
@@ -6254,28 +6254,23 @@ async function openAdminUserScansModal(userId, userName) {
   const subEl = document.getElementById('adminUserScansModalSubtitle');
   const tbody = document.getElementById('adminUserScansTableBody');
 
-  if (titleEl) titleEl.textContent = `${userName}'s Detection History`;
-  if (subEl) subEl.textContent = `All rice leaf scans submitted by User #${userId}`;
+  tbody.dataset.userId = String(userId);
+  if (titleEl) titleEl.textContent = `${userName}'s Most Recent Scan`;
+  if (subEl) subEl.textContent = 'Latest saved rice leaf scan';
   setDataSkeleton(tbody, tableSkeletonMarkup(5, 4, 'Loading user scan history...'));
 
   openModal('modalAdminUserScans');
 
-  try {
-    await ensureCsrfCookie();
-  } catch (_) {
-    clearDataSkeleton(tbody);
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">Unable to load scan records.</td></tr>';
-    return;
-  }
-  fetch(apiUrl(`/admin/users/${userId}/scans`), {
+  fetch(apiUrl(`/admin/users/${userId}/scans?latest=1`), {
     credentials: 'include',
     headers: authHeaders(),
   })
     .then(r => r.json())
     .then(data => {
+      if (tbody.dataset.userId !== String(userId)) return;
       clearDataSkeleton(tbody);
-      if (data && data.success && data.data && data.data.scans) {
-        const scans = data.data.scans;
+      if (data && data.success && Array.isArray(data.scans)) {
+        const scans = data.scans;
         if (scans.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">This user has not submitted any leaf scans yet.</td></tr>';
           return;
@@ -6305,6 +6300,7 @@ async function openAdminUserScansModal(userId, userName) {
       }
     })
     .catch(() => {
+      if (tbody.dataset.userId !== String(userId)) return;
       if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-table-msg">Network error while fetching scans.</td></tr>';
       clearDataSkeleton(tbody);
     });

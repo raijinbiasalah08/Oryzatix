@@ -1549,6 +1549,13 @@
               <div class="stat-lbl">Total Field Scans</div>
             </div>
           </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-icon green" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg></div>
+            <div class="admin-stat-info">
+              <div class="stat-val">Guest Farmer</div>
+              <div class="stat-lbl">Guest Account</div>
+            </div>
+          </div>
         </div>
 
         <!-- Role Filter Tabs & Search Bar -->

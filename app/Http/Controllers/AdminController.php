@@ -396,6 +396,8 @@ class AdminController extends Controller
 
         $scans = RiceScan::where('user_id', $user->id)
             ->latest()
+            ->orderByDesc('id')
+            ->when($request->boolean('latest'), fn ($query) => $query->limit(1))
             ->get()
             ->map(fn($scan) => $this->formatScan($scan));
 
