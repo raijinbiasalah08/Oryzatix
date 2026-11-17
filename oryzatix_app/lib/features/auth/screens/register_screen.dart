@@ -30,6 +30,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  void _showTerms() {
+    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+      scrollable: true,
+      title: Row(children: [
+        const Expanded(child: Text('Terms & Conditions')),
+        IconButton(tooltip: 'Close terms', icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(dialogContext)),
+      ]),
+      content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Your account.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Provide accurate account information and keep your sign-in details private.'),
+        const SizedBox(height: 12),
+        const Text('Rice-leaf photos.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Upload only images you have permission to share.'),
+        const SizedBox(height: 12),
+        const Text('Scan results and AI replies.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Use Oryzatix for rice crop monitoring. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions.'),
+        const SizedBox(height: 12),
+        const Text('Staff advisories.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Staff can review saved scans and provide advisories.'),
+        const SizedBox(height: 12),
+      ]),
+    ));
+  }
+
   bool _acceptedTerms = false;
 
   Future<void> _handleRegister() async {
@@ -190,11 +215,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  const ExpansionTile(title: Text('Terms & Conditions'), children: [
-                    Padding(padding: EdgeInsets.all(12), child: Text('Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.')),
+                  Row(children: [
+                    Checkbox(value: _acceptedTerms, semanticLabel: 'I agree to the Oryzatix Terms & Conditions',
+                      onChanged: (value) => setState(() => _acceptedTerms = value ?? false)),
+                    Expanded(child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+                      const Text('I agree to the Oryzatix '),
+                      TextButton(onPressed: _showTerms, child: const Text('Terms & Conditions',
+                        style: TextStyle(decoration: TextDecoration.underline))),
+                    ])),
                   ]),
-                  CheckboxListTile(title: const Text('I agree to the Terms & Conditions.'), value: _acceptedTerms,
-                    onChanged: (value) => setState(() => _acceptedTerms = value ?? false)),
                   ElevatedButton(
                     onPressed: auth.isLoading || !_acceptedTerms ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),

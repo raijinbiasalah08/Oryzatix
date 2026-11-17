@@ -1,0 +1,10 @@
+.ory-consent { display:flex; align-items:baseline; gap:.6rem; color:#25394a; line-height:1.5; }
+.ory-consent input[type=checkbox] { margin:0; padding:0; width:1rem; height:1rem; flex:none; accent-color:#126947; }
+.ory-consent label { display:inline; font:inherit; }
+.ory-consent button { border:0; padding:0; background:none; color:#164b88; font:inherit; font-weight:700; text-decoration:underline; cursor:pointer; }
+#signupTerms { position:fixed; inset:0; margin:auto; width:min(34rem,calc(100vw - 2rem)); max-height:85vh; overflow:auto; box-sizing:border-box; border:0; border-radius:18px; padding:clamp(20px,4vw,32px); background:white; color:#1b2839; text-align:left; box-shadow:0 16px 64px #13233438; }
+#signupTerms::backdrop { background:rgb(11 21 31 / 56%); }
+#signupTerms header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+#signupTerms h2 { margin:0; font-size:1.45rem; }
+#signupTerms header button { width:44px; height:44px; border:0; border-radius:12px; background:#f4f7f8; color:#425464; font-size:1.6rem; cursor:pointer; }
+#signupTerms p { margin:1rem 0 0; line-height:1.6; }

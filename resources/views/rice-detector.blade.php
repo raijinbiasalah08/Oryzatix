@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=optional" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('css/rice-detector.css') }}?v={{ substr(hash_file('sha256', public_path('css/rice-detector.css')) ?: '1', 0, 12) }}">
+<link rel="stylesheet" href="{{ asset('css/signup-terms.css') }}">
 <link rel="stylesheet" href="{{ asset('css/ui-refresh.css') }}?v={{ filemtime(public_path('css/ui-refresh.css')) ?: '1' }}">
 <style>
   html.app-booting .web-app-shell {
@@ -575,8 +576,17 @@
                 </div>
               </div>
 
-              <details><summary>Terms &amp; Conditions</summary><p>Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.</p></details>
-              <label><input type="checkbox" id="regTerms" required> I agree to the Terms &amp; Conditions.</label>
+              <div class="ory-consent">
+                <input type="checkbox" id="regTerms" required aria-labelledby="consentPrefix consentLink" />
+                <span><label for="regTerms" id="consentPrefix">I agree to the Oryzatix</label> <button type="button" id="consentLink" aria-haspopup="dialog" onclick="document.getElementById('signupTerms').showModal()">Terms &amp; Conditions</button>.</span>
+              </div>
+              <dialog id="signupTerms" aria-labelledby="signupTermsTitle">
+                <header><h2 id="signupTermsTitle">Terms &amp; Conditions</h2><button type="button" aria-label="Close terms" onclick="document.getElementById('signupTerms').close()">×</button></header>
+                <p><strong>Your account.</strong> Provide accurate account information and keep your sign-in details private.</p>
+                <p><strong>Rice-leaf photos.</strong> Upload only images you have permission to share.</p>
+                <p><strong>Scan results and AI replies.</strong> Use Oryzatix for rice crop monitoring. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions.</p>
+                <p><strong>Staff advisories.</strong> Staff can review saved scans and provide advisories.</p>
+              </dialog>
               <button type="submit" class="auth-btn" id="regBtn">Create Account</button>
             </form>
 

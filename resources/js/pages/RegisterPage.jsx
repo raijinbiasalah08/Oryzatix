@@ -43,6 +43,7 @@ export default function RegisterPage() {
 
     return (
         <div className="phone-frame">
+            <link rel="stylesheet" href="/css/signup-terms.css" />
             <div className="screen active" id="register">
                 <div className="auth-header">
                     <div className="auth-logo">
@@ -96,8 +97,17 @@ export default function RegisterPage() {
                                 required
                             />
                         </div>
-                        <details><summary>{t('Terms & Conditions', 'Mga Tuntunin at Kundisyon')}</summary><p>Use Oryzatix for rice crop monitoring. Provide accurate account information, keep your sign-in details private, and upload only images you have permission to share. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions. Staff can review saved scans and provide advisories.</p></details>
-                        <label><input type="checkbox" required checked={form.terms_accepted} onChange={e => setForm({ ...form, terms_accepted: e.target.checked })} /> {t('I agree to the Terms & Conditions.', 'Sumasang-ayon ako sa mga tuntunin at kundisyon.')}</label>
+                        <div className="ory-consent">
+                <input type="checkbox" id="regTerms" checked={form.terms_accepted} onChange={e => setForm({ ...form, terms_accepted: e.target.checked })} required aria-labelledby="consentPrefix consentLink" />
+                <span><label htmlFor="regTerms" id="consentPrefix">{t('I agree to the Oryzatix', 'Sumasang-ayon ako sa')}</label> <button type="button" id="consentLink" aria-haspopup="dialog" onClick={() => document.getElementById('signupTerms').showModal()}>{t('Terms & Conditions', 'Mga Tuntunin at Kundisyon')}</button>.</span>
+              </div>
+              <dialog id="signupTerms" aria-labelledby="signupTermsTitle">
+                <header><h2 id="signupTermsTitle">{t('Terms & Conditions', 'Mga Tuntunin at Kundisyon')}</h2><button type="button" aria-label="Close terms" onClick={() => document.getElementById('signupTerms').close()}>×</button></header>
+                <p><strong>Your account.</strong> Provide accurate account information and keep your sign-in details private.</p>
+                <p><strong>Rice-leaf photos.</strong> Upload only images you have permission to share.</p>
+                <p><strong>Scan results and AI replies.</strong> Use Oryzatix for rice crop monitoring. Scan results and AI replies are guidance. Consult a qualified agricultural professional before making treatment decisions.</p>
+                <p><strong>Staff advisories.</strong> Staff can review saved scans and provide advisories.</p>
+              </dialog>
                         <button type="submit" className="auth-btn">{t('Create Account', 'Gumawa ng Account')}</button>
                     </form>
                     <div className="auth-switch">
