@@ -501,6 +501,11 @@ function enableOryDragging(button) {
   if (!button) return;
   let gesture = null;
   let suppressClick = false;
+  function endGesture(event) {
+    if (gesture?.id !== event.pointerId) return;
+    clearTimeout(gesture.timer);
+    gesture = null;
+  }
   function place(x, y) {
     const left = Math.max(0, Math.min(x, document.documentElement.clientWidth - button.offsetWidth));
     const top = Math.max(0, Math.min(y, window.innerHeight - button.offsetHeight));
@@ -508,22 +513,38 @@ function enableOryDragging(button) {
   }
   button.addEventListener('dragstart', event => event.preventDefault());
   button.addEventListener('pointerdown', event => {
-    if (!event.isPrimary || event.button !== 0) return;
+    if (!event.isPrimary || event.button !== 0 || gesture) return;
     suppressClick = false;
     const rect = button.getBoundingClientRect();
-    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, ready: event.pointerType !== 'touch' };
+    if (!gesture.ready) {
+      gesture.timer = setTimeout(() => {
+        gesture.ready = true;
+        suppressClick = true;
+      }, 450);
+    }
     button.setPointerCapture(event.pointerId);
   });
   button.addEventListener('pointermove', event => {
     if (!gesture || event.pointerId !== gesture.id) return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
+    if (!gesture.ready) {
+      if (Math.hypot(dx, dy) >= 8) {
+        suppressClick = true;
+        endGesture(event);
+      }
+      return;
+    }
     if (!suppressClick && Math.hypot(dx, dy) < 6) return;
     suppressClick = true;
     place(gesture.left + dx, gesture.top + dy);
   });
-  button.addEventListener('lostpointercapture', event => {
-    if (gesture?.id === event.pointerId) gesture = null;
+  button.addEventListener('pointerup', endGesture);
+  button.addEventListener('pointercancel', endGesture);
+  button.addEventListener('lostpointercapture', endGesture);
+  button.addEventListener('contextmenu', event => {
+    if (gesture && event.pointerType !== 'mouse') event.preventDefault();
   });
   button.addEventListener('click', event => {
     if (suppressClick && event.detail !== 0) {
