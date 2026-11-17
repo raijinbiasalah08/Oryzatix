@@ -30,7 +30,6 @@
         "@litertjs/core": "^2.6.0",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
-        "react-router-dom": "^7.18.2",
-        "three": "0.180.0"
+        "react-router-dom": "^7.18.2"
     }
 }
