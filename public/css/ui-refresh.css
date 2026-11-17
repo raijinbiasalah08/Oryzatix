@@ -1393,7 +1393,7 @@ button:disabled { cursor: not-allowed; }
   .web-sidebar .sidebar-brand { flex-shrink: 0; }
   .web-sidebar .sidebar-menu { overflow-y: auto; min-height: 0; }
   .web-app-shell:not(:has(#consultation.active)) .web-sidebar .sidebar-menu {
-    margin-bottom: calc(min(125px, 14vh) + 32px);
+    margin-bottom: calc(min(125px, 14vh) + 42px);
   }
   .oryzatix-assistant-shortcut {
     width: min(150px, 17vh);
@@ -1401,7 +1401,7 @@ button:disabled { cursor: not-allowed; }
     left: calc((var(--sidebar-width) - min(150px, 17vh)) / 2);
     right: auto;
     top: auto;
-    bottom: 20px;
+    bottom: 30px;
   }
   .oryzatix-assistant-shortcut__character { width: 100%; height: 100%; }
   .oryzatix-assistant-shortcut__intro {
