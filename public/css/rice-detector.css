@@ -1629,6 +1629,7 @@ select {
 }
 
 .google-auth-btn + .auth-switch,
+#register form + .auth-switch,
 .guest-auth-btn + .auth-switch {
   margin-top: 20px;
   line-height: 1.5;

@@ -1352,6 +1352,7 @@ button:disabled { cursor: not-allowed; }
   }
 
   .google-auth-btn + .auth-switch,
+  #register form + .auth-switch,
   .guest-auth-btn + .auth-switch {
     margin-top: 10px;
   }
