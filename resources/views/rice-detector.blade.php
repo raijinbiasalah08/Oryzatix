@@ -2645,7 +2645,7 @@
             <th style="width: 50px;">Photo</th>
             <th>Disease Result</th>
             <th>Confidence</th>
-            <th>Severity</th>
+            <th>Leaf Health</th>
             <th>Date & Time</th>
           </tr>
         </thead>

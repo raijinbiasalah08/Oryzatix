@@ -6220,7 +6220,7 @@ function renderAdminUsersTable(users) {
         <td><span class="role-badge ${roleBadgeClass}">${escapeHtml(u.role_label)}</span></td>
         <td><strong>${escapeHtml(u.location)}</strong></td>
         <td>
-          <button type="button" class="scan-count-badge" data-name="${escapeHtml(u.name)}" onclick="openAdminUserScansModal(${Number(u.id)}, this.dataset.name)" title="View most recent scan" style="cursor: pointer; border: none;">
+          <button type="button" class="scan-count-badge" data-name="${escapeHtml(u.name)}" onclick="openAdminUserScansModal(${Number(u.id)}, this.dataset.name)" title="View scan history" style="cursor: pointer; border: none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             ${u.scans_count || 0} ${Number(u.scans_count) === 1 ? 'scan' : 'scans'}
           </button>
@@ -6255,13 +6255,13 @@ async function openAdminUserScansModal(userId, userName) {
   const tbody = document.getElementById('adminUserScansTableBody');
 
   tbody.dataset.userId = String(userId);
-  if (titleEl) titleEl.textContent = `${userName}'s Most Recent Scan`;
-  if (subEl) subEl.textContent = 'Latest saved rice leaf scan';
+  if (titleEl) titleEl.textContent = `${userName}'s Scan History`;
+  if (subEl) subEl.textContent = 'Saved rice leaf scans, newest first';
   setDataSkeleton(tbody, tableSkeletonMarkup(5, 4, 'Loading user scan history...'));
 
   openModal('modalAdminUserScans');
 
-  fetch(apiUrl(`/admin/users/${userId}/scans?latest=1`), {
+  fetch(apiUrl(`/admin/users/${userId}/scans`), {
     credentials: 'include',
     headers: authHeaders(),
   })
