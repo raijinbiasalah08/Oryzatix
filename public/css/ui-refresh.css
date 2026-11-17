@@ -1386,3 +1386,47 @@ button:disabled { cursor: not-allowed; }
     margin: 7px 0 6px;
   }
 }
+
+@media (min-width: 1024px) {
+  :root { --sidebar-width: clamp(210px, 16.25vw, 260px); }
+  .web-sidebar { background-color: #075335; }
+  .web-sidebar .sidebar-menu { overflow-y: auto; min-height: 0; margin-bottom: clamp(84px, 16vh, 145px); }
+  .oryzatix-assistant-shortcut {
+    width: min(150px, 17vh);
+    height: min(125px, 14vh);
+    left: calc((var(--sidebar-width) - min(150px, 17vh)) / 2);
+    right: auto;
+    bottom: 10px;
+  }
+  .oryzatix-assistant-shortcut__intro { left: 75%; right: auto; }
+  .dashboard-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .dashboard-summary > :is(.admin-header-banner, .staff-header-banner) {
+    grid-area: 1 / 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 0;
+    padding: clamp(18px, 2vw, 32px);
+    gap: 18px;
+  }
+  .dashboard-summary :is(.admin-banner-content, .staff-banner-content) { flex: none; }
+  .dashboard-summary > :is(.admin-stats-grid, .staff-stats-grid) {
+    grid-area: 1 / 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+  .dashboard-summary :is(.admin-stat-card.executive, .staff-stat-card) { min-width: 0; padding: clamp(10px, 1vw, 20px); }
+  .dashboard-summary .dashboard-status { grid-column: 1 / -1; margin: 0; }
+  :is(.dashboard-summary, #home) :is(.admin-header-banner, .staff-header-banner, .quick-scan-card)::after {
+    width: 65%;
+    opacity: .95;
+    background: linear-gradient(90deg, #11683c, transparent), url('../images/auth-bg.jpg') center / cover;
+  }
+  .overview-panels .health-distribution { grid-template-columns: minmax(95px, .8fr) minmax(0, 1.2fr); gap: 12px; }
+}

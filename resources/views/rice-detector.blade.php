@@ -1129,6 +1129,7 @@
 
       <!-- ═══════════ SCREEN 10B: STAFF EXTENSION WORKER DASHBOARD ═══════════ -->
       <section class="screen{{ $initialScreenId === 'staff-dashboard' ? ' active' : '' }}" id="staff-dashboard">
+        <div class="dashboard-summary">
         <div class="staff-header-banner">
           <div class="staff-banner-content">
             <div class="staff-badge-pill">
@@ -1188,6 +1189,7 @@
               <div class="stat-label">Healthy Crop Index</div>
             </div>
           </div>
+        </div>
         </div>
 
         <!-- Staff Tab Navigation Bar -->
@@ -1316,6 +1318,7 @@
 
       <!-- ═══════════ SCREEN 10C: ADMIN EXECUTIVE DASHBOARD ═══════════ -->
       <section class="screen{{ $initialScreenId === 'admin-dashboard' ? ' active' : '' }}" id="admin-dashboard">
+        <div class="dashboard-summary">
         <div class="admin-header-banner">
           <div class="admin-banner-content">
             <div class="admin-badge-pill">
@@ -1381,9 +1384,27 @@
             </div>
           </div>
         </div>
+        </div>
 
         <!-- Live health distribution and recent activity -->
         <div class="admin-two-col-grid overview-panels">
+          <!-- The latest recorded scans, with the same preview as the records table -->
+          <div class="admin-panel-card">
+            <div class="panel-card-header">
+              <div class="panel-title-group">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <h3>Recent Detection Activity</h3>
+              </div>
+              <button type="button" class="panel-text-link" onclick="showScreen('admin-scans-logs')">View all <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="panel-card-body activity-list" id="adminRecentActivity" aria-busy="true">
+              <span class="sr-only" role="status">Loading recent activity...</span>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
+              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
+            </div>
+          </div>
+
           <div class="admin-panel-card">
             <div class="panel-card-header">
               <div class="panel-title-group">
@@ -1401,23 +1422,6 @@
                 <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar medium"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
                 <div class="app-skeleton-meter" aria-hidden="true"><div><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></div><i class="app-skeleton-meter-track"><i></i></i></div>
               </div>
-            </div>
-          </div>
-
-          <!-- The latest recorded scans, with the same preview as the records table -->
-          <div class="admin-panel-card">
-            <div class="panel-card-header">
-              <div class="panel-title-group">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                <h3>Recent Detection Activity</h3>
-              </div>
-              <button type="button" class="panel-text-link" onclick="showScreen('admin-scans-logs')">View all <span aria-hidden="true">→</span></button>
-            </div>
-            <div class="panel-card-body activity-list" id="adminRecentActivity" aria-busy="true">
-              <span class="sr-only" role="status">Loading recent activity...</span>
-              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
-              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
-              <div class="activity-row app-skeleton-activity" aria-hidden="true"><span class="app-skeleton-cell-image"></span><span class="app-skeleton-activity-copy"><i class="app-skeleton-bar wide"></i><i class="app-skeleton-bar short"></i></span><i class="app-skeleton-bar app-skeleton-activity-time"></i></div>
             </div>
           </div>
         </div>
