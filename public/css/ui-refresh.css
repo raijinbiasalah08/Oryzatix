@@ -1546,7 +1546,7 @@ button:disabled { cursor: not-allowed; }
       display: none;
     }
     .dashboard-summary > .admin-header-banner {
-      grid-area: 2 / 1;
+      grid-area: 1 / 1;
       padding: clamp(24px, 2.5vw, 40px);
       gap: clamp(22px, 2vw, 32px);
       border: 1px solid #345e40;
@@ -1596,7 +1596,7 @@ button:disabled { cursor: not-allowed; }
     .hero-secondary-btn:hover { background: #20492f; }
     .dashboard-status { grid-row: 3; }
     .dashboard-summary > .admin-stats-grid {
-      grid-area: auto / 1 / auto / -1;
+      grid-area: 2 / 1 / auto / -1;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0;
       padding: 14px 0;
