@@ -1532,7 +1532,7 @@ button:disabled { cursor: not-allowed; }
   #admin-dashboard {
     max-width: none;
     .dashboard-summary {
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr);
       align-items: center;
       gap: 14px;
       margin-bottom: 18px;
@@ -1545,27 +1545,46 @@ button:disabled { cursor: not-allowed; }
       letter-spacing: -.045em;
       color: #102e20;
     }
-    .dashboard-summary > .admin-header-banner { display: contents; }
-    .admin-header-banner::before, .admin-header-banner::after { display: none; }
-    .admin-banner-content {
-      anchor-name: --admin-welcome;
-      grid-column: 1 / -1;
-      grid-row: 2;
-      min-height: 146px;
-      padding: 18px clamp(22px, 2vw, 34px);
-      align-content: center;
-      border: 1px solid #d8e2d5;
-      border-radius: 16px;
-      background: linear-gradient(90deg, white 18%, #fffffff0 35%, transparent 66%),
-                  url('../images/auth-bg.jpg') right 57% / cover;
+    .dashboard-summary > .admin-header-banner {
+      grid-area: 2 / 1;
+      padding: clamp(24px, 2.5vw, 40px);
+      gap: clamp(22px, 2vw, 32px);
+      border: 1px solid #345e40;
+      border-radius: 22px;
+      background: linear-gradient(110deg, #20492f, #366b41);
     }
-    .admin-badge-pill { color: #16633b; margin-bottom: 4px; }
-    .admin-banner-content h2 { color: #123b29; margin-bottom: 4px; }
-    .admin-banner-content p { color: #263f30; max-width: min(45%, 630px); line-height: 1.4; }
-    .hero-actions { grid-area: 1 / 2; justify-content: flex-end; gap: 12px; }
-    .hero-secondary-btn { order: -1; background: white; color: #174f30; border-color: #43805a; }
-    .hero-secondary-btn:hover { background: #eff7ec; }
-    .hero-actions button:focus-visible { outline-color: #155b38 !important; }
+    .admin-header-banner::after {
+      width: 57%;
+      opacity: 1;
+      background: linear-gradient(90deg, #2e6541e0, #295e36aa),
+                  url('../images/auth-bg.jpg') center 57% / cover;
+    }
+    .admin-header-banner::before {
+      background-size: 70% auto;
+      opacity: .65;
+    }
+    .admin-banner-content { max-width: 45rem; overflow-wrap: anywhere; }
+    .admin-badge-pill { margin-bottom: 10px; color: #deebde; }
+    .admin-banner-content h2 {
+      margin-bottom: 10px;
+      color: white;
+      font-size: clamp(30px, 2.6vw, 42px);
+    }
+    .admin-banner-content p {
+      max-width: 52ch;
+      color: #e3eee3;
+      font-size: clamp(16px, 1.25vw, 20px);
+      line-height: 1.55;
+    }
+    .hero-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      width: min(100%, 31rem);
+    }
+    .hero-actions button { justify-content: center; min-height: 52px; border-radius: 12px; }
+    .hero-secondary-btn { background: #214f3380; border-color: #dec97a; color: white; }
+    .hero-secondary-btn:hover { background: #20492f; }
     .dashboard-status { grid-row: 3; }
     .dashboard-summary > .admin-stats-grid {
       grid-area: auto / 1 / auto / -1;
@@ -1642,15 +1661,6 @@ button:disabled { cursor: not-allowed; }
     .admin-category-track i { display: block; height: 100%; border-radius: inherit; }
   }
 
-  @supports (position-anchor: --admin-welcome) {
-    .web-app-shell:has(#admin-dashboard.active) .oryzatix-assistant-shortcut:not(.ory-positioned) {
-      position: absolute;
-      position-anchor: --admin-welcome;
-      width: 124px;
-      height: 104px;
-      inset: calc(anchor(center) - 52px) calc(anchor(right) + 20px) auto auto;
-    }
-  }
   .web-app-shell[data-user-role="admin"] .oryzatix-assistant-shortcut__intro {
     left: auto;
     right: 90%;
