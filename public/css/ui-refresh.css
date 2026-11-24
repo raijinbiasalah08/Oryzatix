@@ -1524,7 +1524,12 @@ button:disabled { cursor: not-allowed; }
     }
     .topbar-user-btn :is(.topbar-user-name, .topbar-user-chevron), .topbar-notif-btn svg { color: white; stroke: currentColor; }
     .topbar-user-btn .topbar-user-role { color: #ddf1e1; }
-    &:has(#admin-dashboard.active) .topbar-title { display: none; }
+    &:has(#admin-dashboard.active) .topbar-title {
+      display: block;
+      font-size: clamp(20px, 1.75vw, 26px);
+      font-weight: 700;
+      letter-spacing: -.45px;
+    }
     &:has(#admin-dashboard.active) .web-page-content { max-width: 1740px; padding: 20px var(--admin-gutter) 40px; }
     .oryzatix-assistant-shortcut { left: auto; right: var(--admin-gutter); }
   }
@@ -1538,12 +1543,7 @@ button:disabled { cursor: not-allowed; }
       margin-bottom: 18px;
     }
     .admin-desktop-title {
-      display: block;
-      grid-area: 1 / 1;
-      margin: 0;
-      font: 700 clamp(25px, 2.2vw, 38px)/1.15 'Outfit', sans-serif;
-      letter-spacing: -.045em;
-      color: #102e20;
+      display: none;
     }
     .dashboard-summary > .admin-header-banner {
       grid-area: 2 / 1;
