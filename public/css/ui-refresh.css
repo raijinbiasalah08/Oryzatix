@@ -1582,17 +1582,17 @@ button:disabled { cursor: not-allowed; }
     }
     .hero-actions {
       display: flex;
-      flex: 0 1 44%;
-      flex-direction: row;
-      align-items: center;
+      flex: 0 0 clamp(210px, 23vw, 260px);
+      flex-direction: column;
+      align-items: stretch;
       justify-content: center;
-      flex-wrap: wrap;
-      gap: clamp(12px, 1.5vw, 28px);
-      width: clamp(380px, 44%, 620px);
+      flex-wrap: nowrap;
+      gap: 12px;
+      width: clamp(210px, 23vw, 260px);
       margin-left: auto;
     }
     .hero-actions button {
-      flex: 1 1 0;
+      flex: 0 0 auto;
       justify-content: center;
       min-height: 52px;
       border-radius: 12px;
