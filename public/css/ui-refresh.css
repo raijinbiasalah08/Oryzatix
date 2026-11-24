@@ -1547,8 +1547,12 @@ button:disabled { cursor: not-allowed; }
     }
     .dashboard-summary > .admin-header-banner {
       grid-area: 1 / 1;
-      padding: clamp(24px, 2.5vw, 40px);
-      gap: clamp(22px, 2vw, 32px);
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 250px;
+      padding: clamp(24px, 2.5vw, 36px);
+      gap: clamp(24px, 3vw, 48px);
       border: 1px solid #345e40;
       border-radius: 22px;
       background: linear-gradient(110deg, #20492f, #366b41);
@@ -1563,7 +1567,7 @@ button:disabled { cursor: not-allowed; }
       background-size: 70% auto;
       opacity: .65;
     }
-    .admin-banner-content { max-width: 45rem; overflow-wrap: anywhere; }
+    .admin-banner-content { flex: 1 1 0; max-width: 45rem; overflow-wrap: anywhere; }
     .admin-badge-pill { margin-bottom: 10px; color: #deebde; }
     .admin-banner-content h2 {
       margin-bottom: 10px;
@@ -1578,11 +1582,14 @@ button:disabled { cursor: not-allowed; }
     }
     .hero-actions {
       display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      flex-wrap: wrap;
+      flex: 0 0 clamp(210px, 23vw, 260px);
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      flex-wrap: nowrap;
       gap: 12px;
-      width: fit-content;
+      width: clamp(210px, 23vw, 260px);
+      margin-left: auto;
     }
     .hero-actions button {
       flex: 0 0 auto;
@@ -1590,8 +1597,8 @@ button:disabled { cursor: not-allowed; }
       min-height: 52px;
       border-radius: 12px;
     }
-    .hero-actions .scan-action-btn { width: fit-content; }
-    .hero-actions .hero-secondary-btn { width: fit-content; min-width: 220px; }
+    .hero-actions .scan-action-btn,
+    .hero-actions .hero-secondary-btn { width: 100%; min-width: 0; }
     .hero-secondary-btn { background: #214f3380; border-color: #dec97a; color: white; }
     .hero-secondary-btn:hover { background: #20492f; }
     .dashboard-status { grid-row: 3; }
