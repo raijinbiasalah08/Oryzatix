@@ -1577,12 +1577,21 @@ button:disabled { cursor: not-allowed; }
       line-height: 1.55;
     }
     .hero-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      width: min(100%, 31rem);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+      width: fit-content;
     }
-    .hero-actions button { justify-content: center; min-height: 52px; border-radius: 12px; }
+    .hero-actions button {
+      flex: 0 0 auto;
+      justify-content: center;
+      min-height: 52px;
+      border-radius: 12px;
+    }
+    .hero-actions .scan-action-btn { width: fit-content; }
+    .hero-actions .hero-secondary-btn { width: fit-content; min-width: 220px; }
     .hero-secondary-btn { background: #214f3380; border-color: #dec97a; color: white; }
     .hero-secondary-btn:hover { background: #20492f; }
     .dashboard-status { grid-row: 3; }
