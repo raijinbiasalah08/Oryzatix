@@ -103,7 +103,7 @@
 <input type="hidden" id="chatLanguage" value="tagalog">
 <input type="hidden" id="uiLanguage" value="english">
 
-<div class="web-app-shell{{ $currentUserData ? '' : ' auth-mode' }}">
+<div data-user-role="{{ $currentUserData['role'] ?? '' }}" class="web-app-shell{{ $currentUserData ? '' : ' auth-mode' }}">
 
   <!-- ═══════════ DESKTOP NAVIGATION SIDEBAR ═══════════ -->
   <aside class="web-sidebar">
@@ -1335,6 +1335,7 @@
       <!-- ═══════════ SCREEN 10C: ADMIN EXECUTIVE DASHBOARD ═══════════ -->
       <section class="screen{{ $initialScreenId === 'admin-dashboard' ? ' active' : '' }}" id="admin-dashboard">
         <div class="dashboard-summary">
+          <h1 class="admin-desktop-title" hidden data-en="Admin Executive Dashboard" data-tl="Admin Dashboard">Admin Executive Dashboard</h1>
         <div class="admin-header-banner">
           <div class="admin-banner-content">
             <div class="admin-badge-pill">
@@ -1412,6 +1413,9 @@
                 <h3>Recent Detection Activity</h3>
               </div>
               <button type="button" class="panel-text-link" onclick="showScreen('admin-scans-logs')">View all <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="admin-activity-head" aria-hidden="true" hidden>
+              <span>Disease result</span><span>Status</span><span>Scanned</span>
             </div>
             <div class="panel-card-body activity-list" id="adminRecentActivity" aria-busy="true">
               <span class="sr-only" role="status">Loading recent activity...</span>

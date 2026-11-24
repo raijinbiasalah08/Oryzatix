@@ -510,6 +510,7 @@ function enableOryDragging(button) {
   function place(x, y) {
     const left = Math.max(0, Math.min(x, document.documentElement.clientWidth - button.offsetWidth));
     const top = Math.max(0, Math.min(y, window.innerHeight - button.offsetHeight));
+    button.classList.add('ory-positioned');
     Object.assign(button.style, { left: left + 'px', top: top + 'px', right: 'auto', bottom: 'auto' });
   }
   button.addEventListener('dragstart', event => event.preventDefault());
@@ -558,7 +559,9 @@ function enableOryDragging(button) {
   button.addEventListener('keydown', event => {
     if (!Object.hasOwn(steps, event.key)) return;
     event.preventDefault();
-    place(button.offsetLeft + steps[event.key][0], button.offsetTop + steps[event.key][1]);
+    const anchored = getComputedStyle(button).position === 'absolute';
+    const { left, top } = anchored ? button.getBoundingClientRect() : { left: button.offsetLeft, top: button.offsetTop };
+    place(left + steps[event.key][0], top + steps[event.key][1]);
   });
   const resizeObserver = new ResizeObserver(() => {
     if (button.style.left && button.offsetWidth) place(button.offsetLeft, button.offsetTop);
@@ -1365,6 +1368,7 @@ function setUserAvatarImage(container, imageUrl, fallbackInitials) {
 function applyUserToUI() {
   if (!currentUser) return;
   const u = currentUser;
+  document.querySelector('.web-app-shell').dataset.userRole = u.role || '';
   const uname = document.getElementById('homeUserName');
   if (uname) uname.textContent = u.name || 'Mang Juan';
   const pname = document.getElementById('profileName');
@@ -5916,11 +5920,18 @@ function renderAdminHealthOverview(stats, distribution) {
     ['blast', 'Leaf Blast'], ['blb', 'Bacterial Leaf Blight'], ['brown_spot', 'Brown Spot'],
     ['sheath_blight', 'Sheath Blight'], ['tungro', 'Rice Tungro'], ['healthy', 'Healthy'],
   ];
+  const maxCount = Math.max(1, ...categories.map(([key]) => count(distribution[key]?.count)));
   legend.innerHTML = `
+    <div class="admin-health-strip" hidden aria-hidden="true">
+      <span style="--share: ${diseased / total * 100}%">${diseasedPercent}%</span>
+      <span style="--share: ${healthy / total * 100}%">${healthyPercent}%</span>
+    </div>
     <div class="health-legend-row"><span class="health-dot diseased" aria-hidden="true"></span><span>Not healthy leaves</span><strong>${diseasedPercent}% (${diseased})</strong></div>
     <div class="health-legend-row"><span class="health-dot healthy" aria-hidden="true"></span><span>Healthy leaves</span><strong>${healthyPercent}% (${healthy})</strong></div>
     <div class="health-legend-detail">${categories.map(([key, label]) => `
-      <div class="health-legend-row"><span class="health-dot ${key}" aria-hidden="true"></span><span>${label}</span><strong>${count(distribution[key]?.count)}</strong></div>
+      <div class="health-legend-row"><span class="health-dot ${key}" aria-hidden="true"></span><span>${label}</span>
+        <span class="admin-category-track" hidden aria-hidden="true"><i class="health-dot ${key}" style="width:${count(distribution[key]?.count) / maxCount * 100}%"></i></span>
+        <strong>${count(distribution[key]?.count)}</strong></div>
     `).join('')}</div>`;
 }
 

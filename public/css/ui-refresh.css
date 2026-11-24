@@ -1453,3 +1453,213 @@ button:disabled { cursor: not-allowed; }
   }
   .overview-panels .health-distribution { grid-template-columns: minmax(95px, .8fr) minmax(0, 1.2fr); gap: 12px; }
 }
+
+/* The admin desktop workspace uses the same navigation buttons and data as the other layouts. */
+@media (min-width: 1024px) {
+  .web-app-shell[data-user-role="admin"]:not(.auth-mode) {
+    --admin-masthead: 62px;
+    --admin-tabs: 51px;
+    --admin-gutter: clamp(20px, 2.4vw, 44px);
+    --admin-ink: #123b29;
+
+    .web-sidebar { display: contents; }
+    .web-sidebar .sidebar-brand {
+      position: fixed;
+      inset: 0 auto auto var(--admin-gutter);
+      height: var(--admin-masthead);
+      padding: 0;
+      border: 0;
+      z-index: 82;
+    }
+    .web-sidebar .brand-icon { width: 42px; height: 42px; }
+    .web-sidebar .sidebar-menu {
+      position: fixed;
+      inset: var(--admin-masthead) 0 auto;
+      height: var(--admin-tabs);
+      z-index: 55;
+      flex-direction: row;
+      gap: 4px;
+      margin: 0;
+      padding: 0 var(--admin-gutter);
+      overflow: auto hidden;
+      scrollbar-width: thin;
+      background: white;
+      border-bottom: 1px solid #d7e4da;
+    }
+    #sidebarAdminGroup { display: contents !important; }
+    .web-sidebar .sidebar-nav-btn {
+      width: auto;
+      flex: 1 0 auto;
+      min-height: 40px;
+      padding: 3px clamp(7px, .75vw, 15px);
+      justify-content: center;
+      gap: 7px;
+      white-space: nowrap;
+      font-size: clamp(12px, .9vw, 15px);
+      color: #32483b;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+    }
+    .web-sidebar .sidebar-nav-btn svg { width: 16px; height: 16px; color: inherit; stroke: currentColor; }
+    .web-sidebar .sidebar-nav-btn:hover { background: #f3f8f3; }
+    .web-sidebar .sidebar-nav-btn.active { color: #075c36; background: #f3f8f3; border-bottom-color: #137347; }
+    .web-sidebar .sidebar-nav-btn:focus-visible { outline-color: #165e3b !important; }
+    .web-main-workspace { margin-left: 0; background: #f7f8f2; }
+    .web-topbar {
+      height: var(--admin-masthead);
+      padding: 0 var(--admin-gutter) 0 calc(var(--admin-gutter) + 225px);
+      margin-bottom: var(--admin-tabs);
+      background: #074429;
+      border: 0;
+      z-index: 80;
+    }
+    .web-topbar :is(.topbar-title, .topbar-date, .topbar-time, .topbar-datetime-divider) { color: #f1f8f1; }
+    .topbar-datetime-widget { display: inline-flex; }
+    .topbar-datetime-icon svg { stroke: #dcf1df; }
+    .topbar-user-btn, .topbar-notif-btn {
+      background: #125536;
+      color: white;
+      border: 1px solid #59806a;
+    }
+    .topbar-user-btn :is(.topbar-user-name, .topbar-user-chevron), .topbar-notif-btn svg { color: white; stroke: currentColor; }
+    .topbar-user-btn .topbar-user-role { color: #ddf1e1; }
+    &:has(#admin-dashboard.active) .topbar-title { display: none; }
+    &:has(#admin-dashboard.active) .web-page-content { max-width: 1740px; padding: 20px var(--admin-gutter) 40px; }
+    .oryzatix-assistant-shortcut { left: auto; right: var(--admin-gutter); }
+  }
+
+  #admin-dashboard {
+    max-width: none;
+    .dashboard-summary {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .admin-desktop-title {
+      display: block;
+      grid-area: 1 / 1;
+      margin: 0;
+      font: 700 clamp(25px, 2.2vw, 38px)/1.15 'Outfit', sans-serif;
+      letter-spacing: -.045em;
+      color: #102e20;
+    }
+    .dashboard-summary > .admin-header-banner { display: contents; }
+    .admin-header-banner::before, .admin-header-banner::after { display: none; }
+    .admin-banner-content {
+      anchor-name: --admin-welcome;
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-height: 146px;
+      padding: 18px clamp(22px, 2vw, 34px);
+      align-content: center;
+      border: 1px solid #d8e2d5;
+      border-radius: 16px;
+      background: linear-gradient(90deg, white 18%, #fffffff0 35%, transparent 66%),
+                  url('../images/auth-bg.jpg') right 57% / cover;
+    }
+    .admin-badge-pill { color: #16633b; margin-bottom: 4px; }
+    .admin-banner-content h2 { color: #123b29; margin-bottom: 4px; }
+    .admin-banner-content p { color: #263f30; max-width: min(45%, 630px); line-height: 1.4; }
+    .hero-actions { grid-area: 1 / 2; justify-content: flex-end; gap: 12px; }
+    .hero-secondary-btn { order: -1; background: white; color: #174f30; border-color: #43805a; }
+    .hero-secondary-btn:hover { background: #eff7ec; }
+    .hero-actions button:focus-visible { outline-color: #155b38 !important; }
+    .dashboard-status { grid-row: 3; }
+    .dashboard-summary > .admin-stats-grid {
+      grid-area: auto / 1 / auto / -1;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      padding: 14px 0;
+      border: 1px solid #dbe5dc;
+      border-radius: 14px;
+      background: white;
+    }
+    .admin-stat-card.executive {
+      padding: 0 clamp(12px, 1.6vw, 28px);
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      gap: clamp(8px, 1.1vw, 18px);
+    }
+    .admin-stat-card.executive + .admin-stat-card { border-left: 1px solid #dbe5dc; }
+    .admin-stat-info .stat-lbl { margin: 0; }
+    .overview-panels { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; }
+    .overview-panels .admin-panel-card { min-width: 0; }
+    .overview-panels .panel-card-header { padding: 10px 18px; }
+    .activity-list { padding: 0 16px 8px; }
+    .admin-activity-head, .activity-row:not(.app-skeleton-activity) {
+      display: grid;
+      align-items: center;
+      grid-template-columns: clamp(48px, 5vw, 82px) minmax(0, 1.2fr) minmax(96px, .9fr) minmax(60px, .62fr);
+      column-gap: 10px;
+    }
+    .admin-activity-head {
+      margin: 10px 16px 0;
+      padding: 8px 0;
+      background: #f3f6ef;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #385242;
+    }
+    .admin-activity-head span:first-child { grid-column: 2; }
+    .admin-activity-head span:last-child { text-align: right; padding-right: 4px; }
+    .activity-row .activity-info { display: contents; }
+    .activity-row img { width: 100%; height: clamp(40px, 3.2vw, 52px); }
+    .activity-row .health-status { justify-self: start; }
+    .activity-row .activity-time { overflow-wrap: anywhere; }
+    .overview-panels .health-distribution { display: block; padding: 12px 18px; }
+    .health-donut { display: none; }
+    .admin-health-strip {
+      display: flex;
+      height: 30px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      border-radius: 7px;
+    }
+    .admin-health-strip span {
+      flex: 0 0 var(--share);
+      overflow: hidden;
+      align-content: center;
+      white-space: nowrap;
+      text-align: center;
+      font-weight: 800;
+      color: white;
+      background: #c82f43;
+    }
+    .admin-health-strip span + span { background: #207e4b; }
+    .health-legend-detail .health-legend-row {
+      display: grid;
+      grid-template-columns: 9px minmax(128px, .8fr) minmax(40px, 1.4fr) 3ch;
+      align-items: center;
+      column-gap: 8px;
+    }
+    .health-legend-detail strong { text-align: right; }
+    .admin-category-track { display: block; height: 8px; background: #e5eae6; border-radius: 5px; overflow: hidden; }
+    .admin-category-track i { display: block; height: 100%; border-radius: inherit; }
+  }
+
+  @supports (position-anchor: --admin-welcome) {
+    .web-app-shell:has(#admin-dashboard.active) .oryzatix-assistant-shortcut:not(.ory-positioned) {
+      position: absolute;
+      position-anchor: --admin-welcome;
+      width: 124px;
+      height: 104px;
+      inset: calc(anchor(center) - 52px) calc(anchor(right) + 20px) auto auto;
+    }
+  }
+  .web-app-shell[data-user-role="admin"] .oryzatix-assistant-shortcut__intro {
+    left: auto;
+    right: 90%;
+    bottom: 64%;
+    transform-origin: right bottom;
+  }
+  .web-app-shell[data-user-role="admin"] .oryzatix-assistant-shortcut__intro::after {
+    left: auto;
+    right: -6px;
+    transform: rotate(-45deg);
+  }
+}
