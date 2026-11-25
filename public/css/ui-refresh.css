@@ -1455,6 +1455,11 @@ button:disabled { cursor: not-allowed; }
 }
 
 /* The admin desktop workspace uses the same navigation buttons and data as the other layouts. */
+@keyframes admin-field-drift {
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+
 @media (min-width: 1024px) {
   .web-app-shell[data-user-role="admin"]:not(.auth-mode) {
     --admin-masthead: 62px;
@@ -1526,7 +1531,6 @@ button:disabled { cursor: not-allowed; }
     .topbar-user-btn .topbar-user-role { color: #ddf1e1; }
     &:has(#admin-dashboard.active) .topbar-title {
       display: block;
-      font-size: clamp(20px, 1.75vw, 26px);
       font-weight: 700;
       letter-spacing: -.45px;
     }
@@ -1555,17 +1559,21 @@ button:disabled { cursor: not-allowed; }
       gap: clamp(24px, 3vw, 48px);
       border: 1px solid #345e40;
       border-radius: 22px;
-      background: linear-gradient(110deg, #20492f, #366b41);
+      background: linear-gradient(112deg, #093c30 5%, #11583d 45%, #347346 78%, #687b39);
     }
     .admin-header-banner::after {
-      width: 57%;
-      opacity: 1;
-      background: linear-gradient(90deg, #2e6541e0, #295e36aa),
-                  url('../images/auth-bg.jpg') center 57% / cover;
+      width: 70%;
+      opacity: .55;
+      background: url('../images/auth-bg.jpg') center 57% / cover;
+      mask-image: linear-gradient(to right, transparent, #000 65%);
     }
     .admin-header-banner::before {
-      background-size: 70% auto;
-      opacity: .65;
+      inset: 0 -6%;
+      background: radial-gradient(ellipse at 65% 75%, rgba(240, 197, 91, .24), transparent 48%),
+                  url('../images/field-contours.svg') right center / 66% auto no-repeat;
+      @media (prefers-reduced-motion: no-preference) {
+        animation: admin-field-drift 14s ease-in-out infinite alternate;
+      }
     }
     .admin-banner-content { flex: 1 1 0; max-width: 45rem; overflow-wrap: anywhere; }
     .admin-badge-pill { margin-bottom: 10px; color: #deebde; }
@@ -1581,25 +1589,20 @@ button:disabled { cursor: not-allowed; }
       line-height: 1.55;
     }
     .hero-actions {
-      display: flex;
-      flex: 0 1 44%;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: clamp(12px, 1.5vw, 24px);
-      width: clamp(380px, 44%, 560px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      width: clamp(190px, 17vw, 250px);
       margin-left: auto;
     }
     .hero-actions button {
-      flex: 1 1 0;
       justify-content: center;
       min-height: 52px;
       border-radius: 12px;
     }
     .hero-actions .scan-action-btn,
     .hero-actions .hero-secondary-btn { width: 100%; min-width: 0; }
-    .hero-secondary-btn { background: #214f3380; border-color: #dec97a; color: white; }
+    .hero-secondary-btn { background: #103e2ee0; border-color: #dec97a; color: white; }
     .hero-secondary-btn:hover { background: #20492f; }
     .dashboard-status { grid-row: 3; }
     .dashboard-summary > .admin-stats-grid {
