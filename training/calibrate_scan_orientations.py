@@ -32,16 +32,21 @@ def calibrate(probs, truth, keys):
     return thresholds
 
 
-def metrics(probs, truth, keys, thresholds):
+def metrics(probs, truth, keys, thresholds, vote_counts=None, minimum_votes=0):
     predicted = probs.argmax(axis=1)
     accepted = np.array([thresholds.get(keys[i]) is not None and float(row[i]) >= thresholds[keys[i]]
                          for row, i in zip(probs, predicted)])
+    if minimum_votes:
+        accepted &= vote_counts >= minimum_votes
     per_class = {}
     for i, key in enumerate(keys):
         selected = predicted == i
         actual = truth == i
+        accepted_class = selected & accepted
         per_class[key] = {'images': int(actual.sum()), 'recall': float((predicted[actual] == i).mean()),
-                          'precision': float((truth[selected] == i).mean()) if selected.any() else None}
+                          'precision': float((truth[selected] == i).mean()) if selected.any() else None,
+                          'accepted': int(accepted_class.sum()),
+                          'accepted_precision': float((truth[accepted_class] == i).mean()) if accepted_class.any() else None}
     rice = np.array([keys[i] != 'not_rice_leaf' for i in truth])
     return {'images': len(truth), 'accuracy': float((predicted == truth).mean()),
             'rice_disease_accuracy': float((predicted[rice] == truth[rice]).mean()),
@@ -75,6 +80,7 @@ def main():
               'manifest_sha256': hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
               'selection_split': 'validation', 'scope': 'Disease classifier only; existing quality and rice gate remain unchanged.'}
     selected = 1
+    minimum_votes = 0
     for split in ('validation', 'test'):
         subset = [r for r in rows if r['split'] == split]
         results = []
@@ -97,15 +103,23 @@ def main():
             candidate_thresholds = calibrate(candidate, truth, keys)
         before = metrics(baseline, truth, keys, baseline_thresholds)
         after = metrics(candidate, truth, keys, candidate_thresholds)
-        report[split] = {'single_view': before, 'four_views': after}
+        vote_counts = (results.argmax(axis=2) == candidate.argmax(axis=1)[:, None]).sum(axis=1)
+        majority = metrics(candidate, truth, keys, candidate_thresholds, vote_counts, 3)
+        report[split] = {'single_view': before, 'four_views': after, 'four_views_majority': majority}
         if split == 'validation':
             selected = 4 if (after['macro_recall'] > before['macro_recall'] and
                              after['correct_accepted'] >= before['correct_accepted'] and
                              after['accepted_precision'] >= .95) else 1
-            print(f'Validation selected {selected} view(s)', flush=True)
+            supported = [majority['per_class'][key] for key in keys if key != 'not_rice_leaf']
+            if (selected == 4 and majority['accepted_precision'] is not None
+                    and majority['accepted_precision'] > after['accepted_precision']
+                    and all(row['accepted'] >= 20 and row['accepted_precision'] >= .95 for row in supported)):
+                minimum_votes = 3
+            print(f'Validation selected {selected} view(s) and minimum {minimum_votes} votes', flush=True)
     report['selected_orientation_views'] = selected
+    report['minimum_orientation_votes'] = minimum_votes
     (args.output / 'evaluation.json').write_text(json.dumps(report, indent=2) + '\n')
-    thresholds['disease'].update({'orientation_views': selected,
+    thresholds['disease'].update({'orientation_views': selected, 'minimum_orientation_votes': minimum_votes,
         'thresholds': candidate_thresholds if selected == 4 else baseline_thresholds,
         'threshold_policy': f'{selected} full-image orientation(s); minimum 20 validation accepts per class at 95% empirical precision.',
         'validation_image_count': sum(r['split'] == 'validation' for r in rows),

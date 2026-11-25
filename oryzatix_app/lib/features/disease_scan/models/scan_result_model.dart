@@ -1,3 +1,5 @@
+import '../../../core/models/scan_severity.dart';
+
 class TreatmentItem {
   final String name;
   final String desc;
@@ -71,17 +73,13 @@ class ScanResultModel {
     final isRec = json['recognized'] == true &&
         json['rice_leaf_validated'] == true &&
         scan['recognized'] == true;
-    final rawSeverity = scan['severity']?.toString().toLowerCase();
+    final severity = ScanSeverity.fromJson(scan);
     final diseaseKey = scan['disease_key']?.toString() ?? 'unknown';
     final disease = scan['disease']?.toString() ?? 'Rice Leaf';
-    final isHealthy = rawSeverity == 'healthy' || diseaseKey == 'healthy' ||
-        disease.toLowerCase().contains('healthy');
-    final area = double.tryParse(scan['affected_percentage']?.toString() ?? '');
-    final hasValidatedSeverity = scan['severity_status'] == 'expert_validated' &&
-        ['mild', 'moderate', 'severe'].contains(rawSeverity) &&
-        area != null && area.isFinite && area >= 0 && area <= 100;
 
-    final treatObj = scan['treatments'] as Map<String, dynamic>? ?? {};
+    final treatObj = severity.allowsRecordedTreatments
+        ? scan['treatments'] as Map<String, dynamic>? ?? {}
+        : const <String, dynamic>{};
     final chemList = (treatObj['chemical'] as List? ?? [])
         .map((e) => TreatmentItem.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -98,16 +96,18 @@ class ScanResultModel {
       disease: disease,
       scientific: scan['scientific']?.toString(),
       confidence: scan['confidence']?.toString() ?? 'N/A',
-      severity: isHealthy ? 'healthy' : (hasValidatedSeverity ? rawSeverity! : 'unassessed'),
-      severityStatus: isHealthy ? 'not_applicable' : (hasValidatedSeverity ? 'expert_validated' : 'unassessed'),
-      affectedPercentage: hasValidatedSeverity ? area.toStringAsFixed(1) : null,
+      severity: severity.level,
+      severityStatus: severity.status,
+      affectedPercentage: severity.affectedPercentage,
       imageUrl: scan['image_url']?.toString(),
       analysisSource: scan['analysis_source']?.toString() ?? 'reference_match',
       date: scan['date']?.toString() ?? '',
       time: scan['time']?.toString() ?? '',
       chemicalTreatments: chemList,
       organicTreatments: orgList,
-      allSeverityTreatments: scan['all_severity_treatments'] as Map<String, dynamic>?,
+      allSeverityTreatments: severity.allowsRecordedTreatments
+          ? scan['all_severity_treatments'] as Map<String, dynamic>?
+          : null,
       localOnly: scan['local_only'] == true,
       localImagePath: scan['image_path']?.toString(),
     );

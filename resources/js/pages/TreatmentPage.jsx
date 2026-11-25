@@ -4,11 +4,11 @@ import { useScan } from '../context/ScanContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppLayout from '../components/AppLayout';
 import BottomNav from '../components/BottomNav';
-import { getDefaultTreatments } from '../utils/diseases';
+import { getScanSeverity, getScanTreatments, scanSeverityLabel } from '../utils/diseases';
 
 export default function TreatmentPage() {
     const { currentScan } = useScan();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const navigate = useNavigate();
     const [tab, setTab] = useState('chemical');
     const scan = currentScan;
@@ -21,29 +21,12 @@ export default function TreatmentPage() {
 
     if (!scan || scan.recognized === false) return null;
 
-    const affectedArea = Number(scan.affected_percentage);
-    const measuredSeverity = scan.severity_status === 'expert_validated'
-        && scan.affected_percentage !== null
-        && scan.affected_percentage !== undefined
-        && scan.affected_percentage !== ''
-        && Number.isFinite(affectedArea)
-        && affectedArea >= 0
-        && affectedArea <= 100
-        ? (affectedArea <= 25 ? 'mild' : affectedArea <= 60 ? 'moderate' : 'severe')
-        : null;
-    const severityLevel = measuredSeverity || String(scan.severity || '').trim().toLowerCase();
-    const hasSeverityResult = ['mild', 'moderate', 'severe'].includes(severityLevel);
-    const suppliedTreatments = scan.treatments || {};
-    const hasSuppliedTreatments = (suppliedTreatments.chemical || []).length > 0 || (suppliedTreatments.organic || []).length > 0;
-    const treatments = hasSuppliedTreatments
-        ? suppliedTreatments
-        : hasSeverityResult
-            ? getDefaultTreatments(scan.disease_key || 'blast', severityLevel)
-            : suppliedTreatments;
+    const severity = getScanSeverity(scan);
+    const treatments = getScanTreatments(scan, severity);
 
     const lower = (scan.disease || '').toLowerCase();
     let iconCls = 'blast-bg';
-    if (lower.includes('healthy')) { iconCls = 'healthy-bg'; }
+    if (severity.level === 'healthy') { iconCls = 'healthy-bg'; }
     else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) { iconCls = 'blb-bg'; }
 
     const renderItems = (items) => (items || []).map((it, i) => (
@@ -69,14 +52,18 @@ export default function TreatmentPage() {
                     </div>
                     <div className="treat-disease-info">
                         <h3>{scan.disease}</h3>
-                        <p>{(scan.scientific || scan.disease) + ' · Severity: ' + (scan.severity || 'severe')}</p>
+                        <p>{scan.scientific && `${scan.scientific} · `}{scanSeverityLabel(severity, lang)}</p>
                     </div>
                 </div>
                 <div className="treatment-tabs">
                     <button type="button" className={tab === 'chemical' ? 'active' : ''} onClick={() => setTab('chemical')}>{t('Chemical', 'Kemikal')}</button>
                     <button type="button" className={tab === 'organic' ? 'active' : ''} onClick={() => setTab('organic')}>{t('Organic / Cultural', 'Organiko / Kultural')}</button>
                 </div>
-                <div className="treatment-list">{tab === 'chemical' ? renderItems(treatments.chemical) : renderItems(treatments.organic)}</div>
+                <div className="treatment-list">
+                    {severity.source === 'model_estimated' || severity.level === 'unassessed'
+                        ? <p>{t('Ask an agriculturist to assess the leaf before choosing a treatment by severity.', 'Ipasuri muna ang dahon sa isang agriculturist bago pumili ng lunas ayon sa tindi.')}</p>
+                        : renderItems(treatments[tab])}
+                </div>
                 <BottomNav />
             </div>
         </AppLayout>

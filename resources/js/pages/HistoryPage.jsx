@@ -6,9 +6,10 @@ import { useScan } from '../context/ScanContext';
 import AppLayout from '../components/AppLayout';
 import BottomNav from '../components/BottomNav';
 import { resolveImageUrl } from '../utils/helpers';
+import { getScanSeverity, scanSeverityLabel } from '../utils/diseases';
 
 export default function HistoryPage() {
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const { setCurrentScan, recentScansTick } = useScan();
     const navigate = useNavigate();
     const location = useLocation();
@@ -44,20 +45,7 @@ export default function HistoryPage() {
     }, [loadHistory, location.key, recentScansTick]);
 
     const openScan = (scan) => {
-        setCurrentScan({
-            id: scan.id,
-            disease: scan.disease,
-            disease_key: scan.disease_key,
-            scientific: scan.scientific,
-            confidence: scan.confidence,
-            severity: scan.severity,
-            severity_status: scan.severity_status,
-            severity_model_version: scan.severity_model_version,
-            severity_class: scan.severity_class,
-            image_url: scan.image_url,
-            treatments: scan.treatments,
-            date: scan.date,
-        });
+        setCurrentScan(scan);
         navigate('/results');
     };
 
@@ -79,14 +67,14 @@ export default function HistoryPage() {
 
         if (activeFilter !== 'all') {
             result = result.filter((s) => {
-                const sev = (s.severity || '').toLowerCase();
+                const sev = getScanSeverity(s).level;
                 const dis = (s.disease || '').toLowerCase();
-                if (activeFilter === 'healthy') return sev === 'healthy' || dis.includes('healthy');
+                if (activeFilter === 'healthy') return sev === 'healthy';
                 if (activeFilter === 'mild') return sev === 'mild';
                 if (activeFilter === 'moderate') return sev === 'moderate';
                 if (activeFilter === 'severe') return sev === 'severe';
                 if (activeFilter === 'blast') return dis.includes('blast');
-                if (activeFilter === 'blb') return dis.includes('blight') || dis.includes('blb');
+                if (activeFilter === 'blb') return s.disease_key === 'blb' || dis.includes('bacterial leaf blight') || dis.includes('blb');
                 if (activeFilter === 'brown_spot') return dis.includes('brown') || dis.includes('spot');
                 if (activeFilter === 'sheath_blight') return dis.includes('sheath');
                 if (activeFilter === 'tungro') return dis.includes('tungro');
@@ -99,13 +87,13 @@ export default function HistoryPage() {
                 const dis = (s.disease || '').toLowerCase();
                 const sci = (s.scientific || '').toLowerCase();
                 const date = (s.date || s.dateLabel || '').toLowerCase();
-                const sev = (s.severity || '').toLowerCase();
+                const sev = scanSeverityLabel(getScanSeverity(s), lang).toLowerCase();
                 return dis.includes(q) || sci.includes(q) || date.includes(q) || sev.includes(q);
             });
         }
 
         return result;
-    }, [allScans, searchQuery, activeFilter]);
+    }, [allScans, searchQuery, activeFilter, lang]);
 
     const totalPages = Math.ceil(filteredScans.length / pageSize) || 1;
     const startIndex = (currentPage - 1) * pageSize;
@@ -163,17 +151,9 @@ export default function HistoryPage() {
         setCurrentPage(1);
     };
 
-    const renderSeverityBadge = (sev) => {
-        if (sev === 'healthy') {
-            return <span className="sev-badge healthy">{t('Healthy Leaf', 'Malusog')}</span>;
-        }
-        if (sev === 'mild') {
-            return <span className="sev-badge mild">{t('Mild (≤ 25%)', 'Banayad (≤ 25%)')}</span>;
-        }
-        if (sev === 'moderate') {
-            return <span className="sev-badge moderate">{t('Moderate (26% – 60%)', 'Katamtaman (26% – 60%)')}</span>;
-        }
-        return <span className="sev-badge severe">{t('Severe (> 60%)', 'Malubha (> 60%)')}</span>;
+    const renderSeverityBadge = (scan) => {
+        const severity = getScanSeverity(scan);
+        return <span className={`sev-badge ${severity.level}`}>{scanSeverityLabel(severity, lang)}</span>;
     };
 
     const renderPaginationNumbers = () => {
@@ -318,11 +298,11 @@ export default function HistoryPage() {
                                                     {scan.disease}
                                                 </div>
                                                 <div className="ht-scientific-name">
-                                                    {scan.scientific ? <em>{scan.scientific}</em> : (scan.severity === 'healthy' ? t('Optimal Plant Health', 'Malusog na Halaman') : t('Reference image match', 'Katugmang reference image'))}
+                                                    {scan.scientific && <em>{scan.scientific}</em>}
                                                 </div>
                                             </td>
                                             <td>
-                                                {renderSeverityBadge(scan.severity)}
+                                                {renderSeverityBadge(scan)}
                                             </td>
                                             <td>
                                                 <div className="ht-date">{scan.date || scan.dateLabel || 'Today'}</div>

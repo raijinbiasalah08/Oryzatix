@@ -59,6 +59,12 @@ class RiceScanController extends Controller
             'en' => 'This image does not match a supported rice-leaf class. Use a clear photo of a rice leaf.',
             'tl' => 'Hindi tumutugma ang larawang ito sa mga suportadong klase ng dahon ng palay. Gumamit ng malinaw na larawan ng dahon ng palay.',
         ];
+        if ($reason === 'uncertain_prediction' && ($details['model_reason'] ?? null) === 'orientation_disagreement') {
+            $message = [
+                'en' => 'The model gave different disease labels for different views of this leaf. Retake a close-up of one leaf in even light.',
+                'tl' => 'Magkakaiba ang natukoy na sakit nang suriin ang larawan sa iba’t ibang anggulo. Kumuha muli ng malapit na larawan ng isang dahon sa pantay na liwanag.',
+            ];
+        }
 
         $validation = $details['validation'] ?? null;
         $quality = $details['quality'] ?? null;
@@ -1290,12 +1296,14 @@ class RiceScanController extends Controller
                 $isModelPrediction = true;
             } else {
                 $predictionDetails['diagnosis'] = $scanPrediction['diagnosis'] ?? null;
+                $predictionDetails['model_reason'] = $scanPrediction['reason'] ?? null;
             }
 
             // Exact-content references stay supported (including Leaf Blast),
             // but only after the separate rice/quality gate has passed. Their
-            // disease confidence is unknown, so it must stay null.
-            if (!$selectedDiseaseKey) {
+            // disease confidence is unknown, so it must stay null. Folder labels
+            // must not turn disagreement between orientations into a diagnosis.
+            if (!$selectedDiseaseKey && ($scanPrediction['reason'] ?? '') !== 'orientation_disagreement') {
                 $allDatasets = [
                     'blb' => $this->getBlbDatasetMetadata(),
                     'brown_spot' => $this->getBrownSpotDatasetMetadata(),
@@ -1346,7 +1354,7 @@ class RiceScanController extends Controller
         $severity = $selectedDiseaseKey === 'healthy' ? 'healthy' : 'unassessed';
         $severityStatus = $selectedDiseaseKey === 'healthy' ? 'not_applicable' : 'unassessed';
         $severityEstimate = $scanPrediction['severity'] ?? null;
-        if ($selectedDiseaseKey !== 'healthy' && is_array($severityEstimate)
+        if ($isModelPrediction && $selectedDiseaseKey !== 'healthy' && is_array($severityEstimate)
             && ($severityEstimate['source'] ?? null) === 'model_estimated'
             && ($severityEstimate['version'] ?? null) === 'severity_experimental_v1'
             && in_array($severityEstimate['level'] ?? null, ['mild', 'moderate', 'severe'], true)) {
@@ -1354,28 +1362,14 @@ class RiceScanController extends Controller
             $severityStatus = 'model_estimated';
         }
 
-        // Use the resolved severity category to select matching guidance. The
-        // disease and severity models remain separate, but treatment guidance
-        // should follow the category returned with this scan.
+        // The photo estimate has no expert-reviewed severity calibration.
+        // Level-specific guidance becomes available after a manual assessment.
         $treatments = $selectedDiseaseKey === 'healthy'
             ? ($disease['treatments'] ?? ['chemical' => [], 'organic' => []])
             : ['chemical' => [], 'organic' => []];
         $managementPractices = null;
         $agriculturalStrategies = null;
         $productivityImpact = null;
-
-        if (in_array($severity, ['mild', 'moderate', 'severe'], true)
-            && in_array($selectedDiseaseKey, ['blb', 'sheath_blight', 'tungro', 'blast', 'brown_spot'], true)
-            && isset($disease['severity_levels'][$severity])) {
-            $treatments = [
-                'chemical' => $disease['severity_levels'][$severity]['chemical'],
-                'organic' => $disease['severity_levels'][$severity]['organic'],
-                'level_info' => $disease['severity_levels'][$severity],
-            ];
-            $managementPractices = $disease['severity_levels'][$severity]['management_practices'] ?? null;
-            $agriculturalStrategies = $disease['severity_levels'][$severity]['agricultural_strategies'] ?? null;
-            $productivityImpact = $disease['severity_levels'][$severity]['productivity_harvest_impact'] ?? null;
-        }
 
         if ($matchedEntry && $selectedDiseaseKey === 'healthy') {
             if (!empty($matchedEntry['recommended_treatments'])) {
@@ -1460,9 +1454,11 @@ class RiceScanController extends Controller
                 'disease_confidence' => $confidence !== null ? number_format($confidence, 1) : null,
                 'severity' => $severity,
                 'severity_status' => $severityStatus,
-                'severity_message' => $severityStatus === 'unassessed'
-                    ? 'Disease detected: Not Healthy Leaf. Severity level has not been assessed.'
-                    : null,
+                'severity_message' => match ($severityStatus) {
+                    'model_estimated' => 'Experimental photo estimate. Confirm severity with an agriculturist before choosing treatment.',
+                    'unassessed' => 'Severity level has not been assessed.',
+                    default => null,
+                },
                 'affected_percentage' => null,
                 'severity_class' => $severity . '-bg',
                 'severity_model_version' => $severityStatus === 'model_estimated' ? 'severity_experimental_v1' : null,
@@ -1513,14 +1509,13 @@ class RiceScanController extends Controller
 
             foreach ($scans as $date => $dateScans) {
                 $formattedScans[$date] = $dateScans->map(function ($scan) {
-                    $diseaseLower = strtolower($scan->disease_name);
-                    $isHealthy = $scan->severity === 'healthy' || str_contains($diseaseLower, 'healthy');
+                    $diseaseKey = $this->diseaseKeyFromName($scan->disease_name);
+                    $isHealthy = $diseaseKey === 'healthy' || (!$scan->disease_name && $scan->severity === 'healthy');
                     $manual = $scan->severity_source === 'user_assessed' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
                     $estimated = $scan->severity_source === 'model_estimated' && in_array($scan->severity, ['mild', 'moderate', 'severe'], true);
                     $displaySeverity = $isHealthy ? 'healthy' : (($manual || $estimated) ? $scan->severity : 'unassessed');
                     $severityClass = $displaySeverity . '-bg';
-                    $diseaseKey = $this->diseaseKeyFromName($scan->disease_name);
-                    $severityInfo = !$isHealthy && ($manual || $estimated) && $diseaseKey
+                    $severityInfo = !$isHealthy && $manual && $diseaseKey
                         ? ($this->diseases[$diseaseKey]['severity_levels'][$displaySeverity] ?? null)
                         : null;
                     $scanTreatments = $severityInfo
@@ -1545,7 +1540,12 @@ class RiceScanController extends Controller
                         'advisory' => str_starts_with((string) $scan->notes, '[DA Extension Note by ') ? $scan->notes : null,
                         'severity' => $displaySeverity,
                         'severity_status' => $isHealthy ? 'not_applicable' : ($estimated ? 'model_estimated' : ($manual ? 'user_assessed' : 'unassessed')),
-                        'severity_label' => $isHealthy ? 'Healthy Leaf' : (($estimated || $manual) ? ucfirst($displaySeverity) : 'Not assessed'),
+                        'severity_label' => match (true) {
+                            $isHealthy => 'Healthy Leaf',
+                            $estimated => ucfirst($displaySeverity).' (experimental estimate)',
+                            $manual => ucfirst($displaySeverity).' (manual)',
+                            default => 'Not assessed',
+                        },
                         'severity_model_version' => $estimated ? 'severity_experimental_v1' : null,
                         'affected_percentage' => null,
                         'severity_class' => $severityClass,
@@ -1576,28 +1576,24 @@ class RiceScanController extends Controller
             'model_version' => 'required_if:source,model_estimated|in:severity_experimental_v1',
         ]);
         $scan = RiceScan::where('user_id', $userId)->findOrFail($id);
-        if ($scan->severity === 'healthy' || str_contains(strtolower($scan->disease_name), 'healthy')) {
+        if ($this->diseaseKeyFromName($scan->disease_name) === 'healthy' || (!$scan->disease_name && $scan->severity === 'healthy')) {
             return response()->json(['message' => 'Healthy scans do not need a disease severity assessment.'], 422);
         }
         $source = $data['source'] ?? 'user_assessed';
         if ($source === 'model_estimated' && $data['severity'] === 'unassessed') {
             return response()->json(['message' => 'A model estimate must contain a severity category.'], 422);
         }
-        if ($source === 'model_estimated' && $scan->severity_source === 'user_assessed') {
-            return response()->json([
-                'success' => true,
-                'severity' => $scan->severity,
-                'severity_status' => 'user_assessed',
-            ]);
+        $updates = ['severity' => $data['severity'], 'severity_source' => $data['severity'] === 'unassessed' ? null : $source];
+        $query = RiceScan::whereKey($id)->where('user_id', $userId);
+        if ($source === 'model_estimated') {
+            // Check provenance on the write so a late estimate cannot replace a manual assessment.
+            $query->where(fn ($q) => $q->whereNull('severity_source')->orWhere('severity_source', '!=', 'user_assessed'));
         }
-        $scan->severity = $data['severity'];
-        $scan->severity_source = $scan->severity === 'unassessed'
-            ? null
-            : ($source === 'model_estimated' ? 'model_estimated' : 'user_assessed');
-        $scan->save();
+        $query->update($updates);
+        $scan->refresh();
         return response()->json(['success' => true, 'severity' => $scan->severity,
             'severity_status' => $scan->severity === 'unassessed' ? 'unassessed' : $scan->severity_source,
-            'severity_model_version' => $source === 'model_estimated' ? $data['model_version'] : null]);
+            'severity_model_version' => $scan->severity_source === 'model_estimated' ? 'severity_experimental_v1' : null]);
     }
 
     public function destroy($id): JsonResponse
@@ -1713,13 +1709,15 @@ class RiceScanController extends Controller
             }
         }
 
+        if (in_array($normalized, ['healthy', 'healthy rice', 'healthy leaf', 'healthy rice leaf', 'healthy leaves', 'healthy rice leaves'], true)) {
+            return 'healthy';
+        }
         foreach ([
             'blast' => ['leaf blast', 'rice blast'],
             'blb' => ['bacterial leaf blight', 'bacterial blight'],
             'brown_spot' => ['brown spot'],
             'sheath_blight' => ['sheath blight'],
             'tungro' => ['tungro'],
-            'healthy' => ['healthy'],
         ] as $key => $aliases) {
             foreach ($aliases as $alias) {
                 if (str_contains($normalized, $alias)) {

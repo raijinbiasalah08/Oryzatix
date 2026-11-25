@@ -1,12 +1,12 @@
-/** Panel dataset: 4 diseases + healthy (~1k images per class). */
+/** Disease classes supported by the scanner. */
 export const SUPPORTED_DATASET_KEYS = ['blast', 'blb', 'brown_spot', 'sheath_blight', 'tungro', 'healthy'];
 
 export const ALL_DISEASES = {
-    blast: { key: 'blast', name: 'Leaf Blast', scientific: 'Magnaporthe oryzae', severity: 'severe' },
-    blb: { key: 'blb', name: 'Bacterial Leaf Blight', scientific: 'Xanthomonas oryzae pv. oryzae', severity: 'moderate' },
-    brown_spot: { key: 'brown_spot', name: 'Brown Spot', scientific: 'Bipolaris oryzae', severity: 'moderate' },
-    sheath_blight: { key: 'sheath_blight', name: 'Sheath Blight', scientific: 'Rhizoctonia solani', severity: 'moderate' },
-    tungro: { key: 'tungro', name: 'Rice Tungro Disease', scientific: 'RTBV + RTSV viruses', severity: 'severe' },
+    blast: { key: 'blast', name: 'Leaf Blast', scientific: 'Magnaporthe oryzae', severity: 'unassessed' },
+    blb: { key: 'blb', name: 'Bacterial Leaf Blight', scientific: 'Xanthomonas oryzae pv. oryzae', severity: 'unassessed' },
+    brown_spot: { key: 'brown_spot', name: 'Brown Spot', scientific: 'Bipolaris oryzae', severity: 'unassessed' },
+    sheath_blight: { key: 'sheath_blight', name: 'Sheath Blight', scientific: 'Rhizoctonia solani', severity: 'unassessed' },
+    tungro: { key: 'tungro', name: 'Rice Tungro Disease', scientific: 'RTBV + RTSV viruses', severity: 'unassessed' },
     healthy: { key: 'healthy', name: 'Healthy', scientific: null, severity: 'healthy' },
 };
 
@@ -33,7 +33,53 @@ export function getUnsupportedScan(previewUrl, message, messageTl) {
     };
 }
 
-export function getDefaultTreatments(key, severity = 'moderate') {
+export function getScanSeverity(scan) {
+    const level = String(scan.severity || '').trim().toLowerCase();
+    const name = String(scan.disease || scan.disease_name || '').trim().toLowerCase();
+    const key = String(scan.disease_key || '').trim().toLowerCase();
+    const healthy = key && key !== 'unknown' ? key === 'healthy'
+        : name ? ['healthy', 'healthy rice', 'healthy leaf', 'healthy leaves', 'healthy rice leaf', 'healthy rice leaves'].includes(name) : level === 'healthy';
+    if (healthy) return { level: 'healthy', source: 'not_applicable' };
+
+    const source = scan.severity_status ?? scan.severity_source;
+    if (source === 'expert_validated') {
+        const rawArea = scan.affected_percentage;
+        const area = typeof rawArea === 'number' || (typeof rawArea === 'string' && rawArea.trim()) ? Number(rawArea) : NaN;
+        if (Number.isFinite(area) && area >= 0 && area <= 100) {
+            return { level: area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe', source };
+        }
+    }
+    if (['user_assessed', 'expert_validated', 'model_estimated'].includes(source) && ['mild', 'moderate', 'severe'].includes(level)) {
+        return { level, source };
+    }
+    return { level: 'unassessed', source: 'unassessed' };
+}
+
+export function scanSeverityLabel({ level, source }, lang) {
+    const tl = lang === 'tagalog';
+    if (level === 'healthy') return tl ? 'Malusog na dahon' : 'Healthy leaf';
+    if (level === 'unassessed') return tl ? 'Hindi pa natatasa' : 'Not assessed';
+    const label = tl ? { mild: 'Bahagya', moderate: 'Katamtaman', severe: 'Malala' }[level]
+        : level.charAt(0).toUpperCase() + level.slice(1);
+    const by = {
+        model_estimated: tl ? 'Eksperimental na tantiya ng AI' : 'Experimental AI estimate',
+        user_assessed: tl ? 'Tasa ng gumagamit' : 'User assessment',
+        expert_validated: tl ? 'Tasa ng eksperto' : 'Expert assessment',
+    };
+    return `${label} · ${by[source]}`;
+}
+
+export function getScanTreatments(scan, severity) {
+    const empty = { chemical: [], organic: [] };
+    if (severity.source === 'model_estimated' || severity.level === 'unassessed') return empty;
+    const supplied = scan.treatments;
+    if (supplied?.chemical?.length || supplied?.organic?.length) return supplied;
+    if (severity.level === 'healthy' || !SUPPORTED_DATASET_KEYS.includes(scan.disease_key)) return empty;
+    return getDefaultTreatments(scan.disease_key, severity.level);
+}
+
+export function getDefaultTreatments(key, severity) {
+    if (!['mild', 'moderate', 'severe'].includes(severity)) return { chemical: [], organic: [] };
     if (key === 'blast') {
         if (severity === 'mild') {
             return {

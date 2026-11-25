@@ -22,6 +22,10 @@ The reproducible report is in `training/reports/scanner-orientations-2026-10-31/
 .\.venv-training\Scripts\python.exe training/calibrate_scan_orientations.py --manifest outputs/brown-spot-retraining-2026-10-23/candidate-01/training_manifest.csv --output outputs/scanner-orientation-candidate
 ```
 
+For the November 4 classifier, a diagnosis requires three of four full-image rotations to vote for the mean-probability winner as well as meeting that class’s calibrated confidence threshold. A split vote returns an uncertain prediction. The calibration script compares this majority rule on validation and reports its coverage and accepted precision on the held-out split. Files that omit `minimum_orientation_votes` retain their prior confidence-only decision.
+
+On the frozen 4,263-image test split for model `d15fbacd`, the class thresholds alone accepted 3,711 predictions, including 105 errors. Adding the vote requirement accepted 3,646, including 75 errors. Correctness among accepted predictions rose from 97.17% to 97.94%. The scanner withheld 35 additional correct predictions along with 30 incorrect ones. These figures evaluate the disease classifier on the existing dataset. Field performance and severity accuracy need separate evaluation.
+
 The command writes candidate thresholds without deploying them. Only use four-view thresholds with the same disease model; server inference rejects a mismatched model hash. After retraining, recalibrate before replacing model assets. Legacy threshold files without `orientation_views` retain single-view behavior.
 
 Oryzatix uses two separate MobileNetV2 models during server-side scans: a binary rice-leaf versus non-rice-image validator, followed by the existing disease classifier. The disease classifier is not treated as a non-rice rejection model. The scan pipeline also applies an image-focus check and rejects malformed probabilities or predictions below validation-derived class thresholds.

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -110,11 +112,22 @@ void main() {
   });
 
   test('deleting a scan refreshes the history counters', () async {
+    final documents = await Directory.systemTemp.createTemp('oryzatix-history-test-');
+    const channel = MethodChannel('plugins.flutter.io/path_provider');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async => documents.path);
+    addTearDown(() async {
+      messenger.setMockMethodCallHandler(channel, null);
+      final records = Directory('${documents.path}/oryzatix_guest_scans');
+      if (await records.exists()) await records.delete();
+      await documents.delete();
+    });
     var loads = 0;
     var deleted = false;
     await http.runWithClient(() async {
       final history = HistoryProvider();
-      await waitUntil(() => loads > 0 && !history.isLoading);
+      await history.loadHistory();
+      expect(loads, 1);
       expect(history.stats.total, 1);
       expect(await history.deleteScan(7), isTrue);
       expect(history.stats.total, 0);

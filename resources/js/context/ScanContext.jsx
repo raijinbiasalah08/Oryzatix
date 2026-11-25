@@ -23,22 +23,7 @@ export function ScanProvider({ children }) {
     const markScanSaved = useCallback((scan) => {
         if (!scan) return;
 
-        const item = {
-            id: scan.id,
-            disease: scan.disease,
-            time: scan.time,
-            severity: scan.severity,
-            severity_status: scan.severity_status,
-            severity_model_version: scan.severity_model_version,
-            image_url: scan.image_url,
-            scientific: scan.scientific,
-            confidence: scan.confidence,
-            severity_class: scan.severity_class,
-            treatments: scan.treatments,
-            date: scan.date,
-        };
-
-        setRecentScans((prev) => [item, ...prev.filter((s) => s.id !== item.id)]);
+        setRecentScans((prev) => [scan, ...prev.filter((s) => s.id !== scan.id)]);
         setRecentScansTick((tick) => tick + 1);
     }, []);
 

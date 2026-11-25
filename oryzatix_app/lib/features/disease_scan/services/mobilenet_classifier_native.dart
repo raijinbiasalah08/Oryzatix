@@ -139,10 +139,11 @@ class MobileNetClassifier {
     final minimumConfidence = minimumConfidenceValue is num
         ? minimumConfidenceValue.toDouble()
         : null;
-    final agreement = predictedClasses
-            .where((index) => index == bestIndex)
-            .length /
-        predictedClasses.length;
+    final votes = predictedClasses.where((index) => index == bestIndex).length;
+    final minimumVotes = _thresholds['disease']?['minimum_orientation_votes'] ?? 0;
+    if (minimumVotes is! int || minimumVotes < 0 || minimumVotes > orientationViews) {
+      throw StateError('The bundled model has an invalid orientation vote requirement.');
+    }
 
     String reason = 'validated_prediction';
     var status = 'diagnosed';
@@ -152,6 +153,9 @@ class MobileNetClassifier {
     } else if (minimumConfidence == null) {
       status = 'uncertain_prediction';
       reason = 'no_validated_threshold_for_predicted_class';
+    } else if (votes < minimumVotes) {
+      status = 'uncertain_prediction';
+      reason = 'orientation_disagreement';
     } else if (confidence < minimumConfidence) {
       status = 'uncertain_prediction';
       reason = 'disease_confidence_below_validation_threshold';
@@ -166,7 +170,7 @@ class MobileNetClassifier {
       riceLeafProbability: riceProbability,
       focusScore: focusScore,
       minimumConfidence: minimumConfidence,
-      orientationAgreement: agreement,
+      orientationAgreement: votes / orientationViews,
     );
   }
 

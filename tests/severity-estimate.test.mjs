@@ -24,11 +24,26 @@ test('empty, non-symptomatic, insufficient, malformed masks stay unassessed', ()
     assert.equal(severityFromProbabilities(pixels(0)), null);
     assert.equal(severityFromProbabilities(pixels(1, false, 10)), null);
     assert.equal(severityFromProbabilities(new Float32Array(0)), null);
+    assert.equal(severityFromProbabilities(null), null);
     const invalid = pixels(250);
     invalid[0] = NaN;
     assert.equal(severityFromProbabilities(invalid), null);
     invalid[0] = 2;
     assert.equal(severityFromProbabilities(invalid), null);
+});
+test('ambiguous boundary pixels can veto a level in either tensor layout', () => {
+    for (const channelFirst of [false, true]) {
+        for (const [affected, expected] of [[100, 'mild'], [250, null], [600, null], [800, 'severe']]) {
+            const mask = pixels(affected, channelFirst);
+            // Exactly 100 previously background pixels have no majority tissue class.
+            for (let pixel = 1000; pixel < 1100; pixel++) {
+                [0.25, 0.25, 0.5].forEach((value, tissue) => {
+                    mask[channelFirst ? tissue * 224 * 224 + pixel : pixel * 3 + tissue] = value;
+                });
+            }
+            assert.equal(severityFromProbabilities(mask, channelFirst), expected);
+        }
+    }
 });
 test('packaged model matches the pinned browser/server artifact', async () => {
     const model = await readFile(new URL('../oryzatix_app/assets/models/severity_experimental_v1.tflite', import.meta.url));

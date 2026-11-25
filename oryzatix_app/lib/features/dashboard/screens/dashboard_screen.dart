@@ -351,13 +351,14 @@ class DashboardScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        title: Row(
+                        title: Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Text(
                               item.disease,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                             ),
-                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -365,7 +366,7 @@ class DashboardScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                AppColors.getSeverityLabel(item.severity),
+                                AppColors.getSeverityLabel(item.severity, status: item.severityStatus),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,

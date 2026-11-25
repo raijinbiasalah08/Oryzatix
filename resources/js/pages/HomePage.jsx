@@ -6,11 +6,12 @@ import { useScan } from '../context/ScanContext';
 import AppLayout from '../components/AppLayout';
 import BottomNav from '../components/BottomNav';
 import LanguageSwitch from '../components/LanguageSwitch';
-import { getThumbClass, getSeverityBadgeClass, resolveImageUrl } from '../utils/helpers';
+import { getThumbClass, resolveImageUrl } from '../utils/helpers';
+import { getScanSeverity, scanSeverityLabel } from '../utils/diseases';
 
 export default function HomePage() {
     const { user } = useAuth();
-    const { t } = useLanguage();
+    const { t, lang } = useLanguage();
     const { recentScans, loadRecentScans, recentScansTick, setCurrentScan } = useScan();
     const navigate = useNavigate();
     const location = useLocation();
@@ -20,20 +21,7 @@ export default function HomePage() {
     }, [loadRecentScans, location.key, recentScansTick]);
 
     const openRecentScan = (scan) => {
-        setCurrentScan({
-            id: scan.id,
-            disease: scan.disease,
-            scientific: scan.scientific,
-            confidence: scan.confidence,
-            severity: scan.severity,
-            severity_status: scan.severity_status,
-            severity_model_version: scan.severity_model_version,
-            severity_class: scan.severity_class,
-            image_url: scan.image_url,
-            treatments: scan.treatments,
-            date: scan.date,
-            time: scan.time,
-        });
+        setCurrentScan(scan);
         navigate('/results');
     };
 
@@ -65,22 +53,25 @@ export default function HomePage() {
                     {recentScans.length === 0 ? (
                         <p style={{ padding: '12px 20px', color: 'var(--neutral-500)', fontSize: 13 }}>{t('No scans yet. Start your first scan!', 'Wala pang scan. Simulan ang unang scan!')}</p>
                     ) : (
-                        recentScans.map((s, i) => (
-                            <div key={s.id || i} className="recent-scan-card fade-in" onClick={() => openRecentScan(s)} role="button" tabIndex={0}>
-                                <div className={`scan-thumb ${getThumbClass(s.disease)}`} style={s.image_url ? { padding: 0, overflow: 'hidden' } : undefined}>
-                                    {s.image_url ? (
-                                        <img src={resolveImageUrl(s.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24" aria-label="Uploaded photo unavailable"><path d="M14 4h-4l-2 3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2-3Z" /><circle cx="12" cy="13" r="3" /></svg>
-                                    )}
+                        recentScans.map((s, i) => {
+                            const severity = getScanSeverity(s);
+                            return (
+                                <div key={s.id || i} className="recent-scan-card fade-in" onClick={() => openRecentScan(s)} role="button" tabIndex={0}>
+                                    <div className={`scan-thumb ${getThumbClass(s.disease)}`} style={s.image_url ? { padding: 0, overflow: 'hidden' } : undefined}>
+                                        {s.image_url ? (
+                                            <img src={resolveImageUrl(s.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24" aria-label="Uploaded photo unavailable"><path d="M14 4h-4l-2 3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2-3Z" /><circle cx="12" cy="13" r="3" /></svg>
+                                        )}
+                                    </div>
+                                    <div className="scan-info">
+                                        <div className="disease-name">{s.disease}</div>
+                                        <div className="scan-meta">{s.time}</div>
+                                    </div>
+                                    <span className={`severity-badge ${severity.level === 'healthy' ? 'mild' : severity.level}`}>{scanSeverityLabel(severity, lang)}</span>
                                 </div>
-                                <div className="scan-info">
-                                    <div className="disease-name">{s.disease}</div>
-                                    <div className="scan-meta">{s.time}</div>
-                                </div>
-                                <span className={`severity-badge ${getSeverityBadgeClass(s.severity)}`}>{s.severity}</span>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 

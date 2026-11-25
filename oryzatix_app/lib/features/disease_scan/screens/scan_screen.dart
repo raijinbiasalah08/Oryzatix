@@ -478,7 +478,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         const Text('Severity Level', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         const SizedBox(height: 2),
                         Text(
-                          AppColors.getSeverityLabel(result.severity),
+                          AppColors.getSeverityLabel(result.severity, status: result.severityStatus),
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: sevColor),
                         ),
                       ],

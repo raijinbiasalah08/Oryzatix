@@ -1,3 +1,5 @@
+import '../../../core/models/scan_severity.dart';
+
 class HistoryItem {
   final int id;
   final String disease;
@@ -30,26 +32,21 @@ class HistoryItem {
   });
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
-    final rawSeverity = json['severity']?.toString().toLowerCase();
+    final severity = ScanSeverity.fromJson(json);
     final disease = json['disease']?.toString() ?? 'Rice Leaf';
-    final isHealthy = rawSeverity == 'healthy' || disease.toLowerCase().contains('healthy');
-    final area = double.tryParse(json['affected_percentage']?.toString() ?? '');
-    final hasValidatedSeverity = json['severity_status'] == 'expert_validated' &&
-        ['mild', 'moderate', 'severe'].contains(rawSeverity) &&
-        area != null && area.isFinite && area >= 0 && area <= 100;
 
     return HistoryItem(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       disease: disease,
       scientific: json['scientific']?.toString(),
       confidence: json['confidence']?.toString() ?? '0.0',
-      severity: isHealthy ? 'healthy' : (hasValidatedSeverity ? rawSeverity! : 'unassessed'),
-      severityStatus: isHealthy ? 'not_applicable' : (hasValidatedSeverity ? 'expert_validated' : 'unassessed'),
-      affectedPercentage: hasValidatedSeverity ? area.toStringAsFixed(1) : null,
+      severity: severity.level,
+      severityStatus: severity.status,
+      affectedPercentage: severity.affectedPercentage,
       time: json['time']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
-      treatments: json['treatments'] is Map
+      treatments: severity.allowsRecordedTreatments && json['treatments'] is Map
           ? (json['treatments'] as Map).map((key, value) => MapEntry(key.toString(), value))
           : null,
       localOnly: json['local_only'] == true,

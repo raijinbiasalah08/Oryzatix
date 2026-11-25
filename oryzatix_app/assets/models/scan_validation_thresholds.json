@@ -46,6 +46,7 @@
     },
     "validation_image_count": 2262,
     "orientation_views": 4,
+    "minimum_orientation_votes": 3,
     "model_sha256": "d15fbacd1f592985902f0c35cda66ac6c1be8012689758d196c029105e198b52"
   },
   "binary_test": {

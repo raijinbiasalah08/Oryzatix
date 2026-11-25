@@ -1,9 +1,12 @@
+import '../../../core/models/scan_severity.dart';
+
 class RecentScanItem {
   final int id;
   final String disease;
   final String? scientific;
   final String confidence;
   final String severity;
+  final String severityStatus;
   final String time;
   final String date;
   final String? imageUrl;
@@ -14,18 +17,21 @@ class RecentScanItem {
     this.scientific,
     required this.confidence,
     required this.severity,
+    this.severityStatus = 'unassessed',
     required this.time,
     required this.date,
     this.imageUrl,
   });
 
   factory RecentScanItem.fromJson(Map<String, dynamic> json) {
+    final severity = ScanSeverity.fromJson(json);
     return RecentScanItem(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
       disease: json['disease']?.toString() ?? 'Rice Leaf',
       scientific: json['scientific']?.toString(),
       confidence: json['confidence']?.toString() ?? '0.0',
-      severity: json['severity']?.toString() ?? 'healthy',
+      severity: severity.level,
+      severityStatus: severity.status,
       time: json['time']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),

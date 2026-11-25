@@ -66,7 +66,21 @@ class AppColors {
     }
   }
 
-  static String getSeverityLabel(String? severity) {
+  static String getSeverityLabel(String? severity, {String? status}) {
+    final level = _severityLevelName(severity);
+    switch (status) {
+      case 'model_estimated':
+        return '$level · Experimental estimate';
+      case 'user_assessed':
+        return '$level · User assessed';
+      case 'expert_validated':
+        return '$level · Expert assessed';
+      default:
+        return level;
+    }
+  }
+
+  static String _severityLevelName(String? severity) {
     switch (severity?.toLowerCase()) {
       case 'healthy':
         return 'Healthy';

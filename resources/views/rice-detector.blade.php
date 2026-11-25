@@ -949,7 +949,7 @@
         <!-- Disease Severity Level Selector (Active for BLB & Tungro) -->
         <div class="blb-severity-pills-bar" id="blbSeverityPillsBar" style="display: none;">
           <button class="blb-sev-pill" id="blbSevMildBtn" onclick="switchDiseaseSeverity('mild')">Mild</button>
-          <button class="blb-sev-pill active" id="blbSevModBtn" onclick="switchDiseaseSeverity('moderate')">Moderate</button>
+          <button class="blb-sev-pill" id="blbSevModBtn" onclick="switchDiseaseSeverity('moderate')">Moderate</button>
           <button class="blb-sev-pill" id="blbSevSevBtn" onclick="switchDiseaseSeverity('severe')">Severe</button>
         </div>
 
@@ -959,7 +959,7 @@
           </div>
           <div class="treat-disease-info">
             <h3 id="treatDiseaseName">Leaf Blast</h3>
-            <p id="treatDiseaseSub">Magnaporthe oryzae · Severity: Severe</p>
+            <p id="treatDiseaseSub">Severity not assessed</p>
           </div>
         </div>
 
@@ -986,8 +986,7 @@
             </select>
           </div>
           <div class="dosage-result-box" id="dosageResultText">
-            Water volume needed: <strong>200 Liters</strong> (~12.5 knapsack loads)<br>
-            Active fungicide dosage: <strong>200 - 400 ml</strong> Tricyclazole 75% WP.
+            Choose a treatment and check its product label before calculating a dose.
           </div>
         </div>
       </section>

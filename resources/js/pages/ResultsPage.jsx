@@ -4,7 +4,7 @@ import { useScan } from '../context/ScanContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppLayout from '../components/AppLayout';
 import BottomNav from '../components/BottomNav';
-import { SUPPORTED_DISEASE_LABELS } from '../utils/diseases';
+import { getScanSeverity, scanSeverityLabel, SUPPORTED_DISEASE_LABELS } from '../utils/diseases';
 import { resolveImageUrl } from '../utils/helpers';
 import { cancelNaturalSpeech, speakNaturally } from '../utils/speech';
 
@@ -198,11 +198,12 @@ export default function ResultsPage() {
     }
 
     const lower = (scan.disease || '').toLowerCase();
+    const severity = getScanSeverity(scan);
+    const isHealthy = severity.level === 'healthy';
     let imgCls = 'disease-blast';
     if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) imgCls = 'disease-blb';
-    else if (lower.includes('healthy')) imgCls = 'disease-healthy';
+    else if (isHealthy) imgCls = 'disease-healthy';
 
-    const isHealthy = scan.severity === 'healthy' || scan.disease_key === 'healthy' || lower.includes('healthy');
     const inferredDiseaseKey = isHealthy
         ? 'healthy'
         : lower.includes('sheath')
@@ -219,25 +220,25 @@ export default function ResultsPage() {
     const diseaseKey = RESULT_LOCALIZATION[scan.disease_key] ? scan.disease_key : inferredDiseaseKey;
     const localizedData = diseaseKey ? RESULT_LOCALIZATION[diseaseKey]?.[resultLang] : null;
 
-    const severityLevels = ['mild', 'moderate', 'severe'];
-    const area = Number(scan.affected_percentage);
-    const measuredSeverity = scan.severity_status === 'expert_validated' && scan.affected_percentage !== null && scan.affected_percentage !== undefined && scan.affected_percentage !== '' && Number.isFinite(area) && area >= 0 && area <= 100
-        ? (area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe')
-        : null;
-    const normalizedSeverity = String(scan.severity || '').trim().toLowerCase();
-    const severityLevel = measuredSeverity || (severityLevels.includes(normalizedSeverity) ? normalizedSeverity : null);
+    const severityLevel = severity.level;
+    const translateResult = (en, tl) => resultLang === 'tagalog' ? tl : en;
     let symptomsText = '';
     if (isHealthy && typeof localizedData?.symptoms === 'string') {
         symptomsText = localizedData.symptoms;
-    } else if (severityLevel && localizedData?.symptoms && typeof localizedData.symptoms === 'object') {
-        symptomsText = localizedData.symptoms[severityLevel] || localizedData.symptoms.moderate || '';
-    } else if (!isHealthy) {
-        symptomsText = t(
+    } else if (severity.source === 'model_estimated') {
+        symptomsText = translateResult(
+            'Ask an agriculturist to confirm this experimental severity estimate before choosing a treatment.',
+            'Ipakumpirma muna sa isang agriculturist ang eksperimental na tantiya ng tindi bago pumili ng lunas.'
+        );
+    } else if (localizedData?.symptoms?.[severityLevel]) {
+        symptomsText = localizedData.symptoms[severityLevel];
+    } else if (severityLevel === 'unassessed') {
+        symptomsText = translateResult(
             'Severity level has not been assessed. Ask an agriculturist before choosing severity-based treatment.',
             'Hindi pa nasusuri ang antas ng tindi. Kumonsulta sa agriculturist bago pumili ng lunas ayon sa tindi.'
         );
     } else {
-        symptomsText = t(
+        symptomsText = translateResult(
             'No disease-specific guidance is available for this scan.',
             'Walang tiyak na gabay para sa sakit na ito sa scan.'
         );
@@ -250,7 +251,7 @@ export default function ResultsPage() {
             return;
         }
 
-        const textToSpeak = (isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast')) + '. ' + symptomsText;
+        const textToSpeak = (localizedData?.name || scan.disease || '') + '. ' + symptomsText;
         speakNaturally(textToSpeak, resultLang, {
             onStart: () => setSpeaking(true),
             onEnd: () => setSpeaking(false),
@@ -281,19 +282,17 @@ export default function ResultsPage() {
                         )}
                     </div>
                     <div className="diag-text">
-                        <h3>{isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast')}</h3>
-                        <p>{isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Disease identified by the classifier.')}</p>
+                        <h3>{scan.disease || localizedData?.name}</h3>
+                        <p>{isHealthy ? t('The leaf was classified as healthy.', 'Inuri ang dahon bilang malusog.') : (scan.scientific ? <>Caused by <em>{scan.scientific}</em></> : 'Disease identified by the scanner.')}</p>
                     </div>
                 </div>
 
                 {!isHealthy && (
-                    <div className="severity-meter fade-in" data-severity={severityLevel || 'unassessed'}>
+                    <div className="severity-meter fade-in" data-severity={severityLevel}>
                         <div className="severity-meter-head">
                             <h4>{resultLang === 'tagalog' ? 'Antas ng Tindi' : 'Severity Level'}</h4>
-                            <span className={`severity-readout${severityLevel ? ` level-${severityLevel}` : ''}`} role="status" aria-live="polite">
-                                {severityLevel
-                                    ? `${resultLang === 'tagalog' ? 'Resulta' : 'Current'} · ${resultLang === 'tagalog' ? ({ mild: 'Bahagya', moderate: 'Katamtaman', severe: 'Malala' }[severityLevel]) : severityLevel.charAt(0).toUpperCase() + severityLevel.slice(1)}`
-                                    : (resultLang === 'tagalog' ? 'Hindi pa natatasa' : 'Not assessed')}
+                            <span className={`severity-readout level-${severityLevel}`} role="status" aria-live="polite">
+                                {scanSeverityLabel(severity, resultLang)}
                             </span>
                         </div>
                         <div className="severity-labels" role="list" aria-label={resultLang === 'tagalog' ? 'Mga antas ng tindi' : 'Severity levels'}>

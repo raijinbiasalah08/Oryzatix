@@ -80,7 +80,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: sevBg, borderRadius: BorderRadius.circular(8)),
                     child: Text(
-                      AppColors.getSeverityLabel(item.severity),
+                      AppColors.getSeverityLabel(item.severity, status: item.severityStatus),
                       style: TextStyle(color: sevColor, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
@@ -90,7 +90,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Text('Color analysis score (heuristic): ${item.confidence}%', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               if (item.affectedPercentage != null) ...[
                 const SizedBox(height: 4),
-                Text('Affected Canopy: ${item.affectedPercentage}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                Text('Affected leaf area: ${item.affectedPercentage}%', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
               ],
               const SizedBox(height: 16),
               const Text('Management Advice Recorded:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -369,13 +369,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Row(
+                                          Wrap(
+                                            spacing: 8,
+                                            crossAxisAlignment: WrapCrossAlignment.center,
                                             children: [
                                               Text(
                                                 item.disease,
                                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                               ),
-                                              const SizedBox(width: 8),
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
@@ -383,7 +384,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
-                                                  AppColors.getSeverityLabel(item.severity),
+                                                  AppColors.getSeverityLabel(item.severity, status: item.severityStatus),
                                                   style: TextStyle(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w800,

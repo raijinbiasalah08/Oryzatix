@@ -89,7 +89,7 @@ function loadScannerModels() {
 
             const [labels, thresholds, validatorBytes, diseaseBytes] = await Promise.all([
                 readJson(assetUrl(assets.models, 'class_labels.json')),
-                readJson(assetUrl(assets.models, 'scan_validation_thresholds.json')),
+                readJson(assetUrl(assets.models, 'scan_validation_thresholds.json?v=orientation-votes-1')),
                 readBytes(assetUrl(assets.models, 'rice_leaf_validator.tflite')),
                 readBytes(assetUrl(assets.models, 'mobilenetv2_rice_leaf.tflite')),
             ]);
@@ -275,7 +275,14 @@ async function classify(file) {
     }
 
     const viewScores = [];
-    for (let rotation = 0; rotation < 4; rotation++) {
+    const policy = models.thresholds.disease;
+    const orientationViews = policy.orientation_views ?? 1;
+    const minimumVotes = policy.minimum_orientation_votes ?? 0;
+    if (![1, 4].includes(orientationViews) || !Number.isInteger(minimumVotes) ||
+        minimumVotes < 0 || minimumVotes > orientationViews) {
+        throw new Error('The offline scanner orientation policy is invalid.');
+    }
+    for (let rotation = 0; rotation < orientationViews; rotation++) {
         const scores = await invoke(models.diseaseModel, rgba, models.diseaseShape, rotation);
         const sum = scores.reduce((total, value) => total + value, 0);
         if (scores.length !== models.labels.length ||
@@ -295,8 +302,8 @@ async function classify(file) {
     const label = models.labels[bestIndex];
     const confidence = averaged[bestIndex];
     const minimumConfidence = models.thresholds.disease.thresholds[label.key];
-    const orientationAgreement = viewScores.filter(scores =>
-        scores.indexOf(Math.max(...scores)) === bestIndex).length / viewScores.length;
+    const votes = viewScores.filter(scores =>
+        scores.indexOf(Math.max(...scores)) === bestIndex).length;
 
     let status = 'diagnosed';
     let reason = 'validated_prediction';
@@ -306,6 +313,9 @@ async function classify(file) {
     } else if (!SUPPORTED_DISEASES.has(label.key) || !Number.isFinite(minimumConfidence)) {
         status = 'uncertain_prediction';
         reason = 'no_validated_threshold_for_predicted_class';
+    } else if (votes < minimumVotes) {
+        status = 'uncertain_prediction';
+        reason = 'orientation_disagreement';
     } else if (confidence < minimumConfidence) {
         status = 'uncertain_prediction';
         reason = 'disease_confidence_below_validation_threshold';
@@ -324,7 +334,7 @@ async function classify(file) {
         diseaseName: label.name,
         confidence,
         minimumConfidence: Number.isFinite(minimumConfidence) ? minimumConfidence : null,
-        orientationAgreement,
+        orientationAgreement: votes / orientationViews,
     };
 }
 

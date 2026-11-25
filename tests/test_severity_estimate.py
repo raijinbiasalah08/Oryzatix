@@ -22,8 +22,15 @@ class SeverityEstimateTests(unittest.TestCase):
             self.assertEqual(category(pixels(affected)), expected)
 
     def test_invalid_and_unscorable(self):
-        for data in (pixels(0), pixels(1, 10), np.zeros((1, 3)), pixels(250) * np.nan, pixels(250) * 2):
+        for data in (None, pixels(0), pixels(1, 10), np.zeros((1, 3)), pixels(250) * np.nan, pixels(250) * 2):
             self.assertIsNone(category(data))
+
+    def test_ambiguous_pixels_can_veto_a_boundary_level(self):
+        for affected, expected in ((100, 'mild'), (250, None), (600, None), (800, 'severe')):
+            with self.subTest(affected=affected):
+                mask = pixels(affected)
+                mask.reshape(-1, 3)[1000:1100] = [0.25, 0.25, 0.5]
+                self.assertEqual(category(mask), expected)
 
     def test_healthy_never_invokes_severity(self):
         self.assertIsNone(estimate(Path('.'), pixels(0), 'healthy', lambda *args: self.fail('Must not run')))

@@ -158,7 +158,10 @@ def main() -> int:
         )))
         return 0
 
-    rotations = int(thresholds["disease"].get("orientation_views", 1))
+    rotations = thresholds["disease"].get("orientation_views", 1)
+    minimum_votes = thresholds["disease"].get("minimum_orientation_votes", 0)
+    if type(minimum_votes) is not int or not 0 <= minimum_votes <= rotations:
+        raise ValueError("Invalid orientation vote requirement.")
     views = disease_views(load_model(disease_path), pixels, len(labels), rotations)
     probabilities = np.mean(views, axis=0)
     if np.any(probabilities < 0.0) or np.any(probabilities > 1.0):
@@ -169,6 +172,7 @@ def main() -> int:
 
     best_index = int(np.argmax(probabilities))
     label = labels[best_index]
+    votes = int(np.count_nonzero(views.argmax(axis=1) == best_index))
     disease_key = label.get("key")
     confidence = float(probabilities[best_index])
     thresholds_by_class = disease_gate
@@ -186,6 +190,12 @@ def main() -> int:
             rice_threshold, focus_score, blur_threshold,
             {"disease_key": disease_key, "confidence": confidence, "minimum_confidence": None},
         )
+    elif votes < minimum_votes:
+        result = make_result(
+            "uncertain_prediction", "orientation_disagreement", validator_probability,
+            rice_threshold, focus_score, blur_threshold,
+            {"disease_key": disease_key, "confidence": confidence, "minimum_confidence": float(disease_threshold)},
+        )
     elif confidence < float(disease_threshold):
         result = make_result(
             "uncertain_prediction", "disease_confidence_below_validation_threshold", validator_probability,
@@ -199,7 +209,7 @@ def main() -> int:
             {"disease_key": disease_key, "name": label.get("name"), "confidence": confidence, "minimum_confidence": float(disease_threshold)},
         )
     result['diagnosis']['orientation_views'] = rotations
-    result['diagnosis']['orientation_agreement'] = float(np.mean(np.argmax(views, axis=1) == best_index))
+    result['diagnosis']['orientation_agreement'] = votes / rotations
     result['diagnosis']['score_description'] = 'Mean model probability across full-image orientations'
     result['severity'] = None
     if result['status'] == 'diagnosed':

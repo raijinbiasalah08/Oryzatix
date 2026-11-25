@@ -2932,7 +2932,7 @@ function showUnrecognizedScreen(data) {
     const hasActualConfidence = Number.isFinite(confidence) && confidence >= 0 && confidence <= 100;
     if (reason === 'uncertain_prediction' && isValidatedRiceLeaf && candidateName && hasActualConfidence) {
       const confidenceText = formatConfidencePercent(confidence);
-      const thresholdText = Number.isFinite(minimumConfidence) && minimumConfidence >= 0 && minimumConfidence <= 100
+      const thresholdText = Number.isFinite(minimumConfidence) && confidence < minimumConfidence && minimumConfidence <= 100
         ? (curLang === 'tagalog' ? `; mas mababa sa itinakdang ${formatConfidencePercent(minimumConfidence)}` : `; below the validated ${formatConfidencePercent(minimumConfidence)} cutoff`)
         : '';
       predictionEl.textContent = curLang === 'tagalog'
@@ -2954,20 +2954,36 @@ function formatConfidencePercent(value) {
   return confidence.toFixed(1) + '%';
 }
 
+function isHealthyScanResult(scan) {
+  const key = String(scan.disease_key || '').trim().toLowerCase();
+  if (key && key !== 'unknown') return key === 'healthy';
+  const name = String(scan.disease || scan.disease_name || '').trim().toLowerCase();
+  return name ? ['healthy', 'healthy rice', 'healthy leaf', 'healthy leaves', 'healthy rice leaf', 'healthy rice leaves'].includes(name)
+    : scan.severity === 'healthy';
+}
+
+function severitySource(scan) {
+  return scan.severity_status ?? scan.severity_source;
+}
+
 function resolvedSeverityLevel(scan) {
-  const rawArea = scan && scan.affected_percentage;
-  if (scan && scan.severity_status === 'expert_validated' && rawArea !== null && rawArea !== undefined && rawArea !== '') {
+  if (!scan || isHealthyScanResult(scan)) return null;
+  const source = severitySource(scan);
+  const rawArea = scan.affected_percentage;
+  if (source === 'expert_validated' && (typeof rawArea === 'number' || (typeof rawArea === 'string' && rawArea.trim()))) {
     const area = Number(rawArea);
     if (Number.isFinite(area) && area >= 0 && area <= 100) {
       return area <= 25 ? 'mild' : area <= 60 ? 'moderate' : 'severe';
     }
   }
-  const level = String(scan && scan.severity || '').trim().toLowerCase();
+  const guideSelection = scan.treatment_source === 'manual_guide' && source === 'user_selected';
+  if (!guideSelection && !['model_estimated', 'user_assessed', 'expert_validated'].includes(source)) return null;
+  const level = String(scan.severity || '').trim().toLowerCase();
   return ['mild', 'moderate', 'severe'].includes(level) ? level : null;
 }
 
-function hasResolvedSeverity(scan) {
-  return resolvedSeverityLevel(scan) !== null;
+function canUseSeverityForGuidance(scan) {
+  return severitySource(scan) !== 'model_estimated' && resolvedSeverityLevel(scan) !== null;
 }
 
 function updateSeverityReadout(scan, lang = 'english', level = resolvedSeverityLevel(scan)) {
@@ -2980,8 +2996,11 @@ function updateSeverityReadout(scan, lang = 'english', level = resolvedSeverityL
     ? { mild: 'Bahagya', moderate: 'Katamtaman', severe: 'Malala' }
     : { mild: 'Mild', moderate: 'Moderate', severe: 'Severe' };
   readout.className = 'severity-readout' + (level ? ' level-' + level : '');
+  const sources = lang === 'tagalog'
+    ? { model_estimated: 'Pang-eksperimentong tantiya', user_assessed: 'Manwal na pagtatasa', expert_validated: 'Pagtatasa ng eksperto' }
+    : { model_estimated: 'Experimental estimate', user_assessed: 'Manual assessment', expert_validated: 'Expert assessment' };
   readout.textContent = level
-    ? (lang === 'tagalog' ? 'Resulta · ' : 'Current · ') + labels[level]
+    ? sources[severitySource(scan)] + ' · ' + labels[level]
     : (lang === 'tagalog' ? 'Hindi pa natatasa' : 'Not assessed');
 }
 
@@ -3210,14 +3229,11 @@ function getDefaultTreatments(key, severity = 'moderate') {
 }
 
 function scanSeverityLabel(scan) {
-  if (scan.severity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')) return 'Healthy Leaf';
-  if (scan.severity_status === 'model_estimated' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
-    return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1);
-  }
-  if (scan.severity_status === 'user_assessed' && ['mild', 'moderate', 'severe'].includes(scan.severity)) {
-    return scan.severity.charAt(0).toUpperCase() + scan.severity.slice(1) + ' (manual)';
-  }
-  return 'Not assessed';
+  if (isHealthyScanResult(scan)) return 'Healthy Leaf';
+  const level = resolvedSeverityLevel(scan);
+  if (!level) return 'Not assessed';
+  const sources = { model_estimated: 'experimental estimate', user_assessed: 'manual', expert_validated: 'expert assessment' };
+  return level.charAt(0).toUpperCase() + level.slice(1) + ' (' + sources[severitySource(scan)] + ')';
 }
 
 function renderSeverityMeter(scan, isHealthy) {
@@ -3312,7 +3328,7 @@ function applyScanResult(scan) {
     }
   }
 
-  const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
+  const isHealthy = isHealthyScanResult(scan);
   const conf = document.getElementById('resultConfidence');
   if (conf) {
     conf.style.display = 'none';
@@ -3348,7 +3364,7 @@ function applyScanResult(scan) {
   renderSeverityMeter(scan, isHealthy);
 
   const dname = document.getElementById('resultDiseaseName');
-  if (dname) dname.textContent = isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast');
+  if (dname) dname.textContent = isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Disease result unavailable');
 
   const sciname = document.getElementById('resultScientificName');
   if (sciname) {
@@ -3481,19 +3497,18 @@ function renderResultLanguage() {
   const scan = currentScanResult;
   const lang = currentResultLang || 'english';
   updateSeverityReadout(scan, lang);
-  const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
-  const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
-  const key = scan.disease_key || (isHealthy ? 'healthy' : 'blast');
-  const diseaseData = RESULT_TRANSLATIONS.diseases[key] || (isHealthy ? RESULT_TRANSLATIONS.diseases.healthy : RESULT_TRANSLATIONS.diseases.blast);
-  const localized = diseaseData[lang] || diseaseData.english;
+  const isHealthy = isHealthyScanResult(scan);
+  const severityNeedsAssessment = !isHealthy && !canUseSeverityForGuidance(scan);
+  const diseaseData = RESULT_TRANSLATIONS.diseases[isHealthy ? 'healthy' : scan.disease_key];
+  const localized = diseaseData?.[lang] || diseaseData?.english || {};
 
   // Disease Name & Scientific Subtitle stay constant
   const dname = document.getElementById('resultDiseaseName');
-  if (dname) dname.textContent = isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Leaf Blast');
+  if (dname) dname.textContent = isHealthy ? 'Healthy Rice Leaf' : (scan.disease || 'Disease result unavailable');
 
   const sciname = document.getElementById('resultScientificName');
   if (sciname) {
-    sciname.innerHTML = isHealthy ? 'No pathogens detected · Optimal Vegetative Crop Health' : (scan.scientific ? 'Caused by <em>' + scan.scientific + '</em>' : 'Symptoms evaluated by MobileNet convolutional neural network.');
+    sciname.innerHTML = isHealthy ? 'Photo classified as a healthy rice leaf' : (scan.scientific ? 'Associated with <em>' + escapeHtml(scan.scientific) + '</em>' : '');
   }
 
   // Symptoms text (the only text that translates)
@@ -3502,6 +3517,10 @@ function renderResultLanguage() {
     let symp = '';
     if (isHealthy) {
       symp = localized.symptoms;
+    } else if (severitySource(scan) === 'model_estimated' && resolvedSeverityLevel(scan)) {
+      symp = lang === 'tagalog'
+        ? 'Batay sa larawan ang tantiya ng tindi. Ipakumpirma ang antas sa isang agriculturist bago pumili ng lunas.'
+        : 'The severity estimate is based on this photo. Ask an agriculturist to confirm the level before choosing treatment.';
     } else if (severityNeedsAssessment) {
       symp = lang === 'tagalog'
         ? 'Natukoy ng disease classifier ang ' + (scan.disease || 'sakit sa palay') + ', ngunit hindi pa nasusuri ang antas ng tindi. Ipasuri muna sa agriculturist bago pumili ng lunas ayon sa tindi.'
@@ -3562,7 +3581,7 @@ function renderResultTreatments(scan, lang) {
 
   if (!container) return;
 
-  const isHealthy = (scan.severity === 'healthy' || scan.disease_key === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy'));
+  const isHealthy = isHealthyScanResult(scan);
   if (isHealthy) {
     container.innerHTML = `
       <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px; display:flex; align-items:flex-start; gap:12px;">
@@ -3582,16 +3601,14 @@ function renderResultTreatments(scan, lang) {
     return;
   }
 
-  const key = scan.disease_key || 'blast';
-  const severityNeedsAssessment = !isHealthy && !hasResolvedSeverity(scan);
-  const severity = resolvedSeverityLevel(scan) || 'unassessed';
-  const data = severityNeedsAssessment
-    ? (scan.treatments || { chemical: [], organic: [] })
-    : getLocalizedTreatmentsData(key, severity, lang);
-
-  let html = severityNeedsAssessment
-      ? `<div style="margin-bottom:10px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; color:#334155; font-size:12px; line-height:1.5;">${lang === 'tagalog' ? 'Hindi pa nasusuri ang antas ng tindi, kaya pangkalahatan lamang ang gabay sa lunas. Ipasuri muna sa agriculturist bago pumili ng gamot o dosis.' : 'The severity level has not been assessed, so this guidance is general. Ask an agriculturist before choosing treatment or dosage.'}</div>`
-    : '';
+  if (!scan.disease_key || !canUseSeverityForGuidance(scan)) {
+    container.textContent = lang === 'tagalog'
+      ? 'Ipakumpirma sa isang agriculturist ang sakit at antas ng tindi bago pumili ng gamot o dosis.'
+      : 'Ask an agriculturist to confirm the disease and severity before choosing a treatment or dose.';
+    return;
+  }
+  const data = getLocalizedTreatmentsData(scan.disease_key, resolvedSeverityLevel(scan), lang);
+  let html = '';
 
   // Chemical Treatments / Recommended Sprays
   if (data.chemical && data.chemical.length) {
@@ -4243,7 +4260,8 @@ function loadCurrentTreatment() {
   const s = currentScanResult;
   const key = s.disease_key || 'blast';
   const manualGuide = s.treatment_source === 'manual_guide';
-  const severityNeedsAssessment = s.severity !== 'healthy' && !hasResolvedSeverity(s);
+  const healthy = isHealthyScanResult(s);
+  const severityNeedsAssessment = !healthy && !canUseSeverityForGuidance(s);
   const curSeverity = resolvedSeverityLevel(s) || 'unassessed';
   const isMultiSev = (key === 'blb' || key === 'tungro' || key === 'blast' || key === 'brown_spot' || key === 'sheath_blight');
 
@@ -4251,7 +4269,11 @@ function loadCurrentTreatment() {
   if (name) name.textContent = s.disease;
   const sub = document.getElementById('treatDiseaseSub');
   if (sub) {
-    if (severityNeedsAssessment && !manualGuide) {
+    if (healthy) {
+      sub.textContent = 'Healthy Leaf';
+    } else if (severitySource(s) === 'model_estimated') {
+      sub.textContent = (s.scientific || s.disease) + ' · ' + scanSeverityLabel(s);
+    } else if (severityNeedsAssessment && !manualGuide) {
       sub.textContent = (s.scientific || s.disease) + ' · Status: Not Healthy Leaf';
     } else {
       const severityText = severityNeedsAssessment ? 'Not assessed' : curSeverity.charAt(0).toUpperCase() + curSeverity.slice(1);
@@ -4267,14 +4289,14 @@ function loadCurrentTreatment() {
         ? 'Choose a level only after visually assessing the leaf. The scanner has not assessed severity.'
         : 'These guide suggestions use the level you selected manually; the scanner has not verified it.';
     } else {
-      severityNotice.textContent = 'Severity has not been assessed. The guidance below is general; do not choose severity-based treatment or dosage from this scan.';
+      severityNotice.textContent = 'Ask an agriculturist to confirm the severity before choosing a treatment or dose.';
     }
   }
 
   // Show or hide severity selector pills for BLB, Tungro, Blast, and Brown Spot
   const blbPillsBar = document.getElementById('blbSeverityPillsBar');
   if (blbPillsBar) {
-    if (isMultiSev && (manualGuide || !severityNeedsAssessment)) {
+    if (isMultiSev && (manualGuide || !severityNeedsAssessment || severitySource(s) === 'model_estimated')) {
       blbPillsBar.style.display = 'flex';
       document.querySelectorAll('.blb-sev-pill').forEach(b => b.classList.remove('active'));
       if (!severityNeedsAssessment) {
@@ -4302,11 +4324,8 @@ function loadCurrentTreatment() {
 
   const suppliedTreatments = s.treatments || {};
   const hasSuppliedTreatments = (suppliedTreatments.chemical || []).length > 0 || (suppliedTreatments.organic || []).length > 0;
-  const treat = hasSuppliedTreatments
-    ? suppliedTreatments
-    : severityNeedsAssessment
-      ? { chemical: [], organic: [] }
-      : getDefaultTreatments(key, curSeverity);
+  const treat = severityNeedsAssessment ? { chemical: [], organic: [] }
+    : hasSuppliedTreatments ? suppliedTreatments : getDefaultTreatments(key, curSeverity);
   const chemList = document.getElementById('chemicalList');
   const orgList = document.getElementById('organicList');
   if (chemList) chemList.innerHTML = renderTreatmentItems(treat.chemical || []);
@@ -4351,6 +4370,10 @@ function calculateDosage() {
   const unitSelect = document.getElementById('calcAreaUnit');
   const resultBox = document.getElementById('dosageResultText');
   if (!areaInput || !unitSelect || !resultBox) return;
+  if (!currentScanResult || !canUseSeverityForGuidance(currentScanResult)) {
+    resultBox.textContent = 'Choose a treatment and check its product label before calculating a dose.';
+    return;
+  }
 
   const rawVal = parseFloat(areaInput.value) || 1;
   const isHectare = unitSelect.value === 'hectare';
@@ -4426,10 +4449,10 @@ async function loadHistory() {
         const element = document.getElementById(id);
       setLoadedText(element, value);
       };
-      setStat('statHealthy', localScans.filter(scan => (scan.disease_key || '').toLowerCase() === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy')).length);
-      setStat('statMild', localScans.filter(scan => scan.severity === 'mild').length);
-      setStat('statModerate', localScans.filter(scan => scan.severity === 'moderate').length);
-      setStat('statSevere', localScans.filter(scan => scan.severity === 'severe').length);
+      setStat('statHealthy', localScans.filter(isHealthyScanResult).length);
+      setStat('statMild', localScans.filter(scan => resolvedSeverityLevel(scan) === 'mild').length);
+      setStat('statModerate', localScans.filter(scan => resolvedSeverityLevel(scan) === 'moderate').length);
+      setStat('statSevere', localScans.filter(scan => resolvedSeverityLevel(scan) === 'severe').length);
       filterHistoryList();
       setHistoryLoadStatus('Guest scan records are stored on this device.', 'success');
       return true;
@@ -4477,12 +4500,8 @@ async function loadHistory() {
     } catch (_) {}
     loadedScans.push(...localScans);
     if (localScans.length) {
-      const localCount = key => localScans.filter(scan => {
-        const disease = (scan.disease_key || scan.disease || '').toLowerCase();
-        return key === 'healthy'
-          ? disease === 'healthy' || disease.includes('healthy')
-          : (scan.severity || '').toLowerCase() === key;
-      }).length;
+      const localCount = key => localScans.filter(scan => key === 'healthy'
+        ? isHealthyScanResult(scan) : resolvedSeverityLevel(scan) === key).length;
       setLoadedText(h, (Number(stats.healthy) || 0) + localCount('healthy'));
       setLoadedText(mild, (Number(stats.mild) || 0) + localCount('mild'));
       setLoadedText(m, (Number(stats.moderate) || 0) + localCount('moderate'));
@@ -4509,11 +4528,10 @@ async function loadHistory() {
         const accountScans = allHistoryScans.filter(scan => Number(scan.id) > 0);
         allHistoryScans = [...localScans, ...accountScans];
         pruneHistorySelection();
-        const diseaseKey = scan => String(scan.disease_key || scan.disease || scan.disease_name || '').toLowerCase();
-        setLoadedText(document.getElementById('statHealthy'), allHistoryScans.filter(scan => diseaseKey(scan).includes('healthy')).length);
-        setLoadedText(document.getElementById('statMild'), allHistoryScans.filter(scan => scan.severity === 'mild').length);
-        setLoadedText(document.getElementById('statModerate'), allHistoryScans.filter(scan => scan.severity === 'moderate').length);
-        setLoadedText(document.getElementById('statSevere'), allHistoryScans.filter(scan => scan.severity === 'severe').length);
+        setLoadedText(document.getElementById('statHealthy'), allHistoryScans.filter(isHealthyScanResult).length);
+        setLoadedText(document.getElementById('statMild'), allHistoryScans.filter(scan => resolvedSeverityLevel(scan) === 'mild').length);
+        setLoadedText(document.getElementById('statModerate'), allHistoryScans.filter(scan => resolvedSeverityLevel(scan) === 'moderate').length);
+        setLoadedText(document.getElementById('statSevere'), allHistoryScans.filter(scan => resolvedSeverityLevel(scan) === 'severe').length);
         filterHistoryList();
         setHistoryLoadStatus('Showing device-only guest scans. Online records need an internet connection.', 'info');
         return true;
@@ -4567,9 +4585,7 @@ function renderHistoryList(scans) {
 
   let html = '';
   pageItems.forEach(scan => {
-    const rawSeverity = (scan.severity || '').toLowerCase();
-    const isHealthyScan = rawSeverity === 'healthy' || (scan.disease || '').toLowerCase().includes('healthy');
-    const sev = isHealthyScan ? 'healthy' : (['user_assessed', 'model_estimated'].includes(scan.severity_status) ? rawSeverity : 'unassessed');
+    const sev = isHealthyScanResult(scan) ? 'healthy' : (resolvedSeverityLevel(scan) || 'unassessed');
     const badgeCls = 'sev-badge ' + sev;
     const badgeText = scanSeverityLabel(scan);
 
@@ -4679,13 +4695,13 @@ function filterHistoryList() {
 
   if (activeHistoryFilter !== 'all') {
     filtered = filtered.filter(s => {
-      const sev = (s.severity || '').toLowerCase();
+      const sev = isHealthyScanResult(s) ? 'healthy' : (resolvedSeverityLevel(s) || 'unassessed');
       const dis = (s.disease || '').toLowerCase();
       if (activeHistoryFilter === 'severe') return sev === 'severe';
       if (activeHistoryFilter === 'unassessed') return sev === 'unassessed';
       if (activeHistoryFilter === 'moderate') return sev === 'moderate';
       if (activeHistoryFilter === 'mild') return sev === 'mild';
-      if (activeHistoryFilter === 'healthy') return sev === 'healthy' || dis.includes('healthy');
+      if (activeHistoryFilter === 'healthy') return sev === 'healthy';
       if (activeHistoryFilter === 'blast') return dis.includes('blast');
       if (activeHistoryFilter === 'blb') return dis.includes('blight') || dis.includes('blb');
       if (activeHistoryFilter === 'brown_spot') return dis.includes('brown') || dis.includes('spot');
@@ -4699,7 +4715,7 @@ function filterHistoryList() {
       const name = (s.disease || '').toLowerCase();
       const sci = (s.scientific || '').toLowerCase();
       const date = (s.dateLabel || s.date || '').toLowerCase();
-      const sev = (s.severity || '').toLowerCase();
+      const sev = scanSeverityLabel(s).toLowerCase();
       return name.includes(query) || sci.includes(query) || date.includes(query) || sev.includes(query);
     });
   }
@@ -4885,9 +4901,7 @@ function renderHomeScanRecords(recent) {
         let thumbCls = 'blast';
         if (lower.includes('healthy')) thumbCls = 'healthy';
         else if (lower.includes('blight') || lower.includes('blb') || lower.includes('brown')) thumbCls = 'blb';
-        const rawSeverity = (s.severity || '').toLowerCase();
-        const isHealthyScan = rawSeverity === 'healthy' || lower.includes('healthy');
-        const sevCls = isHealthyScan ? 'healthy' : (['user_assessed', 'model_estimated'].includes(s.severity_status) ? rawSeverity : 'unassessed');
+        const sevCls = isHealthyScanResult(s) ? 'healthy' : (resolvedSeverityLevel(s) || 'unassessed');
         const sevLabel = scanSeverityLabel(s);
 
         const rawUrl = s.image_url;
