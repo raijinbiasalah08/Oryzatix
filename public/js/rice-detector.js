@@ -251,6 +251,7 @@ function apiUrl(path) {
 }
 
 let lastScannedLeafBlobUrl = null;
+let pendingScan = null;
 
 function getDiseaseCartoonName(keyOrName) {
   const key = String(keyOrName || '').toLowerCase();
@@ -577,7 +578,17 @@ function openOryAssistant() {
   showScreen('consultation');
 }
 
-function showScreen(id) {
+function showScreen(id, { freshScan = false } = {}) {
+  if (id === 'loading' && !pendingScan) id = 'scan';
+  document.getElementById('results').classList.toggle('new-scan-result', id === 'results' && freshScan);
+  if (id !== 'loading' && document.getElementById('loading').classList.contains('active')) {
+    pendingScan?.abort();
+    pendingScan = null;
+    const preview = document.getElementById('scanPhotoPreview');
+    preview.onload = null;
+    preview.removeAttribute('src');
+    preview.hidden = true;
+  }
   if (id === 'consultation' || AUTH_SCREENS.includes(id)) hideOryAssistantGreeting();
 
   // Redirect old saved links to the dashboard after the admin chatbot screen is removed.
@@ -2678,18 +2689,7 @@ function handleFileUpload(event) {
   event.target.value = '';
 }
 
-function completeScanProgress() {
-  ['step1', 'step2', 'step3', 'step4'].forEach(id => {
-    const element = document.getElementById(id);
-    if (!element) return;
-    element.classList.add('done');
-    const check = element.querySelector('.step-check');
-    if (check) check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-  });
-}
-
-async function displayScanResponse(data, file, localFileUrl, localOnly = false) {
-  await new Promise(resolve => setTimeout(resolve, 450));
+async function displayScanResponse(data, file, localFileUrl) {
   const scan = data && data.scan && typeof data.scan === 'object' ? data.scan : null;
   const supportedDiseaseKeys = new Set(['blast', 'blb', 'brown_spot', 'healthy', 'sheath_blight', 'tungro']);
   const confidence = scan && scan.confidence !== null && scan.confidence !== undefined && scan.confidence !== ''
@@ -2703,25 +2703,37 @@ async function displayScanResponse(data, file, localFileUrl, localOnly = false) 
     scan.disease.trim().length > 0 && confidenceIsValid;
   const recordWasSaved = data.saved === true && Number(scan && scan.id) > 0;
 
-  if (diagnosisIsValid && (recordWasSaved || isGuestMode() || localOnly || data.local_only === true)) {
+  if (diagnosisIsValid && (recordWasSaved || isGuestMode() || data.local_only === true)) {
 
-    if (isGuestMode() || localOnly || data.local_only === true) {
+    if (lastScannedLeafBlobUrl) URL.revokeObjectURL(lastScannedLeafBlobUrl);
+    lastScannedLeafBlobUrl = localFileUrl;
+    if (isGuestMode() || data.local_only === true) {
       scan.local_only = true;
       scan.saved = false;
       scan.image_url = localFileUrl || scan.image_url || '';
+      applyScanResult(scan, { saving: true, freshScan: true });
       try {
         scan.id = await saveGuestScanRecord(scan, file);
         scan.saved = true;
       } catch (storageError) {
         console.warn('The scan was classified locally but could not be saved on this device:', storageError);
       }
+      if (currentScanResult === scan) {
+        updateResultSaveStatus(scan);
+        rememberScanResult(scan);
+      }
+      if (isGuestMode() || currentScanResult === scan) {
+        loadHomeRecentScans();
+        loadHistory();
+      }
+      return;
     } else {
       scan.saved = true;
     }
     if (!scan.image_url || (scan.image_url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
       scan.image_url = localFileUrl || scan.image_url;
     }
-    applyScanResult(scan);
+    applyScanResult(scan, { freshScan: true });
   } else {
     showUnrecognizedScreen({
       ...data,
@@ -2738,53 +2750,41 @@ async function uploadAndAnalyze(file) {
     return;
   }
 
-  showScreen('loading');
-  if (lastScannedLeafBlobUrl && lastScannedLeafBlobUrl.startsWith('blob:')) {
-    try { URL.revokeObjectURL(lastScannedLeafBlobUrl); } catch (e) {}
-  }
-  const localFileUrl = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(file) : '';
-  lastScannedLeafBlobUrl = localFileUrl;
-
-  ['step1', 'step2', 'step3', 'step4'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('done');
-    const sc = el.querySelector('.step-check');
-    if (sc) sc.innerHTML = '';
-  });
-
-  // Progressive visual feedback for steps 1, 2, 3
-  const stepDelays = [400, 950, 1500];
-  stepDelays.forEach((delay, idx) => {
-    setTimeout(() => {
-      const stepEl = document.getElementById('step' + (idx + 1));
-      if (stepEl) {
-        stepEl.classList.add('done');
-        const sc = stepEl.querySelector('.step-check');
-        if (sc) sc.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-      }
-    }, delay);
-  });
-
   if (navigator.onLine === false) {
     showUnrecognizedScreen({ reason: 'internet_required' });
     return;
   }
+
+  pendingScan?.abort();
+  const request = new AbortController();
+  pendingScan = request;
+  const localFileUrl = URL.createObjectURL(file);
+  const preview = document.getElementById('scanPhotoPreview');
+  preview.hidden = true;
+  preview.onload = () => {
+    if (pendingScan === request) preview.hidden = false;
+  };
+  preview.src = localFileUrl;
+  showScreen('loading');
 
   const formData = new FormData();
   formData.append('image', file);
   if (isGuestMode()) formData.append('guest_mode', '1');
 
   try {
-    await ensureCsrfCookie();
+    await ensureCsrfCookie(false, request.signal);
+    if (request.signal.aborted) return;
     const res = await fetch(apiUrl('/rice-detector/upload'), {
       method: 'POST',
+      signal: request.signal,
       credentials: 'include',
       headers: authHeaders(),
       body: formData,
     });
 
     const responseText = await res.text();
+    if (request.signal.aborted) return;
+    pendingScan = null;
     let data = {};
     try {
       const parsedResponse = responseText ? JSON.parse(responseText) : {};
@@ -2816,11 +2816,13 @@ async function uploadAndAnalyze(file) {
       return;
     }
 
-    completeScanProgress();
     await displayScanResponse(data, file, localFileUrl);
   } catch (err) {
+    if (request.signal.aborted) return;
     console.error('Upload and scan error:', err);
     showUnrecognizedScreen({ reason: navigator.onLine === false ? 'internet_required' : 'server_error' });
+  } finally {
+    if (lastScannedLeafBlobUrl !== localFileUrl) URL.revokeObjectURL(localFileUrl);
   }
 }
 
@@ -2945,6 +2947,7 @@ function showUnrecognizedScreen(data) {
     }
   }
   showScreen('unrecognized-result');
+  titleEl?.focus({ preventScroll: true });
 }
 
 function formatConfidencePercent(value) {
@@ -3262,27 +3265,34 @@ function renderSeverityMeter(scan, isHealthy) {
   }
 }
 
-function applyScanResult(scan) {
-  currentScanResult = scan;
+function rememberScanResult(scan) {
   try {
     if (typeof sessionStorage !== 'undefined' && scan) {
       sessionStorage.setItem('oryzatix_last_scan_result', JSON.stringify(scan));
     }
   } catch (e) { }
+}
 
+function updateResultSaveStatus(scan, saving = false) {
   const saveStatus = document.getElementById('resultSaveStatus');
   const saveStatusText = document.getElementById('resultSaveStatusText');
   if (saveStatus && saveStatusText) {
     const isSaved = scan.saved === true || Number(scan.id) > 0;
     saveStatus.classList.toggle('is-saved', isSaved);
-    saveStatus.classList.toggle('is-not-saved', !isSaved);
-    saveStatusText.textContent = isSaved
+    saveStatus.classList.toggle('is-not-saved', !isSaved && !saving);
+    saveStatusText.textContent = saving ? 'Saving on this device…' : isSaved
       ? (scan.local_only ? 'Saved on this device. It is not in an online account.' : 'Saved to Scan History & Records.')
       : (currentUser
         ? (scan.local_only ? 'The result was shown but could not be saved on this device.' : 'This scan could not be saved to your records. Please try again.')
         : 'Sign in to save this scan to your history.');
     saveStatus.style.display = 'flex';
   }
+}
+
+function applyScanResult(scan, { saving = false, freshScan = false } = {}) {
+  currentScanResult = scan;
+  rememberScanResult(scan);
+  updateResultSaveStatus(scan, saving);
 
   const imgCard = document.getElementById('resultImageCard');
   if (imgCard) {
@@ -3308,7 +3318,7 @@ function applyScanResult(scan) {
         img.style.inset = '0';
         img.style.width = '100%';
         img.style.height = '100%';
-        img.style.objectFit = 'cover';
+        img.style.objectFit = 'contain';
         imgCard.insertBefore(img, imgCard.firstChild);
       }
       img.alt = (scan.disease || 'Rice leaf') + ' detection image';
@@ -3376,9 +3386,12 @@ function applyScanResult(scan) {
 
   renderResultLanguage();
 
-  showScreen('results');
-  loadHomeRecentScans();
-  loadHistory();
+  showScreen('results', { freshScan });
+  if (freshScan) dname?.focus({ preventScroll: true });
+  if (!saving) {
+    loadHomeRecentScans();
+    loadHistory();
+  }
 }
 
 let currentResultLang = 'english';
@@ -4853,9 +4866,18 @@ async function deleteSelectedHistoryScans() {
   }
 }
 
+const dashboardOwners = new Map();
+
+function needsDashboardPlaceholder(section) {
+  const owner = currentUser?.id ?? currentUser?.email ?? 'guest';
+  if (dashboardOwners.get(section) === owner) return false;
+  dashboardOwners.set(section, owner);
+  return true;
+}
+
 async function loadHomeRecentScans() {
   const container = document.getElementById('homeRecentScansContainer');
-  if (container) setDataSkeleton(container, recentScanSkeletonMarkup());
+  if (container && needsDashboardPlaceholder('home')) setDataSkeleton(container, recentScanSkeletonMarkup());
   const all = [];
   if (!isGuestMode()) {
     try {
@@ -4910,7 +4932,7 @@ function renderHomeScanRecords(recent) {
           ? '<img src="' + escapeHtml(resolvedUrl) + '" alt="' + escapeHtml(s.disease) + '" onerror="markScanPhotoUnavailable(this);" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M7 12h10"/></svg>';
 
-        return '<div class="recent-scan-card fade-in" onclick="viewHistoryScanDetail(' + (s.id || 0) + ')">' +
+        return '<div class="recent-scan-card" onclick="viewHistoryScanDetail(' + (s.id || 0) + ')">' +
           '<div class="scan-thumb ' + thumbCls + '" style="overflow:hidden;">' +
           thumbContent +
           '</div>' +
@@ -5759,29 +5781,31 @@ function escapeHtml(str) {
 /* ═══════════ ADMIN EXECUTIVE DASHBOARD ═══════════ */
 async function loadAdminDashboard() {
   const overviewStatus = document.getElementById('adminOverviewStatus');
-  if (overviewStatus) {
-    overviewStatus.hidden = false;
-    setDataSkeleton(overviewStatus, '<span class="sr-only" role="status">Loading your dashboard...</span><span class="app-skeleton-bar app-skeleton-status-line" aria-hidden="true"></span>');
-  }
   const donut = document.getElementById('adminHealthDonut');
-  [
-    ['adminDashTotalUsers', '48px'], ['adminDashTotalScans', '48px'],
-    ['adminDashDetectedDiseases', '48px'], ['adminDashHealthyLeaves', '48px'],
-    ['adminDashUserBreakdown', '150px'], ['adminDashTodayScans', '72px'],
-    ['adminDashOutbreakPercent', '120px'], ['adminDashHealthyRatio', '120px'],
-  ].forEach(([id, width]) => setTextSkeleton(document.getElementById(id), width, 'Loading dashboard totals...'));
-  ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
-    setTextSkeleton(document.getElementById(`adminDist${key}Count`), '52px', 'Loading disease totals...');
-    setTextSkeleton(document.getElementById(`adminDist${key}Percent`), '38px', 'Loading disease percentages...');
-  });
-  if (donut) {
-    donut.classList.add('app-skeleton-donut');
-    donut.setAttribute('aria-label', 'Loading leaf health distribution');
+  if (needsDashboardPlaceholder('admin')) {
+    if (overviewStatus) {
+      overviewStatus.hidden = false;
+      setDataSkeleton(overviewStatus, '<span class="sr-only" role="status">Loading your dashboard...</span><span class="app-skeleton-bar app-skeleton-status-line" aria-hidden="true"></span>');
+    }
+    [
+      ['adminDashTotalUsers', '48px'], ['adminDashTotalScans', '48px'],
+      ['adminDashDetectedDiseases', '48px'], ['adminDashHealthyLeaves', '48px'],
+      ['adminDashUserBreakdown', '150px'], ['adminDashTodayScans', '72px'],
+      ['adminDashOutbreakPercent', '120px'], ['adminDashHealthyRatio', '120px'],
+    ].forEach(([id, width]) => setTextSkeleton(document.getElementById(id), width, 'Loading dashboard totals...'));
+    ['Blast', 'Blb', 'Tungro', 'BrownSpot', 'Healthy'].forEach(key => {
+      setTextSkeleton(document.getElementById(`adminDist${key}Count`), '52px', 'Loading disease totals...');
+      setTextSkeleton(document.getElementById(`adminDist${key}Percent`), '38px', 'Loading disease percentages...');
+    });
+    if (donut) {
+      donut.classList.add('app-skeleton-donut');
+      donut.setAttribute('aria-label', 'Loading leaf health distribution');
+    }
+    setDataSkeleton(document.getElementById('adminHealthLegend'), meterSkeletonMarkup(6, 'Loading scan distribution...'));
+    setDataSkeleton(document.getElementById('adminRecentActivity'), activitySkeletonMarkup(4, 'Loading recent activity...'));
+    setDataSkeleton(document.getElementById('adminLocationsBody'), tableSkeletonMarkup(4, 3, 'Loading location records...', false));
+    setDataSkeleton(document.getElementById('adminRecentScansTableBody'), tableSkeletonMarkup(7, 4, 'Loading recent detection records...'));
   }
-  setDataSkeleton(document.getElementById('adminHealthLegend'), meterSkeletonMarkup(6, 'Loading scan distribution...'));
-  setDataSkeleton(document.getElementById('adminRecentActivity'), activitySkeletonMarkup(4, 'Loading recent activity...'));
-  setDataSkeleton(document.getElementById('adminLocationsBody'), tableSkeletonMarkup(4, 3, 'Loading location records...', false));
-  setDataSkeleton(document.getElementById('adminRecentScansTableBody'), tableSkeletonMarkup(7, 4, 'Loading recent detection records...'));
 
   try {
     await ensureCsrfCookie();
@@ -7362,9 +7386,11 @@ let staffActiveDiseaseFilter = 'all';
 async function loadStaffDashboard() {
   const tableBody = document.getElementById('staffScansTableBody');
   const cardsContainer = document.getElementById('staffBarangayCardsContainer');
-  ['staffStatTotalScans', 'staffStatActiveOutbreaks', 'staffStatTotalFarmers', 'staffStatHealthyRatio'].forEach(id => setTextSkeleton(document.getElementById(id), '48px', 'Loading field totals...'));
-  setDataSkeleton(tableBody, tableSkeletonMarkup(6, 5, 'Loading field surveillance records...', false));
-  setDataSkeleton(cardsContainer, barangaySkeletonMarkup(3, 'Loading barangay surveillance data...'));
+  if (needsDashboardPlaceholder('staff')) {
+    ['staffStatTotalScans', 'staffStatActiveOutbreaks', 'staffStatTotalFarmers', 'staffStatHealthyRatio'].forEach(id => setTextSkeleton(document.getElementById(id), '48px', 'Loading field totals...'));
+    setDataSkeleton(tableBody, tableSkeletonMarkup(6, 5, 'Loading field surveillance records...', false));
+    setDataSkeleton(cardsContainer, barangaySkeletonMarkup(3, 'Loading barangay surveillance data...'));
+  }
 
   fetch(apiUrl('/staff/overview'), {
     credentials: 'include',

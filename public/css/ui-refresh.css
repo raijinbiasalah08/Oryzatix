@@ -585,13 +585,62 @@ button:disabled { cursor: not-allowed; }
   .activity-time { grid-column: 2; text-align: left; }
 }
 
-/* Small, finite motion: no animated layout or perpetual decoration. */
+.scan-preview-frame {
+  width: 100%;
+  height: clamp(160px, 40vh, 340px);
+  flex: none;
+  margin: 0 auto 20px;
+  background: var(--neutral-50);
+}
+#scanPhotoPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#scanPhotoPreview:not([hidden]) { display: block; }
+#loading .scan-analysis-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+}
+.scan-analysis-leaf { width: 26px; height: 26px; color: var(--brand-green); }
+.severity-meter::before {
+  width: var(--level-width, 0%);
+  background: var(--level-color, transparent);
+  transform-origin: left;
+  opacity: 1;
+}
+.severity-meter[data-severity='mild'] { --level-width: 33.333%; --level-color: #22a55a; }
+.severity-meter[data-severity='moderate'] { --level-width: 66.667%; --level-color: #e59f21; }
+.severity-meter[data-severity='severe'] { --level-width: 100%; --level-color: #ef5350; }
+
+@keyframes scan-photo-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scan-leaf-sway {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(5deg); }
+}
+@keyframes severity-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes workspace-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .screen.active { animation: workspace-enter 260ms var(--ui-ease); }
+  .screen.active { animation: workspace-enter 200ms var(--ui-ease); }
+  #loading.screen.active { animation: none; }
+  #loading.active #scanPhotoPreview { animation: scan-photo-in 180ms var(--ui-ease); }
+  #loading.active .scan-analysis-leaf {
+    transform-origin: 20% 85%;
+    animation: scan-leaf-sway 850ms ease-in-out infinite alternate;
+  }
+  #results.new-scan-result .severity-meter:not([data-severity='unassessed'])::before {
+    animation: severity-fill 220ms var(--ui-ease);
+  }
+  #results.new-scan-result .scan-save-status.is-saved { animation: scan-photo-in 180ms var(--ui-ease); }
+  .admin-tab-btn.active, .staff-tab-btn.active, .mobile-nav-btn.active svg,
+  .sidebar-nav-btn.active svg { animation: workspace-enter 180ms var(--ui-ease); }
+  #staffScansView, #staffOutbreakView, #staffProtocolsView { animation: workspace-enter 180ms var(--ui-ease); }
   .chat-bubble { animation: workspace-enter 180ms var(--ui-ease); }
   .quick-hub-card, .feature-card, .recent-scan-card, .admin-disease-card {
     transition: transform 180ms var(--ui-ease), border-color 180ms ease, box-shadow 180ms ease;

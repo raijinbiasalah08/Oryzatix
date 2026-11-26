@@ -783,15 +783,15 @@
 
       <!-- ═══════════ SCREEN 6: LOADING / ANALYZING ═══════════ -->
       <section class="screen" id="loading">
-        <div class="loading-ring"></div>
-        <h2>Checking Reference Match</h2>
-        <p>Checking whether this image exactly matches a labeled rice leaf reference...</p>
-        <div class="loading-steps">
-          <div class="loading-step" id="step1"><div class="step-check"></div><span>Reading uploaded image</span></div>
-          <div class="loading-step" id="step2"><div class="step-check"></div><span>Checking exact image match</span></div>
-          <div class="loading-step" id="step3"><div class="step-check"></div><span>Checking severity assessment status</span></div>
-          <div class="loading-step" id="step4"><div class="step-check"></div><span>Preparing recommendations</span></div>
+        <div class="scan-preview-frame">
+          <img id="scanPhotoPreview" alt="Selected leaf photo" hidden>
         </div>
+        <h2 class="scan-analysis-status" role="status">
+          <svg class="scan-analysis-leaf" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20C3 13 8 6 21 3c-2 10-7 16-15 16M3 22 17 8"/>
+          </svg>
+          <span data-en="Analyzing leaf…" data-tl="Sinusuri ang dahon…">Analyzing leaf…</span>
+        </h2>
       </section>
 
       <!-- ═══════════ SCREEN 7: DETECTION RESULTS ═══════════ -->
@@ -820,7 +820,7 @@
             <img src="{{ asset('images/treatment/leaf-blast-cartoon.png') }}" alt="Leaf Blast illustration" width="48" height="48">
           </div>
           <div class="diag-text">
-            <h3 id="resultDiseaseName">Leaf Blast</h3>
+            <h3 id="resultDiseaseName" tabindex="-1">Leaf Blast</h3>
             <p id="resultScientificName">Caused by <em>Magnaporthe oryzae</em></p>
           </div>
         </div>
@@ -896,7 +896,7 @@
       <section class="screen" id="unrecognized-result">
         <div class="unrecognized-card">
           <div class="unrec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-          <h2 id="unrecTitle" data-en="Scan Result Needs Review" data-tl="Kailangang Suriin ang Resulta">Scan Result Needs Review</h2>
+          <h2 id="unrecTitle" tabindex="-1" aria-describedby="unrecMessage" data-en="Scan Result Needs Review" data-tl="Kailangang Suriin ang Resulta">Scan Result Needs Review</h2>
           <p class="unrec-subtitle" id="unrecMessage" style="font-size: 15px; font-weight: 600; color: #b91c1c;">The scanner could not confidently identify this image. Try a clear, close-up photo of one rice leaf in natural light.</p>
           <p id="unrecPrediction" style="display: none; margin: 12px 0 20px; padding: 12px 16px; border: 1px solid #fcd34d; border-radius: 12px; background: #fffbeb; color: #78350f; font-size: 14px; line-height: 1.5;"></p>
 
